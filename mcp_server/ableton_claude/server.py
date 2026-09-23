@@ -4,6 +4,7 @@ import time
 from mcp.server.fastmcp import FastMCP
 
 from . import analysis, client
+from .music import groove, harmony, melody, samples, theory
 
 INSTRUCTIONS = """\
 Drives Ableton Live through the ClaudeBridge Remote Script (127.0.0.1:9878).
@@ -24,12 +25,16 @@ Bridge commands (args):
   create_midi_clip(track, length, notes=[[pitch,start,dur,vel],...], name, beat|bar, loop)
   add_notes(track, clip, notes, replace=False)
   create_audio_clip(track, path, beat|bar, name, warp, gain_db, pitch)
-  set_clip(track, clip, name, muted, pitch, gain_db, looping, loop_start, loop_end, warping)
+  set_clip(track, clip, name, muted, pitch, gain_db, looping, loop_start, loop_end, warping,
+           start_marker, end_marker)   -- markers move content, they do not resize the clip
   mute_clips_in_range(track, muted, start_bar, end_bar)
   duplicate_clip(track, clip, beat|bar) | delete_clip(track, clip)
   delete_clips_in_range(track, start_bar, end_bar)
   duplicate_range(track, start_bar, end_bar, dest_bar, active_only=True)
-  create_*_clip(..., envelopes=[{param, device, points:[[beat_in_clip, v],...], unit:raw|db}])
+  fill_range(track, src_start_bar, src_end_bar, start_bar, end_bar)  -- loop a phrase, cut the overhang
+  trim_clip(track, clip, end_bar|end_beat)  -- only where nothing lies after the cut
+  create_*_clip(..., envelopes=[{param, device, points:[[beat_in_clip, v],...],
+                                 unit:raw|db|display}])
   clip_envelope(track, slot, points, param="volume"|"pan"|
                 "send:0"|<param>, device, unit)  -- Session clips only (Live API limit)
   browse(query, roots=[instruments,audio_effects,midi_effects,drums,sounds,plugins,
@@ -42,6 +47,11 @@ Bridge commands (args):
 
 Rendering records the master in real time into a new track via Resampling, so a
 render takes as long as the music it captures.
+
+Composing: the music_* tools return notes ready for create_midi_clip. Keep new material
+inside the song's scale (analyze_sample on its loops tells you the key and the swing),
+land strong beats on chord tones, and give a call a response that echoes its rhythm.
+Build arrangements left to right per track (fill_range cuts overhangs by overwriting).
 """
 
 mcp = FastMCP("ableton-claude", instructions=INSTRUCTIONS)
@@ -120,6 +130,80 @@ def analyze_audio(path: str, target: str = "club", sections: list[dict] | None =
 def compare_to_reference(path: str, reference_path: str) -> dict:
     """Loudness-matched band-by-band comparison of a mix against a reference track."""
     return analysis.compare(path, reference_path)
+
+
+@mcp.tool()
+def music_chords(tonic: str, mode: str, numerals: list[str]) -> list[str]:
+    """Roman numerals to chord symbols, e.g. G minor ['i7','III7','VII','IV7sus4'] ->
+    ['Gm7','Bbmaj7','F','C7sus4']. Modes: minor, dorian, major, mixolydian, phrygian,
+    lydian, harmonic_minor, melodic_minor."""
+    sc = theory.Scale(tonic, mode)
+    return [theory.roman(sc, n) for n in numerals]
+
+
+@mcp.tool()
+def music_progression(chords: list[str], bars_per_chord: float = 2, low: int = 53,
+                      high: int = 77, voices: int = 4, anticipate: float = 0.5,
+                      hold_last_bars: float = 0, velocity: int = 88) -> dict:
+    """Voice-led chord part (common tones held, minimal movement, no low-register mud).
+    anticipate = beats each change lands early (0.5 = the 'and' of 4).
+    Returns notes for create_midi_clip and the voicings by name."""
+    notes, vs = harmony.progression_notes(chords, bars_per_chord, low, high, voices,
+                                          anticipate, velocity, hold_last_bars=hold_last_bars)
+    return {"notes": notes, "length_beats": (len(chords) * bars_per_chord + hold_last_bars) * 4,
+            "voicings": [[theory.note_name(p) for p in v] for v in vs],
+            "movement_semitones": theory.movement(vs)}
+
+
+@mcp.tool()
+def music_call_and_response(chords: list[str], tonic: str = "G",
+                            mode: str = "minor_hexatonic", phrase_bars: int = 2,
+                            seed: int = 7, swing: float = 50.0,
+                            call_range: list[int] = [62, 79],
+                            response_range: list[int] = [55, 74]) -> dict:
+    """A call (first half of `chords`, one chord per bar) that rises and ends on an open
+    degree, and a response that echoes its rhythm and resolves to the tonic or third.
+    Each part's notes start at 0: put the response `phrase_bars` bars after the call.
+    Keep the seed to repeat the motif across the song; change chords to re-harmonise."""
+    out = melody.call_and_response(tonic, mode, chords, phrase_bars, tuple(call_range),
+                                   tuple(response_range), seed)
+    if swing != 50.0:
+        out["call"] = harmony.swing(out["call"], swing)
+        out["response"] = harmony.swing(out["response"], swing)
+    sc = theory.Scale(tonic, mode)
+    out["audit"] = (melody.audit(out["call"], sc, chords[:phrase_bars]) +
+                    melody.audit(out["response"], sc, chords[phrase_bars:]))
+    return out
+
+
+@mcp.tool()
+def music_drum_pattern(bars: int = 1, swing: float = 56.0, parts: list[str] | None = None,
+                       seed: int = 0) -> dict:
+    """Deep house kit pattern on Live's Drum Rack layout (kick 36, clap 39, closed hat 42,
+    open hat 46, shaker 70, rim 37), with swing, accents and humanisation."""
+    return groove.pattern("deep_house", bars, swing, seed=seed, parts=parts)
+
+
+@mcp.tool()
+def music_build_roll(bars: int = 8, pitch: int = 39) -> list:
+    """Build-up roll: quarters, 8ths, 16ths, 32nds in the last bar, rising velocity, last
+    beat empty so the drop lands on silence. pitch 60 plays a Simpler at its root."""
+    return groove.build_roll(bars=bars, pitch=pitch)
+
+
+@mcp.tool()
+def analyze_sample(path: str, tempo: float | None = None) -> dict:
+    """What a sample is: key (with confidence), BPM, bars, loop length, swing %, role
+    guess (kick/bass/hats/tonal/fx) and its strongest pitch classes."""
+    return samples.analyze_sample(path, tempo=tempo)
+
+
+@mcp.tool()
+def analyze_bassline(path: str, tempo: float, bars: int = 8) -> list:
+    """Dominant low note per beat (30-300 Hz) of a bass or 808 loop, as note names."""
+    mono, sr = samples.load_mono(path, max_seconds=bars * 4 * 60.0 / tempo + 2)
+    return [theory.note_name(n) if n else None for n in samples.bass_notes(mono, sr, tempo,
+                                                                           max_bars=bars)]
 
 
 def main():

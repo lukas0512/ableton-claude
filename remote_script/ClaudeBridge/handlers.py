@@ -12,7 +12,7 @@ import types
 
 import Live
 
-VERSION = "0.3.0"
+VERSION = "0.4.0"
 
 COMMANDS = {}
 DEFERRED_TIMEOUT_S = 30.0
@@ -312,6 +312,11 @@ def _set_db(param, db):
 
 def _set_by_display(param, target):
     """Set a param so its display (e.g. '150 Hz', '-12 dB') matches target number."""
+    param.value = _raw_for_display(param, target)
+
+
+def _raw_for_display(param, target):
+    """Raw value whose display string reads `target` (e.g. 150 for '150 Hz')."""
     lo, hi = param.min, param.max
     target = float(target)
 
@@ -330,7 +335,7 @@ def _set_by_display(param, target):
             lo = mid
         else:
             hi = mid
-    param.value = (lo + hi) / 2.0
+    return (lo + hi) / 2.0
 
 
 def _param_info(p):
@@ -346,10 +351,13 @@ def _track_kind(t):
     return "audio"
 
 
-def _clip_info(c):
+def _clip_info(c, markers=False):
     d = {"name": c.name, "start": round(c.start_time, 4), "end": round(c.end_time, 4),
          "length": round(c.length, 4), "muted": c.muted,
          "type": "audio" if c.is_audio_clip else "midi"}
+    if markers:
+        d.update({"looping": c.looping, "loop_start": c.loop_start, "loop_end": c.loop_end,
+                  "start_marker": c.start_marker, "end_marker": c.end_marker})
     if c.is_audio_clip:
         d["file"] = c.file_path
         d["warping"] = c.warping
@@ -416,7 +424,7 @@ def get_song(ctx):
 
 
 @command
-def get_track(ctx, track, clips=True, max_clips=200):
+def get_track(ctx, track, clips=True, max_clips=200, markers=False):
     t = _track(ctx, track)
     d = {"name": t.name, "kind": _track_kind(t),
          "vol_db": _db_of(t.mixer_device.volume),
@@ -427,7 +435,7 @@ def get_track(ctx, track, clips=True, max_clips=200):
     if clips and hasattr(t, "arrangement_clips"):
         cl = _arr_clips(t)
         d["n_clips"] = len(cl)
-        d["clips"] = [dict(_clip_info(c), i=i) for i, c in enumerate(cl[:max_clips])]
+        d["clips"] = [dict(_clip_info(c, markers), i=i) for i, c in enumerate(cl[:max_clips])]
     return d
 
 
@@ -547,7 +555,13 @@ def _write_envelope(track, clip, spec, resolution=0.25):
     device = spec.get("device")
     pname = spec.get("param", "volume")
     p = _mixer_param(track, pname) if device is None else _param(_device(track, device), pname)
-    to_raw = (lambda v: _raw_for_db(p, v)) if spec.get("unit") == "db" else float
+    unit = spec.get("unit", "raw")
+    if unit == "db":
+        to_raw = lambda v: _raw_for_db(p, v)
+    elif unit == "display":
+        to_raw = lambda v: _raw_for_display(p, v)
+    else:
+        to_raw = float
     env = clip.automation_envelope(p)
     if env is not None:
         clip.clear_envelope(p)
@@ -708,8 +722,13 @@ def _set_clip_gain_db(c, db):
 
 @command
 def set_clip(ctx, track, clip, name=None, muted=None, pitch=None, gain_db=None,
-             looping=None, loop_start=None, loop_end=None, warping=None):
+             looping=None, loop_start=None, loop_end=None, warping=None,
+             start_marker=None, end_marker=None):
     c = _clip(_track(ctx, track), clip)
+    if start_marker is not None:
+        c.start_marker = float(start_marker)
+    if end_marker is not None:
+        c.end_marker = float(end_marker)
     if name is not None:
         c.name = name
     if muted is not None:
@@ -726,7 +745,7 @@ def set_clip(ctx, track, clip, name=None, muted=None, pitch=None, gain_db=None,
         c.loop_end = float(loop_end)
     if warping is not None:
         c.warping = bool(warping)
-    return _clip_info(c)
+    return _clip_info(c, markers=True)
 
 
 @command
@@ -747,27 +766,89 @@ def delete_clips_in_range(ctx, track, start_bar, end_bar):
     """Delete every arrangement clip that starts in [start_bar, end_bar)."""
     t = _track(ctx, track)
     a, b = _t(ctx, bar=start_bar), _t(ctx, bar=end_bar)
-    # Deleting one of two overlapping clips can invalidate the other's handle, so
-    # re-read the clip list after every deletion. Live also lists some clips that
-    # delete_clip silently ignores (e.g. malformed overlaps), so stop as soon as a
-    # deletion makes no progress instead of retrying forever.
+
     def in_range():
         return [c for c in t.arrangement_clips if a - 1e-3 <= c.start_time < b - 1e-3]
 
-    n = 0
+    # Delete from a snapshot, then re-check: a few passes cover handles invalidated by
+    # overlapping clips, and a pass without progress stops (Live silently ignores
+    # delete_clip on some malformed clips; retrying those forever froze Live once).
+    deleted = 0
     remaining = in_range()
-    while remaining:
-        try:
-            t.delete_clip(remaining[0])
-        except Exception:
-            pass
+    for _ in range(4):
+        if not remaining:
+            break
+        for c in remaining:
+            try:
+                t.delete_clip(c)
+            except Exception:
+                pass
         now = in_range()
         if len(now) >= len(remaining):
             break
-        n += len(remaining) - len(now)
+        deleted += len(remaining) - len(now)
         remaining = now
-    return {"track": t.name, "deleted": n, "left_in_range": len(remaining),
+    return {"track": t.name, "deleted": deleted, "left_in_range": len(remaining),
             "stuck": [round(c.start_time, 3) for c in remaining[:20]]}
+
+
+def _trim_at(t, cut):
+    """Shorten every clip that crosses `cut` so it ends there. Live has no API for a
+    clip's length, but a clip dropped on top of another truncates it: drop a copy at
+    `cut`, then delete the copy. Only use where nothing lies after `cut` yet."""
+    n = 0
+    for _ in range(64):
+        crossing = [c for c in t.arrangement_clips
+                    if c.start_time < cut - 1e-3 and c.end_time > cut + 1e-3]
+        if not crossing:
+            break
+        t.duplicate_clip_to_arrangement(crossing[0], cut)
+        blocker = next((c for c in t.arrangement_clips if abs(c.start_time - cut) < 1e-3),
+                       None)
+        if blocker is not None:
+            t.delete_clip(blocker)
+        n += 1
+    return n
+
+
+@command
+def trim_clip(ctx, track, clip, end_bar=None, end_beat=None):
+    """End an arrangement clip at end_bar/end_beat (see _trim_at for the caveat)."""
+    t = _track(ctx, track)
+    c = _clip(t, clip)
+    start = c.start_time
+    cut = _t(ctx, end_beat, end_bar)
+    if not (c.start_time < cut < c.end_time):
+        raise ValueError("cut %.3f is not inside the clip %.3f-%.3f"
+                         % (cut, c.start_time, c.end_time))
+    _trim_at(t, cut)
+    return _clip_info(_clip(t, {"at": start}), markers=False)
+
+
+@command
+def fill_range(ctx, track, src_start_bar, src_end_bar, start_bar, end_bar):
+    """Repeat the phrase of clips starting in [src_start_bar, src_end_bar) across
+    [start_bar, end_bar), cutting whatever overhangs end_bar. Build each track from left
+    to right: the cut assumes nothing sits after end_bar yet."""
+    t = _track(ctx, track)
+    sa, sb = _t(ctx, bar=src_start_bar), _t(ctx, bar=src_end_bar)
+    a, b = _t(ctx, bar=start_bar), _t(ctx, bar=end_bar)
+    period = sb - sa
+    src = [(c, c.start_time - sa) for c in _arr_clips(t)
+           if sa - 1e-3 <= c.start_time < sb - 1e-3 and not c.muted]
+    if not src:
+        raise ValueError("no active clips in source bars %s-%s on %s"
+                         % (src_start_bar, src_end_bar, t.name))
+    placed = 0
+    pos = a
+    while pos < b - 1e-3:
+        for c, off in src:
+            if pos + off < b - 1e-3:
+                t.duplicate_clip_to_arrangement(c, pos + off)
+                placed += 1
+        pos += period
+    trimmed = _trim_at(t, b)
+    return {"track": t.name, "placed": placed, "trimmed": trimmed}
 
 
 @command
