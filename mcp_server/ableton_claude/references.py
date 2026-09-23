@@ -384,3 +384,205 @@ def save_profile(profile, path):
 
 def slug(genre):
     return re.sub(r"[^a-z0-9]+", "_", genre.lower()).strip("_")
+
+
+# ---------------------------------------------------------------------------
+# fingerprint: groove, harmony, timbre, width, dynamics, movement, arrangement
+# ---------------------------------------------------------------------------
+
+FP_VERSION = 1
+FP_BANDS = {"low": (30, 150), "low_mid": (150, 500), "mid": (500, 2000),
+            "high_mid": (2000, 6000), "high": (6000, 16000)}
+
+
+def _band_onsets(mono, sr, lo, hi, hop=256, min_gap_s=0.06):
+    """Onset times in one band: log-energy flux with a running-median threshold."""
+    env = _band_env(mono, sr, lo, hi, hop)
+    le = np.log10(env + 1e-9)
+    flux = np.maximum(np.diff(le, prepend=le[0]), 0)
+    fps = sr / float(hop)
+    k = int(fps)                                         # ~1 s window
+    pad = np.pad(flux, (k, k), mode="edge")
+    med = np.array([np.median(pad[i:i + 2 * k]) for i in range(0, len(flux), 8)])
+    med = np.repeat(med, 8)[:len(flux)]
+    thr = med + 0.08
+    out, last = [], -1e9
+    for i in range(1, len(flux) - 1):
+        if flux[i] > thr[i] and flux[i] >= flux[i - 1] and flux[i] >= flux[i + 1]:
+            t = (i + 0.5) * hop / sr
+            if t - last >= min_gap_s:
+                out.append(t)
+                last = t
+    return np.array(out)
+
+
+def fingerprint(x, sr, bpm, t0, segments):
+    """Measurements that describe how a track is made, beyond loudness and spectrum."""
+    mono = x.mean(axis=1)
+    mid, side = mono, (x[:, 0] - x[:, 1]) / 2.0
+    beat = 60.0 / bpm
+    bar_s = 4 * beat
+    n_bars = segments[-1]["end"] if segments else int((len(mono) / sr - t0) / bar_s)
+    full = np.zeros(n_bars, bool)
+    for s in segments:
+        if s["label"] == "full":
+            full[s["start"]:s["end"]] = True
+    if not full.any():
+        full[:] = True
+
+    # --- spectral frames
+    n_fft, hop = 4096, 1024
+    win = np.hanning(n_fft).astype(np.float32)
+    freqs = np.fft.rfftfreq(n_fft, 1.0 / sr)
+    n_frames = max(1, (len(mono) - n_fft) // hop)
+    frame_bar = ((np.arange(n_frames) * hop + n_fft / 2) / sr - t0) // bar_s
+    band_idx = {k: (freqs >= lo) & (freqs < hi) for k, (lo, hi) in FP_BANDS.items()}
+    sel_c = (freqs >= 30) & (freqs <= 16000)
+    sel_f = (freqs >= 200) & (freqs <= 16000)
+    sel_ch = (freqs >= 130) & (freqs <= 2000)
+    pcs = (np.round(69 + 12 * np.log2(freqs[sel_ch] / 440.0)).astype(int)) % 12
+    cent, flat = np.zeros(n_frames), np.zeros(n_frames)
+    bandM = {k: np.zeros(n_frames) for k in FP_BANDS}
+    bandS = {k: np.zeros(n_frames) for k in FP_BANDS}
+    chroma_bar = np.zeros((n_bars, 12))
+    for f in range(n_frames):
+        a = f * hop
+        M = np.abs(np.fft.rfft(mid[a:a + n_fft] * win)) ** 2
+        S = np.abs(np.fft.rfft(side[a:a + n_fft] * win)) ** 2
+        pc = M[sel_c]
+        cent[f] = (freqs[sel_c] * pc).sum() / (pc.sum() + 1e-20)
+        pf = M[sel_f] + 1e-20
+        flat[f] = np.exp(np.mean(np.log(pf))) / np.mean(pf)
+        for k, m in band_idx.items():
+            bandM[k][f] = M[m].sum()
+            bandS[k][f] = S[m].sum()
+        b = int(frame_bar[f])
+        if 0 <= b < n_bars:
+            chroma_bar[b] += np.bincount(pcs, weights=M[sel_ch], minlength=12)
+
+    def per_bar(v, agg=np.mean):
+        out = np.full(n_bars, np.nan)
+        for b in range(n_bars):
+            m = frame_bar == b
+            if m.any():
+                out[b] = agg(v[m])
+        return out
+
+    cent_bar = per_bar(np.log2(cent + 1.0))
+    fb = full[:len(cent_bar)]
+    res = {}
+
+    # --- groove (onsets per band, on the bar grid)
+    lows = _band_onsets(mono, sr, 30, 150)
+    mids = _band_onsets(mono, sr, 500, 4000)
+    highs = _band_onsets(mono, sr, 6000, 16000)
+
+    def in_full(ts):
+        b = ((ts - t0) // bar_s).astype(int)
+        ok = (b >= 0) & (b < n_bars)
+        return ts[ok][full[b[ok]]]
+
+    lows_f, mids_f, highs_f = in_full(lows), in_full(mids), in_full(highs)
+    n_full = max(1, int(full.sum()))
+    beats = t0 + np.arange(int(n_bars * 4)) * beat
+    beats_f = beats[full[(np.arange(len(beats)) // 4).clip(0, n_bars - 1)]]
+    if len(lows_f) and len(beats_f):
+        d = np.abs(beats_f[:, None] - lows_f[None, :]).min(axis=1)
+        res["kick_on_beats"] = round(float(np.mean(d < 0.04)), 3)
+    res["hat_hits_per_bar"] = round(len(highs_f) / n_full, 2)
+    res["perc_hits_per_bar"] = round(len(mids_f) / n_full, 2)
+    six = beat / 4.0
+    pos = ((np.concatenate([mids_f, highs_f]) - t0) / six)
+    frac = pos - np.floor(pos)
+    near = np.round(pos).astype(int)
+    on_grid = np.abs(pos - np.round(pos)) < 0.3
+    if on_grid.any():
+        res["offbeat_16th_share"] = round(float(np.mean(near[on_grid] % 2 == 1)), 3)
+    pair = beat / 2.0
+    ph = ((highs_f - t0) % pair) / pair
+    off = ph[(ph > 0.35) & (ph < 0.85)]
+    res["swing_pct"] = round(float(np.median(off)) * 100, 1) if len(off) >= 8 else None
+    dev = []
+    sw = (res["swing_pct"] or 50.0) / 100.0
+    for t in highs_f:
+        p = ((t - t0) % pair) / pair
+        target = 0.0 if p < 0.25 or p > 0.8 else sw
+        dist = min(abs(p - target), abs(p - 1.0)) if target == 0.0 else abs(p - target)
+        dev.append(dist * pair * 1000)
+    res["timing_spread_ms"] = round(float(np.median(dev)), 1) if dev else None
+
+    # --- harmony
+    cb = chroma_bar / (chroma_bar.sum(axis=1, keepdims=True) + 1e-20)
+    tot = chroma_bar.sum(axis=0)
+    tot = tot / (tot.sum() + 1e-20)
+    res["tonal_strength"] = round(float(np.nanmedian(np.sort(cb[fb], axis=1)[:, -3:].sum(axis=1))), 3)
+    res["pitch_classes_used"] = int((tot > 0.06).sum())
+    cos = [float(np.dot(cb[i], cb[i + 1]) / (np.linalg.norm(cb[i]) * np.linalg.norm(cb[i + 1]) + 1e-12))
+           for i in range(n_bars - 1)]
+    res["harmonic_changes_per_8_bars"] = round(8 * float(np.mean(np.array(cos) < 0.85)), 2) if cos else None
+
+    # --- timbre
+    res["brightness_hz"] = round(float(2 ** np.nanmedian(cent_bar[fb]) - 1), 0)
+    res["noisiness"] = round(float(np.nanmedian(per_bar(flat)[fb])), 4)
+    lm = np.nanmedian(per_bar(bandM["low_mid"])[fb])
+    hm = np.nanmedian(per_bar(bandM["high_mid"])[fb])
+    res["warmth_db"] = round(float(10 * np.log10((lm + 1e-20) / (hm + 1e-20))), 1)
+
+    # --- stereo width by band (side relative to mid)
+    for k in ("low", "mid", "high"):
+        m_ = np.nanmedian(per_bar(bandM[k])[fb])
+        s_ = np.nanmedian(per_bar(bandS[k])[fb])
+        res["width_%s_db" % k] = round(float(10 * np.log10((s_ + 1e-20) / (m_ + 1e-20))), 1)
+
+    # --- movement ("automation")
+    moves = []
+    for a in range(0, n_bars - 16, 16):
+        w = cent_bar[a:a + 16][fb[a:a + 16]]
+        if len(w) >= 8:
+            moves.append(float(np.nanstd(w)))
+    res["brightness_movement_oct"] = round(float(np.median(moves)), 3) if moves else None
+    return res
+
+
+def fingerprint_file(path, bpm, t0, segments):
+    x, sr = load_audio(path)
+    return analysis._plain(fingerprint(x, sr, bpm, t0, segments))
+
+
+def build_fingerprints(folder, cache, log=print, on_track=None):
+    """Add a fingerprint to every cached reference in `folder` (needs build_profile first)."""
+    files = sorted(p for p in glob.glob(os.path.join(folder, "**", "*"), recursive=True)
+                   if p.lower().endswith(AUDIO_EXT))
+    out = []
+    for p in files:
+        fid = _file_id(p)
+        r = cache.get(fid)
+        if r is None:
+            continue
+        if r.get("fp_version") != FP_VERSION:
+            r["fingerprint"] = fingerprint_file(p, r["bpm"], r["first_beat_s"], r["segments"])
+            r["fp_version"] = FP_VERSION
+            log("fingerprint %-50s %s" % (r["file"][:50], r["fingerprint"]))
+            if on_track:
+                on_track(cache)
+        if all(o["id"] != r["id"] for o in out):
+            out.append(r)
+    return out
+
+
+def compare_fingerprint(ours, refs):
+    """Percentile of each of our measurements among the references, with the references'
+    middle half, so you can see which dimensions are typical and which stand out."""
+    rows = {}
+    for k, v in ours.items():
+        vals = np.array([r["fingerprint"][k] for r in refs
+                         if r.get("fingerprint") and r["fingerprint"].get(k) is not None], float)
+        if v is None or not vals.size:
+            continue
+        pct = float((vals < v).mean() * 100 + (vals == v).mean() * 50)
+        rows[k] = {"ours": v, "median": round(float(np.median(vals)), 3),
+                   "p25": round(float(np.percentile(vals, 25)), 3),
+                   "p75": round(float(np.percentile(vals, 75)), 3),
+                   "percentile": round(pct), "n": int(vals.size),
+                   "typical": bool(np.percentile(vals, 25) <= v <= np.percentile(vals, 75))}
+    return rows

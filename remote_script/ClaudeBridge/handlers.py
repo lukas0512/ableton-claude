@@ -12,7 +12,7 @@ import types
 
 import Live
 
-VERSION = "0.4.3"
+VERSION = "0.5.1"
 
 COMMANDS = {}
 DEFERRED_TIMEOUT_S = 30.0
@@ -323,23 +323,37 @@ def _set_by_display(param, target):
     param.value = _raw_for_display(param, target)
 
 
+_UNIT_RE = re.compile(r"([-+]?\d+(?:\.\d+)?)\s*(khz|hz|ms|s|db|%)?", re.I)
+_UNIT_SCALE = {"khz": 1000.0, "hz": 1.0, "ms": 0.001, "s": 1.0}
+
+
+def _to_base(text):
+    """'1.50 kHz' -> 1500.0, '250 ms' -> 0.25, '2.2 s' -> 2.2, '-3 dB' -> -3.0.
+    Live switches units inside one parameter (ms below a second, s above), so every
+    comparison happens in base units (Hz, seconds)."""
+    t = str(text).replace("\u2212", "-").strip()
+    if "inf" in t:
+        return float("-inf") if t.startswith("-") else float("inf")
+    m = _UNIT_RE.search(t)
+    if not m:
+        return None
+    return float(m.group(1)) * _UNIT_SCALE.get((m.group(2) or "").lower(), 1.0)
+
+
 def _raw_for_display(param, target):
-    """Raw value whose display string reads `target` (e.g. 150 for '150 Hz')."""
+    """Raw value whose display reads `target`. A bare number is taken in base units
+    (Hz, seconds, dB, %); a string may carry its unit: "22 ms", "2.2 s", "1.2 kHz"."""
     lo, hi = param.min, param.max
-    target = float(target)
+    goal = _to_base(target) if isinstance(target, str) else float(target)
 
     def num(v):
-        m = _DB_RE.search(param.str_for_value(v).replace("−", "-").replace("k", "e3"))
-        if not m or "inf" in m.group(1):
-            return float("-inf")
-        s = param.str_for_value(v)
-        n = float(m.group(1))
-        return n * 1000.0 if "kHz" in s else n
+        x = _to_base(param.str_for_value(v))
+        return float("-inf") if x is None else x
 
     increasing = num(hi) >= num(lo)
-    for _ in range(40):
+    for _ in range(48):
         mid = (lo + hi) / 2.0
-        if (num(mid) < target) == increasing:
+        if (num(mid) < goal) == increasing:
             lo = mid
         else:
             hi = mid
@@ -493,10 +507,26 @@ def create_track(ctx, kind="midi", name=None, index=-1):
 
 
 @command
+def create_return(ctx, name=None):
+    """Add a return track (its send appears on every track at the next index)."""
+    s = ctx.song
+    s.create_return_track()
+    r = s.return_tracks[len(s.return_tracks) - 1]
+    if name:
+        r.name = name
+    return {"return_index": len(s.return_tracks) - 1, "name": r.name}
+
+
+@command
 def delete_track(ctx, track):
     t = _track(ctx, track)
+    s = ctx.song
+    for k, r in enumerate(s.return_tracks):
+        if r == t:
+            s.delete_return_track(k)
+            return {"deleted_return": k}
     i = _track_index(ctx, t)
-    ctx.song.delete_track(i)
+    s.delete_track(i)
     return {"deleted": i}
 
 

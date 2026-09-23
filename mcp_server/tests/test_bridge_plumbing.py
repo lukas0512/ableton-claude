@@ -163,3 +163,28 @@ def test_reload_swaps_handlers(bridge):
     r = _rpc(bridge.PORT, "reload")
     assert r["ok"] and r["result"]["handlers_version"]
     assert _rpc(bridge.PORT, "ping")["ok"]
+
+
+def test_display_units_convert_to_base_units(bridge):
+    """Live shows one parameter in ms below a second and in s above it; mixing the two
+    once set a 2.2 s reverb to 60 s."""
+    h = sys.modules["ClaudeBridge.handlers"]
+    assert h._to_base("800 ms") == pytest.approx(0.8)
+    assert h._to_base("2.20 s") == pytest.approx(2.2)
+    assert h._to_base("1.50 kHz") == pytest.approx(1500)
+    assert h._to_base("830 Hz") == pytest.approx(830)
+    assert h._to_base("−3.00 dB") == pytest.approx(-3.0)
+    assert h._to_base("-inf dB") == float("-inf")
+
+    class Param:                     # a decay knob that switches from ms to s at 1 s
+        min, max = 0.0, 1.0
+
+        def str_for_value(self, v):
+            secs = 0.2 + v * 59.8
+            return "%.0f ms" % (secs * 1000) if secs < 1 else "%.2f s" % secs
+
+    p = Param()
+    raw = h._raw_for_display(p, "2.2 s")
+    assert abs((0.2 + raw * 59.8) - 2.2) < 0.01
+    raw = h._raw_for_display(p, "500 ms")
+    assert abs((0.2 + raw * 59.8) - 0.5) < 0.01

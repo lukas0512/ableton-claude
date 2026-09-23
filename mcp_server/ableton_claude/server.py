@@ -20,6 +20,7 @@ Bridge commands (args):
   ping | get_song | get_track(track, clips=True) | get_device(track, device)
   get_notes(track, clip)
   set_tempo(bpm) | create_track(kind=midi|audio, name, index=-1) | delete_track(track)
+  create_return(name)  -- sends to it get the next send index
   set_track(track, name, volume_db, pan, mute, solo, arm, monitoring=in|auto|off)
   set_send(track, send, db)
   create_midi_clip(track, length, notes=[[pitch,start,dur,vel],...], name, beat|bar, loop)

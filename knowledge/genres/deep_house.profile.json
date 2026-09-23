@@ -741,5 +741,103 @@
     "break_depth_lu": 8.7
    }
   }
- ]
+ ],
+ "fingerprint": {
+  "brightness_hz": {
+   "median": 367.0,
+   "p25": 266.0,
+   "p75": 437.0,
+   "n": 25
+  },
+  "brightness_movement_oct": {
+   "median": 0.212,
+   "p25": 0.167,
+   "p75": 0.276,
+   "n": 25
+  },
+  "harmonic_changes_per_8_bars": {
+   "median": 0.23,
+   "p25": 0.09,
+   "p75": 0.6,
+   "n": 25
+  },
+  "hat_hits_per_bar": {
+   "median": 16.33,
+   "p25": 15.42,
+   "p75": 16.99,
+   "n": 25
+  },
+  "kick_on_beats": {
+   "median": 0.947,
+   "p25": 0.866,
+   "p75": 0.967,
+   "n": 25
+  },
+  "noisiness": {
+   "median": 0.098,
+   "p25": 0.054,
+   "p75": 0.112,
+   "n": 25
+  },
+  "offbeat_16th_share": {
+   "median": 0.522,
+   "p25": 0.491,
+   "p75": 0.557,
+   "n": 25
+  },
+  "perc_hits_per_bar": {
+   "median": 20.8,
+   "p25": 20.12,
+   "p75": 21.79,
+   "n": 25
+  },
+  "pitch_classes_used": {
+   "median": 8.0,
+   "p25": 8.0,
+   "p75": 9.0,
+   "n": 25
+  },
+  "swing_pct": {
+   "median": 55.3,
+   "p25": 47.4,
+   "p75": 74.3,
+   "n": 25
+  },
+  "timing_spread_ms": {
+   "median": 30.1,
+   "p25": 23.8,
+   "p75": 39.7,
+   "n": 25
+  },
+  "tonal_strength": {
+   "median": 0.434,
+   "p25": 0.409,
+   "p75": 0.461,
+   "n": 25
+  },
+  "warmth_db": {
+   "median": 8.4,
+   "p25": 7.3,
+   "p75": 10.8,
+   "n": 25
+  },
+  "width_high_db": {
+   "median": -10.1,
+   "p25": -13.4,
+   "p75": -6.3,
+   "n": 25
+  },
+  "width_low_db": {
+   "median": -39.8,
+   "p25": -44.5,
+   "p75": -30.8,
+   "n": 25
+  },
+  "width_mid_db": {
+   "median": -11.4,
+   "p25": -12.9,
+   "p75": -5.7,
+   "n": 25
+  }
+ }
 }
