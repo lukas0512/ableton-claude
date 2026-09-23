@@ -147,7 +147,7 @@ def analyze(path, target="club", sections=None, tempo=None):
         res["sections"] = out
 
     res["flags"] = flags(res, target)
-    return res
+    return _plain(res)
 
 
 def flags(res, target="club"):
@@ -188,16 +188,27 @@ def flags(res, target="club"):
     return out
 
 
+def _plain(x):
+    """numpy scalars -> Python numbers, so results serialize as JSON (MCP replies)."""
+    if isinstance(x, dict):
+        return {k: _plain(v) for k, v in x.items()}
+    if isinstance(x, (list, tuple)):
+        return [_plain(v) for v in x]
+    if isinstance(x, np.generic):
+        return x.item()
+    return x
+
+
 def compare(path, reference_path):
     """Band-by-band difference: mix minus reference, after matching loudness."""
     a, b = analyze(path), analyze(reference_path)
     shift = a["loudness"]["integrated_lufs"] - b["loudness"]["integrated_lufs"]
     diffs = {k: round(a["bands"][k]["db"] - b["bands"][k]["db"] - shift, 1) for k in a["bands"]}
-    return {
+    return _plain({
         "loudness_diff_lu": round(shift, 1),
         "band_diff_db_loudness_matched": diffs,
         "tilt_diff": round(a["spectral_tilt_db_per_oct"] - b["spectral_tilt_db_per_oct"], 2),
         "correlation": [a["stereo"]["correlation"], b["stereo"]["correlation"]],
         "crest": [a["loudness"]["crest_db"], b["loudness"]["crest_db"]],
         "mix": a["loudness"], "reference": b["loudness"],
-    }
+    })

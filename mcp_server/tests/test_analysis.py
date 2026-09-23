@@ -72,3 +72,12 @@ def test_compare_matches_loudness_before_band_diff(tmp_path):
     c = analysis.compare(a, b)
     assert abs(c["loudness_diff_lu"] - 6.0) < 0.3
     assert all(abs(v) < 0.5 for v in c["band_diff_db_loudness_matched"].values())
+
+
+def test_results_are_json_serializable(tmp_path):
+    import json
+    s = _sine(100, 6, 0.3)
+    p = _write(tmp_path, "j.wav", np.stack([s, s * 0.9], axis=1))
+    json.dumps(analysis.analyze(p, sections=[{"name": "A", "start_bar": 1, "end_bar": 3}],
+                                tempo=120))
+    json.dumps(analysis.compare(p, p))

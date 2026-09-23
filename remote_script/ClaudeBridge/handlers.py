@@ -12,7 +12,7 @@ import types
 
 import Live
 
-VERSION = "0.2.3"
+VERSION = "0.3.0"
 
 COMMANDS = {}
 DEFERRED_TIMEOUT_S = 30.0
@@ -740,6 +740,49 @@ def mute_clips_in_range(ctx, track, muted, start_bar, end_bar):
             c.muted = bool(muted)
             n += 1
     return {"track": t.name, "changed": n}
+
+
+@command
+def delete_clips_in_range(ctx, track, start_bar, end_bar):
+    """Delete every arrangement clip that starts in [start_bar, end_bar)."""
+    t = _track(ctx, track)
+    a, b = _t(ctx, bar=start_bar), _t(ctx, bar=end_bar)
+    # Deleting one of two overlapping clips can invalidate the other's handle, so
+    # re-read the clip list after every deletion. Live also lists some clips that
+    # delete_clip silently ignores (e.g. malformed overlaps), so stop as soon as a
+    # deletion makes no progress instead of retrying forever.
+    def in_range():
+        return [c for c in t.arrangement_clips if a - 1e-3 <= c.start_time < b - 1e-3]
+
+    n = 0
+    remaining = in_range()
+    while remaining:
+        try:
+            t.delete_clip(remaining[0])
+        except Exception:
+            pass
+        now = in_range()
+        if len(now) >= len(remaining):
+            break
+        n += len(remaining) - len(now)
+        remaining = now
+    return {"track": t.name, "deleted": n, "left_in_range": len(remaining),
+            "stuck": [round(c.start_time, 3) for c in remaining[:20]]}
+
+
+@command
+def duplicate_range(ctx, track, start_bar, end_bar, dest_bar, active_only=True):
+    """Copy every arrangement clip starting in [start_bar, end_bar) so the range begins
+    at dest_bar, keeping each clip's offset. Uses Live's own duplication, so clip
+    positions, warp and sample offsets stay consistent."""
+    t = _track(ctx, track)
+    a, b = _t(ctx, bar=start_bar), _t(ctx, bar=end_bar)
+    shift = _t(ctx, bar=dest_bar) - a
+    src = [c for c in _arr_clips(t) if a - 1e-3 <= c.start_time < b - 1e-3
+           and not (active_only and c.muted)]
+    for c in src:
+        t.duplicate_clip_to_arrangement(c, c.start_time + shift)
+    return {"track": t.name, "copied": len(src), "shift_beats": shift}
 
 
 @command

@@ -27,6 +27,8 @@ Bridge commands (args):
   set_clip(track, clip, name, muted, pitch, gain_db, looping, loop_start, loop_end, warping)
   mute_clips_in_range(track, muted, start_bar, end_bar)
   duplicate_clip(track, clip, beat|bar) | delete_clip(track, clip)
+  delete_clips_in_range(track, start_bar, end_bar)
+  duplicate_range(track, start_bar, end_bar, dest_bar, active_only=True)
   create_*_clip(..., envelopes=[{param, device, points:[[beat_in_clip, v],...], unit:raw|db}])
   clip_envelope(track, slot, points, param="volume"|"pan"|
                 "send:0"|<param>, device, unit)  -- Session clips only (Live API limit)
