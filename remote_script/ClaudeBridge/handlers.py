@@ -12,7 +12,7 @@ import types
 
 import Live
 
-VERSION = "0.4.0"
+VERSION = "0.4.3"
 
 COMMANDS = {}
 DEFERRED_TIMEOUT_S = 30.0
@@ -215,9 +215,17 @@ def _track_index(ctx, track):
 
 
 def _device(track, spec):
+    """Device by index, exact name, "Name#k" (k-th of several with that name, 0-based)
+    or a unique name fragment."""
     devs = list(track.devices)
     if isinstance(spec, int):
         return devs[spec]
+    if "#" in spec and spec.rsplit("#", 1)[1].isdigit():
+        name, k = spec.rsplit("#", 1)
+        same = [d for d in devs if d.name == name]
+        if int(k) < len(same):
+            return same[int(k)]
+        raise ValueError("only %d devices named %r on %s" % (len(same), name, track.name))
     for d in devs:
         if d.name == spec:
             return d
@@ -339,8 +347,11 @@ def _raw_for_display(param, target):
 
 
 def _param_info(p):
-    return {"name": p.name, "value": round(p.value, 5), "min": p.min, "max": p.max,
-            "display": p.str_for_value(p.value), "quantized": p.is_quantized}
+    d = {"name": p.name, "value": round(p.value, 5), "min": p.min, "max": p.max,
+         "display": p.str_for_value(p.value), "quantized": p.is_quantized}
+    if p.is_quantized:
+        d["items"] = list(p.value_items)
+    return d
 
 
 def _track_kind(t):
@@ -984,11 +995,16 @@ def load_device(ctx, track, path=None, query=None, roots=None):
 
 
 @command
-def set_param(ctx, track, device, param, value=None, display=None, db=None):
+def set_param(ctx, track, device, param, value=None, display=None, db=None, item=None):
     """Set a device parameter by raw value, by display number (e.g. 150 for '150 Hz'),
-    or by dB."""
+    by dB, or by the name of a list option (item="Low Shelf")."""
     p = _param(_device(_track(ctx, track), device), param)
-    if db is not None:
+    if item is not None:
+        items = list(p.value_items)
+        if item not in items:
+            raise ValueError("%r is not an option of %s: %s" % (item, p.name, items))
+        p.value = float(items.index(item))
+    elif db is not None:
         _set_db(p, float(db))
     elif display is not None:
         _set_by_display(p, display)
@@ -1002,6 +1018,15 @@ def set_device_on(ctx, track, device, on=True):
     dv = _device(_track(ctx, track), device)
     dv.parameters[0].value = 1.0 if on else 0.0
     return {"device": dv.name, "on": bool(on)}
+
+
+@command
+def move_device(ctx, track, device, position):
+    """Move a device to `position` in its track's chain (0 = first)."""
+    t = _track(ctx, track)
+    dv = _device(t, device)
+    ctx.song.move_device(dv, t, int(position))
+    return {"devices": [d.name for d in t.devices]}
 
 
 @command

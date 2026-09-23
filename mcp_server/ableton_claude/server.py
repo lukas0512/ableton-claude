@@ -3,7 +3,7 @@ import time
 
 from mcp.server.fastmcp import FastMCP
 
-from . import analysis, client
+from . import analysis, client, knowledge, references
 from .music import groove, harmony, melody, samples, theory
 
 INSTRUCTIONS = """\
@@ -40,7 +40,9 @@ Bridge commands (args):
   browse(query, roots=[instruments,audio_effects,midi_effects,drums,sounds,plugins,
          user_library,samples,packs]) | load_device(track, path|query)
   set_param(track, device, param, value|display|db) | set_device_on(track, device, on)
-  delete_device(track, device)
+  delete_device(track, device) | move_device(track, device, position)
+  (device = index | name | "Name#k" for the k-th of several | unique fragment;
+   set_param also takes item="Low Shelf" for list parameters)
   set_cue(name, beat|bar) | delete_cue(name|beat|bar) | clear_cues | transport(action=play|stop|continue|locate, beat|bar)
   set_loop(on, start_bar, end_bar)
   record_master(start_bar, end_bar, name) | record_status | record_abort
@@ -204,6 +206,40 @@ def analyze_bassline(path: str, tempo: float, bars: int = 8) -> list:
     mono, sr = samples.load_mono(path, max_seconds=bars * 4 * 60.0 / tempo + 2)
     return [theory.note_name(n) if n else None for n in samples.bass_notes(mono, sr, tempo,
                                                                            max_bars=bars)]
+
+
+@mcp.tool()
+def genre_knowledge(genre: str) -> dict:
+    """What a genre is: curated conventions (tempo, harmony and progressions, drums, bass,
+    arrangement moves, palette, mix) plus, when a profile was built from the user's own
+    references, the measured numbers (BPM, swing, keys, loudness, spectrum, structure)."""
+    return knowledge.get(genre)
+
+
+@mcp.tool()
+def genre_plan_structure(genre: str, minutes: float, bpm: float | None = None) -> dict:
+    """Section plan for a new track in a genre (intro, groove, breakdown, build, drop,
+    outro), sized from the measured reference profile when there is one."""
+    return knowledge.plan_structure(genre, minutes, bpm)
+
+
+@mcp.tool()
+def analyze_reference(path: str, bpm: float | None = None) -> dict:
+    """Measure one reference track: loudness, 1/3-octave shape, stereo, BPM, key, swing,
+    and its structure (intro, breaks, drop, outro in bars). Takes ~10-30 s per track."""
+    return references.analyze_reference(path, bpm)
+
+
+@mcp.tool()
+def compare_to_genre(path: str, genre: str) -> dict:
+    """Hold a mix against a genre profile: loudness, band shares and 1/3-octave bands that
+    fall outside the references' middle half, with the move (dB) toward their median.
+    Build the profile first with scripts/build_profile.py <folder> <genre>."""
+    prof = knowledge.load_profile(genre)
+    if not prof:
+        return {"error": "no profile for %r; run scripts/build_profile.py <folder> '%s'"
+                % (genre, genre)}
+    return references.compare_to_profile(path, prof)
 
 
 def main():

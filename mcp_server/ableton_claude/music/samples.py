@@ -76,6 +76,52 @@ def estimate_key(ch):
             "runner_up": "%s %s" % (second[1], second[2])}
 
 
+def offbeat_bass_notes(mono, sr, bpm, max_bars=96, lo=30.0, hi=200.0):
+    """Bass pitch on each off-beat, where a four-on-the-floor kick has decayed: a short
+    window (0.4 beat from the 'and') keeps the kick out, and zero-padding the FFT gives
+    the frequency precision a short window lacks (fine for one dominant low partial)."""
+    beat = 60.0 / bpm
+    n_win = int(0.4 * beat * sr)
+    n_fft = 1 << 17
+    freqs = np.fft.rfftfreq(n_fft, 1.0 / sr)
+    sel = (freqs >= lo) & (freqs <= hi)
+    win = np.hanning(n_win)
+    out = []
+    n_beats = min(int(len(mono) / sr / beat) - 1, max_bars * 4)
+    for b in range(n_beats):
+        a = int((b + 0.5) * beat * sr)
+        seg = mono[a:a + n_win]
+        if len(seg) < n_win:
+            break
+        mag = np.abs(np.fft.rfft(seg * win, n=n_fft))[sel]
+        if mag.max() < 1e-3 * (np.abs(seg).max() + 1e-9) * n_win:
+            out.append(None)
+            continue
+        f0 = freqs[sel][int(np.argmax(mag))]
+        out.append(int(round(69 + 12 * np.log2(f0 / 440.0))))
+    return out
+
+
+def estimate_key_bass_anchored(mono, sr, bpm, max_bars=96):
+    """Key for dance music: the tonic is where the bass lives, the mode is which third
+    sits above it. Krumhansl profiles were fitted on cadential tonal music and misread
+    modal grooves over a pedal (and a kick's tuned fundamental pulls them around), so
+    this votes with the bass notes, sampled between beats where the kick has decayed."""
+    notes = [n for n in offbeat_bass_notes(mono, sr, bpm, max_bars=max_bars) if n is not None]
+    if len(notes) < 8:
+        return None
+    votes = np.bincount([n % 12 for n in notes], minlength=12).astype(float)
+    tonic = int(np.argmax(votes))
+    share = votes[tonic] / votes.sum()
+    ch = chroma(mono, sr, fmin=130.0)
+    minor3, major3 = ch[(tonic + 3) % 12], ch[(tonic + 4) % 12]
+    mode = "minor" if minor3 >= major3 else "major"
+    return {"tonic": NOTE_NAMES[tonic], "mode": mode, "bass_share": round(float(share), 3),
+            "third_ratio": round(float(max(minor3, major3) / (min(minor3, major3) + 1e-9)), 2),
+            "confidence": round(float(share * min(1.0, abs(minor3 - major3) /
+                                                  (minor3 + major3 + 1e-9) * 2)), 3)}
+
+
 def onset_envelope(mono, sr, hop=512, n_fft=2048):
     """Spectral flux. Returns (env, fps, offset_s): env[k] belongs to the time
     offset_s + k / fps. A new sound raises a Hann-windowed frame's energy fastest when
