@@ -12,7 +12,7 @@ import types
 
 import Live
 
-VERSION = "0.5.1"
+VERSION = "0.5.2"
 
 COMMANDS = {}
 DEFERRED_TIMEOUT_S = 30.0
@@ -454,6 +454,8 @@ def get_track(ctx, track, clips=True, max_clips=200, markers=False):
     d = {"name": t.name, "kind": _track_kind(t),
          "vol_db": _db_of(t.mixer_device.volume),
          "pan": t.mixer_device.panning.value,
+         "mute": t.mute if t != ctx.song.master_track else False,
+         "sends_db": [_db_of(sd) for sd in t.mixer_device.sends],
          "devices": [{"i": i, "name": dv.name, "class": dv.class_name,
                       "on": dv.parameters[0].value > 0 if len(dv.parameters) else None}
                      for i, dv in enumerate(t.devices)]}

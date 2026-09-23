@@ -23,12 +23,12 @@ from ableton_claude.music import groove  # noqa: E402
 C = client.call
 RET = "Plate"            # Live shows returns as "<letter>-<name>", e.g. "B-Plate"
 SHAKER = "Claude Shaker"
-PANS = {"20 Stab Rhytm": -0.18, "16 Synth resp": 0.18,
-        "Claude Call (Bells)": -0.30, "Claude Response (EP)": 0.25,
+PANS = {"20 Stab Rhytm": -0.32, "16 Synth resp": 0.32,
+        "Claude Call (Bells)": -0.38, "Claude Response (EP)": 0.35,
         "7 Open H. Main": -0.22, "11-ODH_123_Groove_Perc": 0.28,
-        "10-Open Hat Shaker": -0.35, "9 Closed Hat": 0.12, "18 Guitar": 0.20,
+        "10-Open Hat Shaker": -0.35, "9 Closed Hat": 0.12, "18 Guitar": 0.30,
         "32-oss_ip1": -0.25}
-SENDS_B = {"20 Stab Rhytm": -16, "16 Synth resp": -16, "Claude Pad": -14,
+SENDS_B = {"20 Stab Rhytm": -13, "16 Synth resp": -13, "Claude Pad": -11,
            "Claude Call (Bells)": -11, "Claude Response (EP)": -15,
            "19 Rhodes Reverse": -14, "29 Vox Shot Cm": -12, "30-ny_vox124_yagota": -12,
            "31-SAM_FELDT": -12, "6 Clap": -20, "18 Guitar": -18}
@@ -74,7 +74,7 @@ def main():
     if SHAKER not in names:
         C("create_track", {"kind": "midi", "name": SHAKER})
         C("load_device", {"track": SHAKER, "path": "drums/Drum Hits/Shaker/808 Maracas.flac"})
-    C("set_track", {"track": SHAKER, "volume_db": -17, "pan": 0.40})
+    C("set_track", {"track": SHAKER, "volume_db": -20, "pan": 0.40})
     C("delete_clips_in_range", {"track": SHAKER, "start_bar": 1, "end_bar": 400})
     for k, (a, b) in enumerate(SHAKER_RANGES):
         notes = groove.steps_to_notes(groove.DEEP_HOUSE["shaker"], 60, bars=b - a, swing=58.0,
@@ -89,6 +89,8 @@ def main():
                       ("4 Q A", {"display": 1.0})):
         C("set_param", dict(track="master", device="EQ Eight", param=param, **kw))
     log("master EQ: bell -2 dB at 5.5 kHz")
+    # second validation: mids still narrow, maracas too noisy, panning cost ~0.4 LU
+    C("set_param", {"track": "master", "device": "Pro-L 2", "param": "Gain", "display": 11.3})
 
 
 if __name__ == "__main__":
