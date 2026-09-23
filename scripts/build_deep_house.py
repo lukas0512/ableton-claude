@@ -68,9 +68,11 @@ FILLS = {
     "bass": [(17, 65), (73, 97), (129, 177)],
     "clap": [(25, 65), (73, 97), (129, 177)],
     "ohm": [(17, 65), (73, 97), (129, 177)],
-    "hat": [(9, 65), (73, 97), (113, 128), (129, 185)],
-    "ohs": [(49, 65), (81, 97), (137, 161)],
-    "perc": [(1, 65), (73, 97), (113, 128), (129, 185)],
+    # the Break drops kick and bass but keeps hats and perc: without them it measured
+    # -29 LUFS, a hole instead of a breath
+    "hat": [(9, 65), (65, 73), (73, 97), (113, 128), (129, 185)],
+    "ohs": [(49, 65), (81, 97), (129, 161)],
+    "perc": [(1, 65), (65, 73), (73, 97), (113, 128), (129, 185)],
     # the call: stab asks, and in The Call nobody answers yet
     "stab": (alternate(33, 49, 33, 2) + alternate(49, 65, 49, 2) + alternate(73, 97, 73, 2)
              + alternate(129, 145, 129, 1) + [(145, 161)] + alternate(161, 169, 161, 2)),
@@ -192,11 +194,15 @@ def build(dry=False):
     log("\n6. drop the library zone")
     arr.drop_library()
 
+    # levels from the first render: the build measured louder than the drop, and sub +
+    # low held 89 % of the energy
     log("\n7. levels")
-    C("set_track", {"track": "rise", "volume_db": -13})
-    C("set_track", {"track": "rise2", "volume_db": -12})
+    for tr, db in (("Claude Build Clap", -16), ("rise", -16), ("rise2", -15),
+                   ("10 Bass", -10.5), ("9 Closed Hat", -8.5), ("7 Open H. Main", -9)):
+        C("set_track", {"track": tr, "volume_db": db})
     C("set_param", {"track": "master", "device": "Pro-L 2", "param": "Output Level",
                     "display": -1.0})
+    C("set_param", {"track": "master", "device": "Pro-L 2", "param": "Gain", "display": 8.0})
 
     parts = arr.parts + [("Claude Pad", 97, 129), ("Claude Pad", 145, 161),
                          ("Claude Build Clap", 121, 129)]

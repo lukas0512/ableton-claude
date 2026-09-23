@@ -1,7 +1,7 @@
 """Smoke test against a running Live with ClaudeBridge loaded.
 
-Run it on an EMPTY Live Set: it creates tracks, a cue, clips, and renders 2 bars,
-then deletes everything it created.
+Runs on an empty Set, or on any Set with --force: it creates its own tracks, a cue on
+bar 3, clips, and renders bars 1-3, then deletes everything it created.
 
     cd mcp_server && uv run python ../scripts/smoke_live.py
 """
@@ -101,7 +101,7 @@ def _refused():
 
 
 step("clip_envelope refuses Arrangement")(_refused)
-step("set_cue")(lambda: client.call("set_cue", {"name": "CB Test", "bar": 1}))
+step("set_cue")(lambda: client.call("set_cue", {"name": "CB Test", "bar": 3}))
 
 
 def _mk_audio():
@@ -120,6 +120,45 @@ step("mute_clips_in_range")(lambda: client.call(
     "mute_clips_in_range", {"track": "CB Audio", "muted": True, "start_bar": 1, "end_bar": 5}))
 step("batch x3")(lambda: client.batch([{"cmd": "ping"}, {"cmd": "get_song"},
                                        {"cmd": "ping"}]))
+
+
+def _preset_and_filter_env():
+    client.call("create_track", {"kind": "midi", "name": "CB Pad"})
+    made_tracks.append("CB Pad")
+    found = client.call("browse", {"query": "analog soft pad", "roots": ["sounds"]})
+    assert found, "no pad preset found"
+    client.call("load_device", {"track": "CB Pad", "path": found[0]})
+    client.call("load_device", {"track": "CB Pad", "path": "audio_effects/Auto Filter"})
+    r = client.call("create_midi_clip", {
+        "track": "CB Pad", "bar": 1, "length": 8, "notes": [[55, 0, 8, 90], [58, 0, 8, 90]],
+        "envelopes": [{"device": "Auto Filter", "param": "Frequency", "unit": "display",
+                       "points": [[0, 500], [8, 5000]]}]})
+    assert r["n_envelopes"] == 1 and r["method"] == "session_dup", r
+    return {"preset": found[0], "clip": r["name"] or "ok"}
+
+
+step("preset + filter envelope in Hz")(_preset_and_filter_env)
+
+
+def _fill_trim_delete():
+    # a 1-bar phrase at bar 1 on CB MIDI's neighbour: reuse the Gm-Eb clip as source
+    r = client.call("fill_range", {"track": "CB MIDI", "src_start_bar": 1, "src_end_bar": 3,
+                                   "start_bar": 41, "end_bar": 46})
+    clips = [c for c in client.call("get_track", {"track": "CB MIDI"})["clips"]
+             if c["start"] >= 40 * 4 - 1e-3]
+    spans = [(round(c["start"] / 4 + 1, 2), round(c["end"] / 4 + 1, 2)) for c in clips]
+    assert spans == [(41.0, 43.0), (43.0, 45.0), (45.0, 46.0)], spans
+    # trim the last clip: trim_clip overwrites what follows the cut, so never mid-row
+    t = client.call("trim_clip", {"track": "CB MIDI", "clip": {"at": 44 * 4},
+                                  "end_bar": 45.5})
+    assert abs(t["end"] - 44.5 * 4) < 1e-3, t
+    d = client.call("delete_clips_in_range", {"track": "CB MIDI", "start_bar": 41,
+                                              "end_bar": 50})
+    assert d["deleted"] == 3 and d["left_in_range"] == 0, d
+    return {"fill": r, "trimmed_end_bar": t["end"] / 4 + 1}
+
+
+step("fill_range + trim_clip + delete range")(_fill_trim_delete)
 
 
 def _render():
