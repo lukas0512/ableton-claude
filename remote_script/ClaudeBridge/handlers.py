@@ -733,6 +733,20 @@ def set_cue(ctx, name, beat=None, bar=None):
 
 
 @command
+def delete_cue(ctx, name=None, beat=None, bar=None):
+    s = ctx.song
+    at = _t(ctx, beat, bar) if (beat is not None or bar is not None) else None
+    for c in list(s.cue_points):
+        if (name is not None and c.name == name) or (at is not None and abs(c.time - at) < 1e-3):
+            was = s.current_song_time
+            s.current_song_time = c.time
+            s.set_or_delete_cue()
+            s.current_song_time = was
+            return {"deleted": c.time}
+    raise ValueError("cue not found")
+
+
+@command
 def clear_cues(ctx):
     s = ctx.song
     was = s.current_song_time

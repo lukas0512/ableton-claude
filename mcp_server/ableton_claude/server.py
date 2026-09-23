@@ -33,7 +33,7 @@ Bridge commands (args):
          user_library,samples,packs]) | load_device(track, path|query)
   set_param(track, device, param, value|display|db) | set_device_on(track, device, on)
   delete_device(track, device)
-  set_cue(name, beat|bar) | clear_cues | transport(action=play|stop|continue|locate, beat|bar)
+  set_cue(name, beat|bar) | delete_cue(name|beat|bar) | clear_cues | transport(action=play|stop|continue|locate, beat|bar)
   set_loop(on, start_bar, end_bar)
   record_master(start_bar, end_bar, name) | record_status | record_abort
 
