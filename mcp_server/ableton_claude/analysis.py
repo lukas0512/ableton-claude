@@ -169,14 +169,12 @@ def flags(res, target="club"):
                    "systems" % S["low_correlation_below_120hz"])
     if S["correlation"] < 0.2:
         out.append("overall correlation %.2f: mix will collapse badly in mono" % S["correlation"])
+    # Tonal balance is genre-specific (25 deep house references put ~90 % of the energy
+    # below 250 Hz), so it is judged against a genre profile (compare_to_genre), not
+    # against fixed thresholds here. Only an extreme low-mid build-up is flagged.
     if B["low_mid"]["share_pct"] > 18:
         out.append("low-mids 250-500 Hz hold %.0f%% of energy: likely muddy"
                    % B["low_mid"]["share_pct"])
-    lows = B["sub"]["share_pct"] + B["low"]["share_pct"]
-    if lows > 75:
-        out.append("sub+low hold %.0f%% of energy: bottom-heavy" % lows)
-    if lows < 35:
-        out.append("sub+low hold only %.0f%% of energy: thin for a club track" % lows)
     tilt = res["spectral_tilt_db_per_oct"]
     if tilt > -3.0:
         out.append("tilt %.1f dB/oct: bright/harsh balance" % tilt)

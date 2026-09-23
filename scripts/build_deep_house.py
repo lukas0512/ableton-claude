@@ -163,6 +163,13 @@ def build(dry=False):
         "envelopes": [{"device": "Auto Filter", "param": "Frequency", "unit": "display",
                        "points": [[0, 600], [96, 3500], [128, 9000]]}]})
     gm9 = theory.voice_lead(["C7sus4", "Gm9"], low=53, high=77, voices=5)[1]
+    # a Gm9 bed under the Break's lingering answer (Bbmaj7 sits inside Gm9): it keeps
+    # the break from falling 14 LU (references sit ~4 LU down) and foreshadows the pad
+    C("create_midi_clip", {
+        "track": "Claude Pad", "bar": 65, "length": 8 * 4, "name": "Break bed Gm9",
+        "notes": [[p, 0.0, 31.5, 76] for p in gm9],
+        "envelopes": [{"device": "Auto Filter", "param": "Frequency", "unit": "display",
+                       "points": [[0, 500], [24, 2500], [32, 1200]]}]})
     C("create_midi_clip", {
         "track": "Claude Pad", "bar": 145, "length": 16 * 4, "name": "Drop bed Gm9",
         "notes": [[p, 0.0, 63.5, 80] for p in gm9],

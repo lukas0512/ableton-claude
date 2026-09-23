@@ -21,11 +21,17 @@ Claude Code ──MCP──▶ mcp_server (Python) ──TCP 9878──▶ Claud
 | `mcp_server/ableton_claude/server.py` | MCP tools. |
 | `mcp_server/ableton_claude/music/` | `theory` (scales, chords, roman numerals, voice leading), `harmony` (progressions with anticipation, swing), `melody` (call and response), `groove` (swung patterns, build rolls), `samples` (key, tempo, swing, role, bass notes). |
 | `mcp_server/ableton_claude/arranger.py` | Builds an arrangement from a library of phrases stashed past the song. |
-| `mcp_server/ableton_claude/analysis.py` | Objective mix measurements and flags. |
+| `mcp_server/ableton_claude/analysis.py` | Objective mix measurements and technical flags. |
+| `mcp_server/ableton_claude/references.py` | Learns a genre from reference tracks: tempo (0.02 BPM), bass-anchored key, swing, loudness, 1/3-octave shape, and structure (kick on the beats vs bass on the off-beats, per bar). |
+| `mcp_server/ableton_claude/knowledge.py` | Curated genre conventions (deep house, tech house, minimal, UK garage, soulful, disco) plus measured profiles; plans section lengths. |
+| `mcp_server/ableton_claude/mixing.py` | Turns a profile comparison into a few broad, capped EQ bands and limiter drive, and applies them on the Live master. |
+| `knowledge/genres/*.profile.json` | Measured genre profiles (built from your own reference folders). |
 | `scripts/build_deep_house.py` | Worked example: rebuilds a project into a 6-minute deep house track with a story. |
 | `scripts/render_and_analyze.py` | Renders a bar range and measures it per locator section. |
 | `scripts/smoke_live.py` | Integration test against a running Live. |
 | `scripts/repair_clip_time.py` | Repairs clips whose `Time` disagrees with `CurrentStart` in an `.als`. |
+| `scripts/build_profile.py` | `build_profile.py <folder> <genre>`: builds a genre profile (cached, resumable). |
+| `scripts/mix_to_profile.py` | `mix_to_profile.py <render> <genre> [--apply]`: compares a mix with a genre and moves the master toward it. |
 
 ## Setup
 
@@ -47,6 +53,19 @@ After editing `handlers.py`: `scripts/install_remote_script.sh`, then the `reloa
 | `music_call_and_response` | Call that asks, response that answers, audited against the rules. |
 | `music_drum_pattern`, `music_build_roll` | Swung deep house kit, build-up roll. |
 | `analyze_sample`, `analyze_bassline` | Key, BPM, swing, role; bass notes per beat. |
+| `genre_knowledge`, `genre_plan_structure` | What a genre is (conventions + measured numbers); a section plan for N minutes. |
+| `analyze_reference`, `compare_to_genre`, `mix_toward_genre` | Measure a reference; hold a mix against a genre; move the Live master toward it. |
+
+## Teaching it a genre
+
+```bash
+uv run python scripts/build_profile.py "~/Desktop/.../2026 Tracks/Tech House" "tech house"
+```
+
+Every track in the folder is measured once (cached by content in `knowledge/cache.json`),
+then aggregated into medians and middle-half ranges. The profile is statistics over real
+records: it says where a mix or an arrangement is unusual for the genre, not whether it
+is good. Where profile and conventions disagree on numbers, the profile wins.
 
 ## Things Live's API does not do, and the workarounds
 

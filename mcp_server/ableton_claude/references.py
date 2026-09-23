@@ -371,9 +371,10 @@ def compare_to_profile(path, profile, sections=None, tempo=None):
         if st and not (st["p25"] <= v <= st["p75"]):
             notes.append("%s holds %.1f%% of the energy vs %.1f%% typical (%.1f-%.1f)"
                          % (k, v, st["median"], st["p25"], st["p75"]))
-    return {"loudness": a["loudness"], "bands_share": {k: v["share_pct"] for k, v in a["bands"].items()},
-            "third_octave_db": [round(v, 2) for v in mine], "eq_moves": eq, "notes": notes,
-            "sections": a.get("sections")}
+    return analysis._plain({
+        "loudness": a["loudness"], "bands_share": {k: v["share_pct"] for k, v in a["bands"].items()},
+        "third_octave_db": [round(float(v), 2) for v in mine], "eq_moves": eq, "notes": notes,
+        "sections": a.get("sections")})
 
 
 def save_profile(profile, path):

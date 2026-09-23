@@ -3,7 +3,7 @@ import time
 
 from mcp.server.fastmcp import FastMCP
 
-from . import analysis, client, knowledge, references
+from . import analysis, client, knowledge, mixing, references
 from .music import groove, harmony, melody, samples, theory
 
 INSTRUCTIONS = """\
@@ -240,6 +240,16 @@ def compare_to_genre(path: str, genre: str) -> dict:
         return {"error": "no profile for %r; run scripts/build_profile.py <folder> '%s'"
                 % (genre, genre)}
     return references.compare_to_profile(path, prof)
+
+
+@mcp.tool()
+def mix_toward_genre(path: str, genre: str, apply: bool = False,
+                     ceiling_db: float = -1.5) -> dict:
+    """Compare a rendered mix with a genre profile. With apply=True, also move the Live
+    master toward it: an EQ Eight before the bus compressor with at most four broad,
+    capped bands, limiter drive toward the genre's median loudness (never below its
+    lower-quartile crest), and the limiter ceiling. Re-render to check the result."""
+    return mixing.toward_profile(path, genre, apply=apply, ceiling=ceiling_db)
 
 
 def main():

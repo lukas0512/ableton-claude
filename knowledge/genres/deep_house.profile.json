@@ -1,0 +1,745 @@
+{
+ "genre": "deep house",
+ "n_tracks": 25,
+ "source": "/Users/lukasgalhardo/Desktop/Desktop - Lukas's MacBook Pro/2026 Tracks/Deep House",
+ "bpm": {
+  "median": 125.0,
+  "p25": 124.0,
+  "p75": 126.0,
+  "n": 25
+ },
+ "swing_pct": {
+  "median": 62.4,
+  "p25": 54.1,
+  "p75": 65.0,
+  "n": 21
+ },
+ "keys": {
+  "D minor": 4,
+  "G major": 3,
+  "A major": 2,
+  "Ab major": 2,
+  "Eb minor": 2,
+  "E minor": 2,
+  "F# major": 1,
+  "D major": 1,
+  "Bb minor": 1,
+  "A minor": 1,
+  "F minor": 1,
+  "C major": 1,
+  "Bb major": 1,
+  "G minor": 1,
+  "F major": 1,
+  "E major": 1
+ },
+ "modes": {
+  "minor": 12,
+  "major": 13
+ },
+ "duration_s": {
+  "median": 374.4,
+  "p25": 347.9,
+  "p75": 410.9,
+  "n": 25
+ },
+ "loudness": {
+  "integrated_lufs": {
+   "median": -9.3,
+   "p25": -10.3,
+   "p75": -8.6,
+   "n": 25
+  },
+  "true_peak_dbtp": {
+   "median": 0.35,
+   "p25": -0.15,
+   "p75": 0.8,
+   "n": 25
+  },
+  "crest_db": {
+   "median": 10.2,
+   "p25": 9.5,
+   "p75": 11.5,
+   "n": 25
+  }
+ },
+ "bands_share": {
+  "sub": {
+   "median": 42.9,
+   "p25": 29.8,
+   "p75": 46.6,
+   "n": 25
+  },
+  "low": {
+   "median": 46.9,
+   "p25": 41.4,
+   "p75": 48.6,
+   "n": 25
+  },
+  "low_mid": {
+   "median": 4.2,
+   "p25": 2.9,
+   "p75": 6.2,
+   "n": 25
+  },
+  "mid": {
+   "median": 4.0,
+   "p25": 3.1,
+   "p75": 6.1,
+   "n": 25
+  },
+  "high_mid": {
+   "median": 1.8,
+   "p25": 1.6,
+   "p75": 3.2,
+   "n": 25
+  },
+  "high": {
+   "median": 1.7,
+   "p25": 1.2,
+   "p75": 2.5,
+   "n": 25
+  }
+ },
+ "tilt": {
+  "median": -3.71,
+  "p25": -4.03,
+  "p75": -3.09,
+  "n": 25
+ },
+ "stereo": {
+  "correlation": {
+   "median": 0.96,
+   "p25": 0.92,
+   "p75": 0.98,
+   "n": 25
+  },
+  "low_correlation_below_120hz": {
+   "median": 1.0,
+   "p25": 1.0,
+   "p75": 1.0,
+   "n": 25
+  },
+  "side_to_mid_db": {
+   "median": -16.6,
+   "p25": -20.1,
+   "p75": -13.6,
+   "n": 25
+  }
+ },
+ "third_octave": {
+  "hz": [
+   25,
+   31.5,
+   40,
+   50,
+   63,
+   80,
+   100,
+   125,
+   160,
+   200,
+   250,
+   315,
+   400,
+   500,
+   630,
+   800,
+   1000,
+   1250,
+   1600,
+   2000,
+   2500,
+   3150,
+   4000,
+   5000,
+   6300,
+   8000,
+   10000,
+   12500,
+   16000
+  ],
+  "median_db": [
+   -38.05,
+   -26.23,
+   -15.98,
+   -6.69,
+   -6.86,
+   -9.46,
+   -11.03,
+   -12.59,
+   -13.38,
+   -14.65,
+   -16.95,
+   -18.32,
+   -20.02,
+   -19.72,
+   -20.66,
+   -22.1,
+   -21.98,
+   -22.51,
+   -22.91,
+   -23.23,
+   -24.36,
+   -24.31,
+   -24.45,
+   -23.26,
+   -22.64,
+   -22.97,
+   -23.51,
+   -26.42,
+   -32.19
+  ],
+  "p25_db": [
+   -42.13,
+   -29.81,
+   -20.74,
+   -8.29,
+   -8.47,
+   -11.02,
+   -12.48,
+   -13.64,
+   -14.27,
+   -15.36,
+   -18.58,
+   -20.25,
+   -21.78,
+   -21.91,
+   -21.74,
+   -23.47,
+   -23.84,
+   -23.64,
+   -24.76,
+   -26.03,
+   -25.98,
+   -25.85,
+   -25.57,
+   -25.83,
+   -24.7,
+   -24.28,
+   -25.12,
+   -28.94,
+   -35.03
+  ],
+  "p75_db": [
+   -31.01,
+   -21.42,
+   -12.64,
+   -5.42,
+   -5.61,
+   -8.33,
+   -10.57,
+   -10.89,
+   -12.33,
+   -12.68,
+   -14.9,
+   -17.24,
+   -19.01,
+   -19.05,
+   -18.63,
+   -19.93,
+   -21.13,
+   -20.38,
+   -21.77,
+   -21.83,
+   -22.39,
+   -22.94,
+   -22.32,
+   -22.14,
+   -20.8,
+   -21.92,
+   -21.75,
+   -24.79,
+   -31.14
+  ]
+ },
+ "structure": {
+  "bars": {
+   "median": 194.0,
+   "p25": 179.0,
+   "p75": 210.0,
+   "n": 25
+  },
+  "intro_bars": {
+   "median": 16.0,
+   "p25": 8.0,
+   "p75": 32.0,
+   "n": 25
+  },
+  "outro_bars": {
+   "median": 7.0,
+   "p25": 0.0,
+   "p75": 16.0,
+   "n": 25
+  },
+  "n_breaks": {
+   "median": 1.0,
+   "p25": 1.0,
+   "p75": 2.0,
+   "n": 25
+  },
+  "main_break_bars": {
+   "median": 16.0,
+   "p25": 8.0,
+   "p75": 24.0,
+   "n": 21
+  },
+  "main_break_at": {
+   "median": 0.42,
+   "p25": 0.28,
+   "p75": 0.56,
+   "n": 21
+  },
+  "break_depth_lu": {
+   "median": 4.0,
+   "p25": 3.1,
+   "p75": 4.5,
+   "n": 21
+  },
+  "full_lufs": {
+   "median": -8.9,
+   "p25": -9.7,
+   "p75": -8.3,
+   "n": 25
+  }
+ },
+ "tracks": [
+  {
+   "file": "01. Adryiano - On My Side (SN1206.2).m4a",
+   "bpm": 123.0,
+   "key": "F# major",
+   "duration_s": 410.2,
+   "swing_pct": 54.1,
+   "lufs": -10.8,
+   "structure": {
+    "bars": 210,
+    "intro_bars": 24,
+    "outro_bars": 0,
+    "n_breaks": 2,
+    "full_lufs": -10.1,
+    "main_break_bars": 24,
+    "main_break_at": 0.229,
+    "break_depth_lu": 4.5
+   }
+  },
+  {
+   "file": "01. Butch - Same Like Dope But Different (Original Mix).flac",
+   "bpm": 123.0,
+   "key": "A major",
+   "duration_s": 281.3,
+   "swing_pct": 64.7,
+   "lufs": -9.9,
+   "structure": {
+    "bars": 144,
+    "intro_bars": 0,
+    "outro_bars": 8,
+    "n_breaks": 2,
+    "full_lufs": -8.9,
+    "main_break_bars": 40,
+    "main_break_at": 0.167,
+    "break_depth_lu": 4.1
+   }
+  },
+  {
+   "file": "01. COMMANDR - sweet2u.m4a",
+   "bpm": 126.0,
+   "key": "D major",
+   "duration_s": 182.9,
+   "swing_pct": 70.3,
+   "lufs": -11.6,
+   "structure": {
+    "bars": 95,
+    "intro_bars": 8,
+    "outro_bars": 0,
+    "n_breaks": 1,
+    "full_lufs": -11.2,
+    "main_break_bars": 8,
+    "main_break_at": 0.421,
+    "break_depth_lu": 4.0
+   }
+  },
+  {
+   "file": "01. Dafs - Sugar (Extended) (Extended).flac",
+   "bpm": 128.0,
+   "key": "G major",
+   "duration_s": 445.1,
+   "swing_pct": 64.2,
+   "lufs": -9.1,
+   "structure": {
+    "bars": 237,
+    "intro_bars": 40,
+    "outro_bars": 0,
+    "n_breaks": 5,
+    "full_lufs": -8.3,
+    "main_break_bars": 16,
+    "main_break_at": 0.253,
+    "break_depth_lu": 4.1
+   }
+  },
+  {
+   "file": "01. Demarkus Lewis - Feed My Vibe (Original Mix).flac",
+   "bpm": 124.0,
+   "key": "D minor",
+   "duration_s": 372.6,
+   "swing_pct": 71.7,
+   "lufs": -8.1,
+   "structure": {
+    "bars": 192,
+    "intro_bars": 32,
+    "outro_bars": 16,
+    "n_breaks": 0,
+    "full_lufs": -7.8
+   }
+  },
+  {
+   "file": "01. Gemini - How Can I (Original).flac",
+   "bpm": 125.98,
+   "key": "Ab major",
+   "duration_s": 377.4,
+   "swing_pct": 67.8,
+   "lufs": -8.9,
+   "structure": {
+    "bars": 198,
+    "intro_bars": 0,
+    "outro_bars": 0,
+    "n_breaks": 1,
+    "full_lufs": -9.0,
+    "main_break_bars": 8,
+    "main_break_at": 0.869,
+    "break_depth_lu": 2.6
+   }
+  },
+  {
+   "file": "01. Karaba - Day & Night (Original Mix).flac",
+   "bpm": 125.0,
+   "key": "Bb minor",
+   "duration_s": 336.0,
+   "swing_pct": 51.7,
+   "lufs": -8.2,
+   "structure": {
+    "bars": 174,
+    "intro_bars": 8,
+    "outro_bars": 6,
+    "n_breaks": 2,
+    "full_lufs": -7.6,
+    "main_break_bars": 8,
+    "main_break_at": 0.276,
+    "break_depth_lu": 5.2
+   }
+  },
+  {
+   "file": "01. Luis Radio - Blackjack (Walter G Remix).flac",
+   "bpm": 123.0,
+   "key": "D minor",
+   "duration_s": 444.9,
+   "swing_pct": null,
+   "lufs": -8.0,
+   "structure": {
+    "bars": 227,
+    "intro_bars": 16,
+    "outro_bars": 19,
+    "n_breaks": 1,
+    "full_lufs": -7.9,
+    "main_break_bars": 8,
+    "main_break_at": 0.423,
+    "break_depth_lu": 1.8
+   }
+  },
+  {
+   "file": "01. Luis Radio - Understand Me (Original Mix).flac",
+   "bpm": 125.0,
+   "key": "A minor",
+   "duration_s": 330.2,
+   "swing_pct": null,
+   "lufs": -8.6,
+   "structure": {
+    "bars": 171,
+    "intro_bars": 16,
+    "outro_bars": 15,
+    "n_breaks": 0,
+    "full_lufs": -8.5
+   }
+  },
+  {
+   "file": "01. S.O.N - Suksma (Original Mix).flac",
+   "bpm": 124.0,
+   "key": "Ab major",
+   "duration_s": 418.5,
+   "swing_pct": 58.7,
+   "lufs": -10.7,
+   "structure": {
+    "bars": 216,
+    "intro_bars": 0,
+    "outro_bars": 0,
+    "n_breaks": 2,
+    "full_lufs": -10.0,
+    "main_break_bars": 32,
+    "main_break_at": 0.593,
+    "break_depth_lu": 3.4
+   }
+  },
+  {
+   "file": "01. Shyam P, II Faces - Shake  (Ft. Shyam P Extended Mix).flac",
+   "bpm": 128.0,
+   "key": "F minor",
+   "duration_s": 354.0,
+   "swing_pct": 50.8,
+   "lufs": -8.7,
+   "structure": {
+    "bars": 188,
+    "intro_bars": 16,
+    "outro_bars": 0,
+    "n_breaks": 2,
+    "full_lufs": -8.5,
+    "main_break_bars": 20,
+    "main_break_at": 0.34,
+    "break_depth_lu": 2.2
+   }
+  },
+  {
+   "file": "01. Valentino Guerriero - Take Me (Original Mix).flac",
+   "bpm": 118.0,
+   "key": "C major",
+   "duration_s": 427.1,
+   "swing_pct": 58.5,
+   "lufs": -9.3,
+   "structure": {
+    "bars": 209,
+    "intro_bars": 32,
+    "outro_bars": 0,
+    "n_breaks": 2,
+    "full_lufs": -8.8,
+    "main_break_bars": 32,
+    "main_break_at": 0.612,
+    "break_depth_lu": 3.1
+   }
+  },
+  {
+   "file": "01_Demuir_In_N_Out_'Steady_Strokes'_Original_Mix.flac",
+   "bpm": 128.0,
+   "key": "G major",
+   "duration_s": 427.2,
+   "swing_pct": 35.1,
+   "lufs": -8.0,
+   "structure": {
+    "bars": 227,
+    "intro_bars": 48,
+    "outro_bars": 43,
+    "n_breaks": 1,
+    "full_lufs": -7.3,
+    "main_break_bars": 8,
+    "main_break_at": 0.493,
+    "break_depth_lu": 4.0
+   }
+  },
+  {
+   "file": "01_Marcus_Soulbynight,_Matt_MCanister_Soulshine_Jazz_Original_Mix.flac",
+   "bpm": 123.0,
+   "key": "D minor",
+   "duration_s": 390.2,
+   "swing_pct": null,
+   "lufs": -7.4,
+   "structure": {
+    "bars": 199,
+    "intro_bars": 12,
+    "outro_bars": 19,
+    "n_breaks": 2,
+    "full_lufs": -6.9,
+    "main_break_bars": 24,
+    "main_break_at": 0.241,
+    "break_depth_lu": 3.3
+   }
+  },
+  {
+   "file": "01_Mike_Dunn_It's_A_Groove_Thang_Black_Glitter_LB_Extended_MixX.flac",
+   "bpm": 124.0,
+   "key": "Bb major",
+   "duration_s": 347.9,
+   "swing_pct": 65.0,
+   "lufs": -8.9,
+   "structure": {
+    "bars": 179,
+    "intro_bars": 8,
+    "outro_bars": 0,
+    "n_breaks": 0,
+    "full_lufs": -8.8
+   }
+  },
+  {
+   "file": "02. Aron Volta - Lyre (Original Mix).flac",
+   "bpm": 128.0,
+   "key": "G minor",
+   "duration_s": 325.8,
+   "swing_pct": 59.8,
+   "lufs": -8.6,
+   "structure": {
+    "bars": 173,
+    "intro_bars": 8,
+    "outro_bars": 5,
+    "n_breaks": 1,
+    "full_lufs": -8.3,
+    "main_break_bars": 8,
+    "main_break_at": 0.601,
+    "break_depth_lu": 6.9
+   }
+  },
+  {
+   "file": "02. Carlo Gambino - Lost Cassette (Original Mix).flac",
+   "bpm": 124.0,
+   "key": "F major",
+   "duration_s": 407.0,
+   "swing_pct": 45.6,
+   "lufs": -10.3,
+   "structure": {
+    "bars": 210,
+    "intro_bars": 8,
+    "outro_bars": 14,
+    "n_breaks": 1,
+    "full_lufs": -9.5,
+    "main_break_bars": 32,
+    "main_break_at": 0.457,
+    "break_depth_lu": 6.9
+   }
+  },
+  {
+   "file": "02. R.M - Chikyu-u 002 (Original Mix).flac",
+   "bpm": 123.0,
+   "key": "E major",
+   "duration_s": 563.4,
+   "swing_pct": 52.6,
+   "lufs": -9.6,
+   "structure": {
+    "bars": 288,
+    "intro_bars": 8,
+    "outro_bars": 24,
+    "n_breaks": 2,
+    "full_lufs": -8.9,
+    "main_break_bars": 32,
+    "main_break_at": 0.25,
+    "break_depth_lu": 4.4
+   }
+  },
+  {
+   "file": "03. D'Julz - Nu Bass (DJ Deep Remix).flac",
+   "bpm": 125.0,
+   "key": "Eb minor",
+   "duration_s": 374.4,
+   "swing_pct": null,
+   "lufs": -8.5,
+   "structure": {
+    "bars": 194,
+    "intro_bars": 64,
+    "outro_bars": 34,
+    "n_breaks": 1,
+    "full_lufs": -7.9,
+    "main_break_bars": 8,
+    "main_break_at": 0.412,
+    "break_depth_lu": 1.9
+   }
+  },
+  {
+   "file": "04. Aron Volta - Best Served Chilled (Original Mix).flac",
+   "bpm": 128.0,
+   "key": "E minor",
+   "duration_s": 365.6,
+   "swing_pct": 67.8,
+   "lufs": -9.3,
+   "structure": {
+    "bars": 194,
+    "intro_bars": 0,
+    "outro_bars": 6,
+    "n_breaks": 2,
+    "full_lufs": -9.0,
+    "main_break_bars": 16,
+    "main_break_at": 0.412,
+    "break_depth_lu": 2.6
+   }
+  },
+  {
+   "file": "04. Karcelen - Kokubo (Roger Gerressen Remix) (1).flac",
+   "bpm": 125.0,
+   "key": "D minor",
+   "duration_s": 391.7,
+   "swing_pct": 74.9,
+   "lufs": -10.8,
+   "structure": {
+    "bars": 203,
+    "intro_bars": 24,
+    "outro_bars": 7,
+    "n_breaks": 1,
+    "full_lufs": -10.4,
+    "main_break_bars": 24,
+    "main_break_at": 0.473,
+    "break_depth_lu": 5.9
+   }
+  },
+  {
+   "file": "04_Toolate_Groove_Can_You_Understand_My_Groove_Original_Mix.flac",
+   "bpm": 126.0,
+   "key": "A major",
+   "duration_s": 355.2,
+   "swing_pct": 63.6,
+   "lufs": -12.7,
+   "structure": {
+    "bars": 186,
+    "intro_bars": 52,
+    "outro_bars": 14,
+    "n_breaks": 0,
+    "full_lufs": -12.5,
+    "main_break_bars": 8,
+    "main_break_at": 0.71,
+    "break_depth_lu": 4.1
+   }
+  },
+  {
+   "file": "05_My World.mp3",
+   "bpm": 129.96,
+   "key": "Eb minor",
+   "duration_s": 356.7,
+   "swing_pct": 62.9,
+   "lufs": -12.5,
+   "structure": {
+    "bars": 193,
+    "intro_bars": 32,
+    "outro_bars": 33,
+    "n_breaks": 0,
+    "full_lufs": -12.0
+   }
+  },
+  {
+   "file": "1070. Gunnter - Tribute to FG  (Original Mix).flac",
+   "bpm": 126.0,
+   "key": "G major",
+   "duration_s": 316.2,
+   "swing_pct": 55.8,
+   "lufs": -9.5,
+   "structure": {
+    "bars": 165,
+    "intro_bars": 16,
+    "outro_bars": 5,
+    "n_breaks": 2,
+    "full_lufs": -8.9,
+    "main_break_bars": 8,
+    "main_break_at": 0.388,
+    "break_depth_lu": 3.8
+   }
+  },
+  {
+   "file": "Traumer - We Do (Original Mix).flac",
+   "bpm": 125.0,
+   "key": "E minor",
+   "duration_s": 410.9,
+   "swing_pct": 62.4,
+   "lufs": -10.0,
+   "structure": {
+    "bars": 213,
+    "intro_bars": 32,
+    "outro_bars": 9,
+    "n_breaks": 1,
+    "full_lufs": -9.7,
+    "main_break_bars": 12,
+    "main_break_at": 0.563,
+    "break_depth_lu": 8.7
+   }
+  }
+ ]
+}
