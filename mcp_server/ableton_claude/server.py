@@ -54,6 +54,20 @@ Composing: the music_* tools return notes ready for create_midi_clip. Keep new m
 inside the song's scale (analyze_sample on its loops tells you the key and the swing),
 land strong beats on chord tones, and give a call a response that echoes its rhythm.
 Build arrangements left to right per track (fill_range cuts overhangs by overwriting).
+
+A good track, step by step:
+ 1. genre_knowledge(genre): conventions plus numbers measured from the user's references
+    (a profile exists when the user has run scripts/build_profile.py on a folder).
+ 2. genre_plan_structure(genre, minutes): section lengths from the profile; then write
+    the story (what enters, leaves, asks and answers in each section).
+ 3. Understand the material: analyze_sample / analyze_bassline on stems; get_notes on MIDI.
+ 4. Generate parts inside the song's vocabulary (music_*), place them, set locators.
+ 5. render_start + render_wait with the locator sections: check the energy curve (build
+    below the drop, breaks not falling into holes) and fix the arrangement first.
+ 6. compare_to_genre / mix_toward_genre on the render: broad EQ and limiter drive only;
+    trust the references over rules of thumb (deep house keeps ~90 % below 250 Hz).
+ 7. Re-render and compare again. Measurements catch technical problems; they do not
+    judge groove or taste: say so, and ask the user to listen.
 """
 
 mcp = FastMCP("ableton-claude", instructions=INSTRUCTIONS)
