@@ -12,7 +12,7 @@ import types
 
 import Live
 
-VERSION = "0.2.0"
+VERSION = "0.2.3"
 
 COMMANDS = {}
 DEFERRED_TIMEOUT_S = 30.0
@@ -29,6 +29,7 @@ class Context(object):
         self.record_job = getattr(previous, "record_job", None)
         self.browser_cache = getattr(previous, "browser_cache", {})
         self.pending = getattr(previous, "pending", [])
+        _install_main_loop(cs)
 
     @property
     def song(self):
@@ -40,6 +41,50 @@ class Context(object):
 
     def log(self, msg):
         self.cs.log_message("ClaudeBridge: %s" % msg)
+
+
+# ======================================================================
+# main loop
+#
+# Live keeps Remote Script modules in memory until it restarts: re-selecting the
+# control surface builds a new instance from the *old* __init__ code. So the main
+# loop lives here and is installed onto the control surface class every time this
+# module is (re)loaded. __init__.py only has to provide the socket, the inbox queue
+# and a `reload` path; everything else follows this file.
+# ======================================================================
+
+def _main_loop(cs):
+    import importlib
+    import queue
+    import sys
+    mod = sys.modules[__name__]
+    type(cs).__mro__[1].update_display(cs)
+    for _ in range(64):
+        try:
+            cmd, args, reply = cs._inbox.get_nowait()
+        except queue.Empty:
+            break
+        if cmd == "reload":
+            try:
+                mod = importlib.reload(mod)
+                cs._ctx = mod.Context(cs, previous=cs._ctx)
+                reply.put((True, {"reloaded": True, "handlers_version": mod.VERSION}))
+            except Exception as e:
+                reply.put((False, {"error": "reload failed: %s" % e,
+                                   "trace": traceback.format_exc(limit=6)}))
+            continue
+        try:
+            mod.dispatch(cs._ctx, cmd, args, reply)
+        except Exception as e:
+            reply.put((False, _err(e)))
+    try:
+        mod.tick(cs._ctx)
+    except Exception as e:
+        cs.log_message("ClaudeBridge: tick error: %s" % e)
+
+
+def _install_main_loop(cs):
+    type(cs).update_display = _main_loop
 
 
 # ======================================================================
@@ -848,13 +893,19 @@ def delete_device(ctx, track, device):
 # locators & transport
 # ======================================================================
 
-def _goto(ctx, at, max_ticks=20):
-    """Move the playhead and wait until Live has applied it (it lands a tick later)."""
+def _goto(ctx, at, max_ticks=20, settle_ticks=2):
+    """Move the playhead and wait until Live has applied it.
+    Reading current_song_time back returns the new value at once, but the engine only
+    moves on a later tick: acting before then (play, set_or_delete_cue) uses the old
+    position. So always give it `settle_ticks`, then confirm."""
     s = ctx.song
     s.current_song_time = at
+    for _ in range(settle_ticks):
+        yield
     for _ in range(max_ticks):
         if abs(s.current_song_time - at) < 1e-3:
             return
+        s.current_song_time = at
         yield
     raise RuntimeError("playhead did not reach beat %s (at %s)" % (at, s.current_song_time))
 
@@ -919,9 +970,12 @@ def clear_cues(ctx):
 def transport(ctx, action, beat=None, bar=None):
     s = ctx.song
     if beat is not None or bar is not None:
+        if action in ("play", "locate"):
+            s.stop_playing()
+            yield
         yield from _goto(ctx, _t(ctx, beat, bar))
     if action == "play":
-        s.start_playing()
+        s.start_playing()   # plays from the settled playhead (see record_master)
     elif action == "continue":
         s.continue_playing()
     elif action == "stop":
@@ -973,8 +1027,13 @@ def record_master(ctx, start_bar, end_bar, name="Claude Render"):
 
     s.metronome = False
     s.loop = False
+    if s.is_playing:
+        s.stop_playing()
+        yield
     yield from _goto(ctx, a)
     s.record_mode = True
+    # Measured on Live 12.4: after the playhead settles, start_playing() starts from it.
+    # continue_playing() ignores a moved playhead and resumes where playback stopped.
     s.start_playing()
     ctx.record_job = {"state": "recording", "start": a, "end": b, "track": rt,
                       "saved": saved, "name": name, "ticks": 0,
@@ -1036,9 +1095,15 @@ def tick(ctx):
         # start_playing() is asynchronous: is_playing stays False for a few ticks, and
         # a count-in can hold the playhead before `start`. Only treat "stopped" as the
         # user stopping once playback has demonstrably begun.
-        if s.is_playing and s.current_song_time > job["start"] + 0.01:
+        now = s.current_song_time
+        if not job.get("started") and s.is_playing and now > job["end"]:
+            _finish_record(ctx, job)
+            job["error"] = ("playback started at beat %.2f, outside the render range "
+                            "%.2f-%.2f" % (now, job["start"], job["end"]))
+            return
+        if s.is_playing and now > job["start"] + 0.01:
             job["started"] = True
-        if s.current_song_time >= job["end"]:
+        if now >= job["end"]:
             _finish_record(ctx, job)
         elif job.get("started") and not s.is_playing:
             _finish_record(ctx, job)
@@ -1050,7 +1115,8 @@ def tick(ctx):
         clips = list(job["track"].arrangement_clips)
         if clips and clips[0].file_path:
             job["file"] = clips[0].file_path
-            job["state"] = "done"
+            job["state"] = "error" if job.get("error") else "done"
         elif job["ticks"] > 100:
             job["state"] = "error"
-            job["error"] = "recording finished but no clip appeared"
+            job.setdefault("error", "recording finished but no clip appeared")
+
