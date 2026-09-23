@@ -43,7 +43,13 @@ made_tracks = []
 step("ping")(lambda: client.call("ping"))
 song = step("get_song")(lambda: client.call("get_song"))
 n0 = len(song["tracks"]) if song else 0
-step("set_tempo 120")(lambda: client.call("set_tempo", {"bpm": 120}))
+tempo0 = song["tempo"] if song else 120.0
+busy = n0 and any(t["clips"] for t in song["tracks"])
+if busy and "--force" not in sys.argv:
+    print("\nThe open Set has clips on its tracks. Open an empty Live Set, or pass --force "
+          "(everything the test creates is deleted afterwards).")
+    sys.exit(2)
+step("set_tempo round-trip")(lambda: client.call("set_tempo", {"bpm": tempo0 + 1}))
 
 
 def _mk_midi():
@@ -70,9 +76,31 @@ if found:
 step("set_track volume -6 dB")(lambda: (
     lambda r: r if abs(r["vol_db"] + 6) < 0.3 else (_ for _ in ()).throw(AssertionError(r)))(
     client.call("set_track", {"track": "CB MIDI", "volume_db": -6})))
-step("clip_envelope volume ramp")(lambda: client.call(
-    "clip_envelope", {"track": "CB MIDI", "clip": 0, "param": "volume",
-                      "points": [[0, 0.4], [8, 0.85]]}))
+
+def _env_clip():
+    r = client.call("create_midi_clip", {
+        "track": "CB MIDI", "bar": 5, "length": 8, "notes": notes, "name": "with fade-in",
+        "envelopes": [{"param": "volume", "unit": "db", "points": [[0, -30], [8, 0]]}]})
+    assert r["method"] == "session_dup" and r["n_envelopes"] == 1, r
+    assert abs(r["start"] - 16.0) < 1e-3, r
+    slots = client.call("get_track", {"track": "CB MIDI"})
+    assert slots["n_clips"] == 2, slots
+    return r
+
+
+step("arrangement clip with envelope")(_env_clip)
+
+
+def _refused():
+    try:
+        client.call("clip_envelope", {"track": "CB MIDI", "clip": 0, "points": [[0, 0.5]]})
+    except client.BridgeError as e:
+        assert "Session" in str(e), e
+        return "refused with a clear message"
+    raise AssertionError("clip_envelope on an Arrangement clip should be refused")
+
+
+step("clip_envelope refuses Arrangement")(_refused)
 step("set_cue")(lambda: client.call("set_cue", {"name": "CB Test", "bar": 1}))
 
 
@@ -121,6 +149,7 @@ try:
     client.call("delete_cue", {"name": "CB Test"})
 except Exception as e:
     print("cleanup: could not delete cue: %s" % e)
+client.call("set_tempo", {"bpm": tempo0})
 left = len(client.call("get_song")["tracks"])
 if left != n0:
     print("cleanup: track count %d, expected %d" % (left, n0))

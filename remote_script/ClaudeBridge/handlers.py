@@ -6,12 +6,16 @@ Tracks are addressed by index, exact name, unique name fragment,
 "master", or "return:<index|name>".
 """
 import re
+import time
+import traceback
+import types
 
 import Live
 
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 
 COMMANDS = {}
+DEFERRED_TIMEOUT_S = 30.0
 
 
 def command(fn):
@@ -24,6 +28,7 @@ class Context(object):
         self.cs = cs
         self.record_job = getattr(previous, "record_job", None)
         self.browser_cache = getattr(previous, "browser_cache", {})
+        self.pending = getattr(previous, "pending", [])
 
     @property
     def song(self):
@@ -35,6 +40,77 @@ class Context(object):
 
     def log(self, msg):
         self.cs.log_message("ClaudeBridge: %s" % msg)
+
+
+# ======================================================================
+# dispatch
+#
+# A handler either returns a value, or is a generator: each bare `yield` hands
+# control back to Live until the next tick (~100 ms), which is how a command waits
+# for Live to apply a change (Live applies e.g. playhead moves only on the next
+# tick). The generator's `return` value is the reply.
+# ======================================================================
+
+def _err(e):
+    return {"error": "%s: %s" % (type(e).__name__, e), "trace": traceback.format_exc(limit=6)}
+
+
+def _run(ctx, cmd, args):
+    fn = COMMANDS.get(cmd)
+    if fn is None:
+        raise LookupError("unknown command: %s" % cmd)
+    return fn(ctx, **args)
+
+
+def dispatch(ctx, cmd, args, reply):
+    if cmd == "batch":
+        out = []
+        for item in args.get("commands", []):
+            try:
+                r = _run(ctx, item.get("cmd"), item.get("args") or {})
+                if isinstance(r, types.GeneratorType):
+                    r.close()
+                    raise RuntimeError("%s waits on Live and cannot run inside a batch"
+                                       % item.get("cmd"))
+                out.append({"ok": True, "result": r})
+            except Exception as e:
+                out.append(dict({"ok": False}, **_err(e)))
+        reply.put((True, out))
+        return
+    if cmd not in COMMANDS:
+        reply.put((False, {"error": "unknown command: %s" % cmd, "available": sorted(COMMANDS)}))
+        return
+    try:
+        r = _run(ctx, cmd, args)
+    except Exception as e:
+        reply.put((False, _err(e)))
+        return
+    if isinstance(r, types.GeneratorType):
+        ctx.pending.append({"gen": r, "reply": reply, "cmd": cmd,
+                            "deadline": time.time() + DEFERRED_TIMEOUT_S})
+        _advance(ctx, ctx.pending[-1])
+    else:
+        reply.put((True, r))
+
+
+def _advance(ctx, job):
+    """Run a deferred command up to its next `yield`. Returns True when finished."""
+    try:
+        next(job["gen"])
+    except StopIteration as stop:
+        job["reply"].put((True, stop.value))
+        ctx.pending.remove(job)
+        return True
+    except Exception as e:
+        job["reply"].put((False, _err(e)))
+        ctx.pending.remove(job)
+        return True
+    if time.time() > job["deadline"]:
+        job["gen"].close()
+        job["reply"].put((False, {"error": "%s timed out waiting on Live" % job["cmd"]}))
+        ctx.pending.remove(job)
+        return True
+    return False
 
 
 # ======================================================================
@@ -395,14 +471,72 @@ def set_send(ctx, track, send, db):
 # clips
 # ======================================================================
 
-def _find_new_clip(track, start, before_ids):
-    for c in _arr_clips(track):
-        if abs(c.start_time - start) < 1e-3 and id(c) not in before_ids:
-            return c
-    for c in _arr_clips(track):
-        if abs(c.start_time - start) < 1e-3:
-            return c
-    return None
+def _find_new_clip(track, start, before):
+    """Live hands out a fresh Python wrapper on every access, so identity is compared
+    with == (same underlying clip), never with id()."""
+    at = [c for c in _arr_clips(track) if abs(c.start_time - start) < 1e-3]
+    fresh = [c for c in at if not any(c == b for b in before)]
+    if fresh:
+        return fresh[0]
+    return at[0] if at else None
+
+
+def _raw_for_db(param, db):
+    lo, hi = param.min, param.max
+    if db <= -69.9:
+        return lo
+    for _ in range(40):
+        mid = (lo + hi) / 2.0
+        d = _db_of(param, mid)
+        if d is None or d < db:
+            lo = mid
+        else:
+            hi = mid
+    return hi
+
+
+def _write_envelope(track, clip, spec, resolution=0.25):
+    """spec: {"param": "volume"|"pan"|"send:<n>"|<device param>, "device": None|name|index,
+              "points": [[beat_from_clip_start, value], ...], "unit": "raw"|"db"}
+    Linear ramps between points, drawn as steps of `resolution` beats."""
+    device = spec.get("device")
+    pname = spec.get("param", "volume")
+    p = _mixer_param(track, pname) if device is None else _param(_device(track, device), pname)
+    to_raw = (lambda v: _raw_for_db(p, v)) if spec.get("unit") == "db" else float
+    env = clip.automation_envelope(p)
+    if env is not None:
+        clip.clear_envelope(p)
+    env = clip.automation_envelope(p) or clip.create_automation_envelope(p)
+    offset = clip.loop_start if clip.looping else clip.start_marker
+    pts = sorted((float(a), to_raw(v)) for a, v in spec["points"])
+    steps = 0
+    for (a0, v0), (a1, v1) in zip(pts, pts[1:]):
+        x = a0
+        while x < a1 - 1e-9:
+            f = (x - a0) / (a1 - a0)
+            val = max(p.min, min(p.max, v0 + (v1 - v0) * f))
+            env.insert_step(offset + x, min(resolution, a1 - x), val)
+            x += resolution
+            steps += 1
+    if len(pts) == 1:
+        env.insert_step(offset + pts[0][0], resolution, pts[0][1])
+        steps = 1
+    return {"param": p.name, "steps": steps}
+
+
+def _via_session(ctx, t, start, fill):
+    """Build a clip in a free Session slot, let `fill(clip)` shape it (notes, envelopes...),
+    copy it into the Arrangement at `start`, then remove the Session copy. Needed because
+    Live's API only creates automation envelopes on Session clips."""
+    slot = _free_slot(ctx, t)
+    before = list(t.arrangement_clips)
+    try:
+        sc = fill(slot)
+        t.duplicate_clip_to_arrangement(sc, start)
+    finally:
+        if slot.has_clip:
+            slot.delete_clip()
+    return _find_new_clip(t, start, before)
 
 
 def _free_slot(ctx, track):
@@ -431,31 +565,40 @@ def _note_specs(notes):
 
 @command
 def create_midi_clip(ctx, track, length, notes=None, name=None, beat=None, bar=None,
-                     loop=False):
-    """Empty/filled MIDI clip in the Arrangement. notes: [[pitch, start, dur, vel], ...]
-    with start relative to the clip start, in beats."""
+                     loop=False, envelopes=None):
+    """MIDI clip in the Arrangement. notes: [[pitch, start, dur, vel], ...] with start
+    relative to the clip, in beats. envelopes: see _write_envelope."""
     t = _track(ctx, track)
     start = _t(ctx, beat, bar)
     length = float(length)
-    before = {id(c) for c in t.arrangement_clips}
-    if hasattr(t, "create_midi_clip"):
-        t.create_midi_clip(start, length)
-        method = "native"
-    else:
-        slot = _free_slot(ctx, t)
-        slot.create_clip(length)
-        t.duplicate_clip_to_arrangement(slot.clip, start)
-        slot.delete_clip()
+
+    def shape(c):
+        if name:
+            c.name = name
+        c.looping = bool(loop)
+        if notes:
+            c.add_new_notes(_note_specs(notes))
+        for spec in envelopes or []:
+            _write_envelope(t, c, spec)
+        return c
+
+    if envelopes or not hasattr(t, "create_midi_clip"):
+        def fill(slot):
+            slot.create_clip(length)
+            return shape(slot.clip)
+        c = _via_session(ctx, t, start, fill)
         method = "session_dup"
-    c = _find_new_clip(t, start, before)
+    else:
+        before = list(t.arrangement_clips)
+        t.create_midi_clip(start, length)
+        c = _find_new_clip(t, start, before)
+        if c is not None:
+            shape(c)
+        method = "native"
     if c is None:
         raise RuntimeError("clip not created")
-    if name:
-        c.name = name
-    c.looping = bool(loop)
-    if notes:
-        c.add_new_notes(_note_specs(notes))
-    return dict(_clip_info(c), method=method, n_notes=len(notes or []))
+    return dict(_clip_info(c), method=method, n_notes=len(notes or []),
+                n_envelopes=len(envelopes or []))
 
 
 @command
@@ -469,33 +612,41 @@ def add_notes(ctx, track, clip, notes, replace=False):
 
 @command
 def create_audio_clip(ctx, track, path, beat=None, bar=None, name=None, warp=None,
-                      gain_db=None, pitch=None, length=None):
+                      gain_db=None, pitch=None, length=None, envelopes=None):
     t = _track(ctx, track)
     start = _t(ctx, beat, bar)
-    before = {id(c) for c in t.arrangement_clips}
-    if hasattr(t, "create_audio_clip"):
-        t.create_audio_clip(path, start)
-        method = "native"
-    else:
-        slot = _free_slot(ctx, t)
-        slot.create_audio_clip(path)
-        t.duplicate_clip_to_arrangement(slot.clip, start)
-        slot.delete_clip()
+
+    def shape(c):
+        if name:
+            c.name = name
+        if warp is not None:
+            c.warping = bool(warp)
+        if pitch is not None:
+            c.pitch_coarse = int(pitch)
+        if gain_db is not None:
+            _set_clip_gain_db(c, float(gain_db))
+        if length is not None and c.looping:
+            c.loop_end = c.loop_start + float(length)
+        for spec in envelopes or []:
+            _write_envelope(t, c, spec)
+        return c
+
+    if envelopes or not hasattr(t, "create_audio_clip"):
+        def fill(slot):
+            slot.create_audio_clip(path)
+            return shape(slot.clip)
+        c = _via_session(ctx, t, start, fill)
         method = "session_dup"
-    c = _find_new_clip(t, start, before)
+    else:
+        before = list(t.arrangement_clips)
+        t.create_audio_clip(path, start)
+        c = _find_new_clip(t, start, before)
+        if c is not None:
+            shape(c)
+        method = "native"
     if c is None:
         raise RuntimeError("audio clip not created")
-    if name:
-        c.name = name
-    if warp is not None:
-        c.warping = bool(warp)
-    if pitch is not None:
-        c.pitch_coarse = int(pitch)
-    if gain_db is not None:
-        _set_clip_gain_db(c, float(gain_db))
-    if length is not None and c.looping:
-        c.loop_end = c.loop_start + float(length)
-    return dict(_clip_info(c), method=method)
+    return dict(_clip_info(c), method=method, n_envelopes=len(envelopes or []))
 
 
 def _set_clip_gain_db(c, db):
@@ -565,39 +716,23 @@ def delete_clip(ctx, track, clip):
 
 
 @command
-def clip_envelope(ctx, track, clip, points, param=None, device=None, clear=True,
-                  resolution=0.25):
-    """Write a clip automation envelope.
-    param: "volume" | "pan" | "send:<n>" for the track mixer, or a parameter name/index
-    of `device`. points: [[beat_from_clip_start, value], ...] with linear ramps between
-    them, drawn as steps of `resolution` beats. Value is the raw parameter value."""
+def clip_envelope(ctx, track, points, param="volume", device=None, unit="raw", slot=None,
+                  clip=None):
+    """Write an automation envelope on a Session clip (`slot` index).
+    Live's API refuses to create envelopes on Arrangement clips, so for the Arrangement
+    pass `envelopes=[...]` to create_midi_clip / create_audio_clip instead: they build
+    the clip in Session with its envelopes and copy it over."""
     t = _track(ctx, track)
-    c = _clip(t, clip)
-    if device is None:
-        p = _mixer_param(t, param or "volume")
-    else:
-        p = _param(_device(t, device), param)
-    env = c.automation_envelope(p)
-    if env is None:
-        env = c.create_automation_envelope(p)
-    if clear:
-        c.clear_envelope(p)
-        env = c.automation_envelope(p) or c.create_automation_envelope(p)
-    offset = c.loop_start if c.looping else c.start_marker
-    pts = sorted((float(a), float(v)) for a, v in points)
-    steps = 0
-    for (a0, v0), (a1, v1) in zip(pts, pts[1:]):
-        x = a0
-        while x < a1 - 1e-9:
-            f = (x - a0) / (a1 - a0) if a1 > a0 else 1.0
-            val = max(p.min, min(p.max, v0 + (v1 - v0) * f))
-            env.insert_step(offset + x, min(resolution, a1 - x), val)
-            x += resolution
-            steps += 1
-    if len(pts) == 1:
-        env.insert_step(offset + pts[0][0], resolution, pts[0][1])
-        steps = 1
-    return {"param": p.name, "steps": steps, "clip": c.name}
+    if slot is None:
+        raise ValueError("Live only creates envelopes on Session clips: pass slot=<index>, "
+                         "or recreate the Arrangement clip with create_*_clip(envelopes=...)")
+    s = t.clip_slots[int(slot)]
+    if not s.has_clip:
+        raise ValueError("slot %s on %s is empty" % (slot, t.name))
+    out = _write_envelope(t, s.clip, {"param": param, "device": device, "points": points,
+                                      "unit": unit})
+    out["clip"] = s.clip.name
+    return out
 
 
 # ======================================================================
@@ -713,57 +848,78 @@ def delete_device(ctx, track, device):
 # locators & transport
 # ======================================================================
 
+def _goto(ctx, at, max_ticks=20):
+    """Move the playhead and wait until Live has applied it (it lands a tick later)."""
+    s = ctx.song
+    s.current_song_time = at
+    for _ in range(max_ticks):
+        if abs(s.current_song_time - at) < 1e-3:
+            return
+        yield
+    raise RuntimeError("playhead did not reach beat %s (at %s)" % (at, s.current_song_time))
+
+
+def _cue_at(ctx, at):
+    for c in ctx.song.cue_points:
+        if abs(c.time - at) < 1e-3:
+            return c
+    return None
+
+
+def _toggle_cue_at(ctx, at, want_present):
+    """set_or_delete_cue acts at the playhead, so park the playhead first."""
+    s = ctx.song
+    if s.is_playing:
+        raise RuntimeError("stop playback before editing locators")
+    was = s.current_song_time
+    yield from _goto(ctx, at)
+    if (_cue_at(ctx, at) is not None) != want_present:
+        s.set_or_delete_cue()
+        yield
+    yield from _goto(ctx, was)
+
+
 @command
 def set_cue(ctx, name, beat=None, bar=None):
-    s = ctx.song
     at = _t(ctx, beat, bar)
-    for c in s.cue_points:
-        if abs(c.time - at) < 1e-3:
-            c.name = name
-            return {"name": name, "beat": at, "updated": True}
-    was = s.current_song_time
-    s.current_song_time = at
-    s.set_or_delete_cue()
-    s.current_song_time = was
-    for c in s.cue_points:
-        if abs(c.time - at) < 1e-3:
-            c.name = name
-            return {"name": name, "beat": at, "created": True}
-    raise RuntimeError("cue not created at %s" % at)
+    c = _cue_at(ctx, at)
+    if c is not None:
+        c.name = name
+        return {"name": name, "beat": at, "updated": True}
+    yield from _toggle_cue_at(ctx, at, True)
+    c = _cue_at(ctx, at)
+    if c is None:
+        raise RuntimeError("cue not created at beat %s" % at)
+    c.name = name
+    return {"name": name, "beat": at, "created": True}
 
 
 @command
 def delete_cue(ctx, name=None, beat=None, bar=None):
-    s = ctx.song
     at = _t(ctx, beat, bar) if (beat is not None or bar is not None) else None
-    for c in list(s.cue_points):
-        if (name is not None and c.name == name) or (at is not None and abs(c.time - at) < 1e-3):
-            was = s.current_song_time
-            s.current_song_time = c.time
-            s.set_or_delete_cue()
-            s.current_song_time = was
-            return {"deleted": c.time}
-    raise ValueError("cue not found")
+    targets = [c.time for c in ctx.song.cue_points
+               if (name is not None and c.name == name) or
+                  (at is not None and abs(c.time - at) < 1e-3)]
+    if not targets:
+        raise ValueError("cue not found")
+    for when in targets:
+        yield from _toggle_cue_at(ctx, when, False)
+    return {"deleted": targets}
 
 
 @command
 def clear_cues(ctx):
-    s = ctx.song
-    was = s.current_song_time
-    n = 0
-    for c in list(s.cue_points):
-        s.current_song_time = c.time
-        s.set_or_delete_cue()
-        n += 1
-    s.current_song_time = was
-    return {"deleted": n}
+    times = [c.time for c in ctx.song.cue_points]
+    for when in times:
+        yield from _toggle_cue_at(ctx, when, False)
+    return {"deleted": len(times)}
 
 
 @command
 def transport(ctx, action, beat=None, bar=None):
     s = ctx.song
     if beat is not None or bar is not None:
-        s.current_song_time = _t(ctx, beat, bar)
+        yield from _goto(ctx, _t(ctx, beat, bar))
     if action == "play":
         s.start_playing()
     elif action == "continue":
@@ -817,7 +973,7 @@ def record_master(ctx, start_bar, end_bar, name="Claude Render"):
 
     s.metronome = False
     s.loop = False
-    s.current_song_time = a
+    yield from _goto(ctx, a)
     s.record_mode = True
     s.start_playing()
     ctx.record_job = {"state": "recording", "start": a, "end": b, "track": rt,
@@ -869,13 +1025,26 @@ def record_abort(ctx):
 
 def tick(ctx):
     """Called ~10x/s on the main thread by the control surface."""
+    for pending in list(ctx.pending):
+        _advance(ctx, pending)
     job = ctx.record_job
     if not job:
         return
     s = ctx.song
     if job["state"] == "recording":
-        if s.current_song_time >= job["end"] or not s.is_playing:
+        job["ticks"] += 1
+        # start_playing() is asynchronous: is_playing stays False for a few ticks, and
+        # a count-in can hold the playhead before `start`. Only treat "stopped" as the
+        # user stopping once playback has demonstrably begun.
+        if s.is_playing and s.current_song_time > job["start"] + 0.01:
+            job["started"] = True
+        if s.current_song_time >= job["end"]:
             _finish_record(ctx, job)
+        elif job.get("started") and not s.is_playing:
+            _finish_record(ctx, job)
+        elif not job.get("started") and job["ticks"] > 150:
+            _finish_record(ctx, job)
+            job["error"] = "playback never started"
     elif job["state"] == "finalizing":
         job["ticks"] += 1
         clips = list(job["track"].arrangement_clips)

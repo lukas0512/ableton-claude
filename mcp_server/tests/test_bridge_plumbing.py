@@ -121,6 +121,44 @@ def test_batch_runs_each_command_independently(bridge):
     assert [x["ok"] for x in r["result"]] == [True, False, True]
 
 
+def test_generator_command_waits_ticks_then_replies(bridge):
+    handlers = sys.modules["ClaudeBridge.handlers"]
+
+    def slow(ctx, n=3):
+        for _ in range(n):
+            yield
+        return {"waited": n}
+
+    handlers.COMMANDS["slow"] = slow
+    r = _rpc(bridge.PORT, "slow", {"n": 4})
+    assert r["ok"] and r["result"] == {"waited": 4}
+
+
+def test_generator_error_is_reported(bridge):
+    handlers = sys.modules["ClaudeBridge.handlers"]
+
+    def boom(ctx):
+        yield
+        raise ValueError("late failure")
+
+    handlers.COMMANDS["boom"] = boom
+    r = _rpc(bridge.PORT, "boom")
+    assert not r["ok"] and "late failure" in r["error"]
+
+
+def test_batch_refuses_waiting_commands(bridge):
+    handlers = sys.modules["ClaudeBridge.handlers"]
+
+    def slow(ctx):
+        yield
+        return 1
+
+    handlers.COMMANDS["slow"] = slow
+    r = _rpc(bridge.PORT, "batch", {"commands": [{"cmd": "slow"}, {"cmd": "ping"}]})
+    assert [x["ok"] for x in r["result"]] == [False, True]
+    assert "cannot run inside a batch" in r["result"][0]["error"]
+
+
 def test_reload_swaps_handlers(bridge):
     r = _rpc(bridge.PORT, "reload")
     assert r["ok"] and r["result"]["handlers_version"]

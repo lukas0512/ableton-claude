@@ -106,38 +106,34 @@ class ClaudeBridge(ControlSurface):
     # ---------- Live main thread ----------
 
     def update_display(self):
+        """Called by Live ~10x/s on its main thread. Everything past the reload command
+        lives in handlers.py (dispatch, deferred commands, background jobs), so this
+        file should almost never need to change."""
+        global handlers
         ControlSurface.update_display(self)
         for _ in range(MAX_PER_TICK):
             try:
                 cmd, args, reply = self._inbox.get_nowait()
             except queue.Empty:
                 break
-            reply.put(self._dispatch(cmd, args))
+            if cmd == "reload":
+                try:
+                    handlers = importlib.reload(handlers)
+                    self._ctx = handlers.Context(self, previous=self._ctx)
+                    reply.put((True, {"reloaded": True, "handlers_version": handlers.VERSION}))
+                except Exception as e:
+                    reply.put((False, {"error": "reload failed: %s" % e,
+                                       "trace": traceback.format_exc(limit=6)}))
+                continue
+            try:
+                handlers.dispatch(self._ctx, cmd, args, reply)
+            except Exception as e:
+                reply.put((False, {"error": "%s: %s" % (type(e).__name__, e),
+                                   "trace": traceback.format_exc(limit=6)}))
         try:
             handlers.tick(self._ctx)
         except Exception as e:
             self.log_message("ClaudeBridge: tick error: %s" % e)
-
-    def _dispatch(self, cmd, args):
-        global handlers
-        try:
-            if cmd == "reload":
-                handlers = importlib.reload(handlers)
-                self._ctx = handlers.Context(self, previous=self._ctx)
-                return True, {"reloaded": True, "handlers_version": handlers.VERSION}
-            if cmd == "batch":
-                out = []
-                for item in args.get("commands", []):
-                    out.append(self._dispatch(item.get("cmd"), item.get("args") or {}))
-                return True, [{"ok": ok, **({"result": r} if ok else r)} for ok, r in out]
-            fn = handlers.COMMANDS.get(cmd)
-            if fn is None:
-                return False, {"error": "unknown command: %s" % cmd,
-                               "available": sorted(handlers.COMMANDS)}
-            return True, fn(self._ctx, **args)
-        except Exception as e:
-            return False, {"error": "%s: %s" % (type(e).__name__, e),
-                           "trace": traceback.format_exc(limit=6)}
 
     def disconnect(self):
         self._running = False

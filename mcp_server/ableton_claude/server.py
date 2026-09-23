@@ -27,8 +27,9 @@ Bridge commands (args):
   set_clip(track, clip, name, muted, pitch, gain_db, looping, loop_start, loop_end, warping)
   mute_clips_in_range(track, muted, start_bar, end_bar)
   duplicate_clip(track, clip, beat|bar) | delete_clip(track, clip)
-  clip_envelope(track, clip, points=[[beat_in_clip, value],...], param="volume"|"pan"|
-                "send:0"|<device param>, device=None, clear=True)
+  create_*_clip(..., envelopes=[{param, device, points:[[beat_in_clip, v],...], unit:raw|db}])
+  clip_envelope(track, slot, points, param="volume"|"pan"|
+                "send:0"|<param>, device, unit)  -- Session clips only (Live API limit)
   browse(query, roots=[instruments,audio_effects,midi_effects,drums,sounds,plugins,
          user_library,samples,packs]) | load_device(track, path|query)
   set_param(track, device, param, value|display|db) | set_device_on(track, device, on)
