@@ -12,7 +12,7 @@ import types
 
 import Live
 
-VERSION = "0.5.2"
+VERSION = "0.6.2"
 
 COMMANDS = {}
 DEFERRED_TIMEOUT_S = 30.0
@@ -380,12 +380,16 @@ def _clip_info(c, markers=False):
     d = {"name": c.name, "start": round(c.start_time, 4), "end": round(c.end_time, 4),
          "length": round(c.length, 4), "muted": c.muted,
          "type": "audio" if c.is_audio_clip else "midi"}
+    g = getattr(c, "groove", None)
+    if g is not None:
+        d["groove"] = g.name
     if markers:
         d.update({"looping": c.looping, "loop_start": c.loop_start, "loop_end": c.loop_end,
                   "start_marker": c.start_marker, "end_marker": c.end_marker})
     if c.is_audio_clip:
         d["file"] = c.file_path
         d["warping"] = c.warping
+        d["warp_mode"] = c.warp_mode
         d["pitch"] = c.pitch_coarse
         d["gain_db"] = _db_of_clip_gain(c)
     return d
@@ -1023,6 +1027,17 @@ def load_device(ctx, track, path=None, query=None, roots=None):
     ctx.song.view.selected_track = t
     n = len(t.devices)
     ctx.app.browser.load_item(item)
+    # Live finishes a load over the next ticks and applies the device's default preset
+    # then: parameters set right after load_item were reset to defaults (seen on Reverb
+    # and EQ Eight). Wait until the device list has settled before returning.
+    last, stable = None, 0
+    for _ in range(20):
+        yield
+        names = [d.name for d in t.devices]
+        stable = stable + 1 if names == last else 0
+        last = names
+        if stable >= 2:
+            break
     return {"loaded": path, "devices": [d.name for d in t.devices], "added": len(t.devices) - n}
 
 
@@ -1288,9 +1303,13 @@ def tick(ctx):
             _finish_record(ctx, job)
         elif job.get("started") and not s.is_playing:
             _finish_record(ctx, job)
-        elif not job.get("started") and job["ticks"] > 150:
+        elif not job.get("started") and job["ticks"] > 300:
             _finish_record(ctx, job)
             job["error"] = "playback never started"
+        elif not job.get("started") and not s.is_playing and job["ticks"] % 30 == 0:
+            # Live drops start_playing() while it is busy (seen right after re-warping
+            # ~3000 clips for a new groove): ask again every ~3 s, up to ~30 s
+            s.start_playing()
     elif job["state"] == "finalizing":
         job["ticks"] += 1
         clips = list(job["track"].arrangement_clips)
@@ -1301,3 +1320,69 @@ def tick(ctx):
             job["state"] = "error"
             job.setdefault("error", "recording finished but no clip appeared")
 
+
+# ======================================================================
+# grooves (Live 11+: Song.groove_pool, Clip.groove)
+# ======================================================================
+
+def _groove_dict(g):
+    return {"name": g.name, "timing": round(g.timing_amount, 1),
+            "random": round(g.random_amount, 1), "velocity": round(g.velocity_amount, 1),
+            "quantization": round(g.quantization_amount, 1)}
+
+
+def _groove(ctx, name):
+    for g in ctx.song.groove_pool.grooves:
+        if g.name == name:
+            return g
+    raise ValueError("no groove %r in the pool; have %s"
+                     % (name, [g.name for g in ctx.song.groove_pool.grooves]))
+
+
+@command
+def grooves(ctx):
+    """The Groove Pool: each groove's amounts, and the Song's global groove amount.
+    Grooves get into the pool from the browser (load_device with a .agr path)."""
+    s = ctx.song
+    return {"groove_amount": round(getattr(s, "groove_amount", 1.0), 3),
+            "grooves": [_groove_dict(g) for g in s.groove_pool.grooves]}
+
+
+@command
+def set_groove(ctx, name, timing=None, random=None, velocity=None, quantization=None,
+               groove_amount=None):
+    """Edit one pool groove (amounts in %, as Live shows them) and optionally the
+    Song's global groove amount (0-1.31, 1.0 = 100 %)."""
+    g = _groove(ctx, name)
+    if timing is not None:
+        g.timing_amount = float(timing)
+    if random is not None:
+        g.random_amount = float(random)
+    if velocity is not None:
+        g.velocity_amount = float(velocity)
+    if quantization is not None:
+        g.quantization_amount = float(quantization)
+    if groove_amount is not None:
+        ctx.song.groove_amount = float(groove_amount)
+    return dict(_groove_dict(g), groove_amount=round(ctx.song.groove_amount, 3))
+
+
+@command
+def apply_groove(ctx, track, groove=None, start_bar=None, end_bar=None):
+    """Assign a pool groove (None clears) to every arrangement clip on `track` that
+    overlaps [start_bar, end_bar) (all clips when no range). Audio clips only follow a
+    groove while warped; unwarped ones are reported, not changed."""
+    t = _track(ctx, track)
+    g = _groove(ctx, groove) if groove else None
+    a = _t(ctx, bar=start_bar) if start_bar is not None else -1e9
+    b = _t(ctx, bar=end_bar) if end_bar is not None else 1e9
+    done, unwarped = 0, []
+    for c in _arr_clips(t):
+        if not (c.start_time < b - 1e-3 and c.end_time > a + 1e-3):
+            continue
+        if c.is_audio_clip and not c.warping:
+            unwarped.append(round(c.start_time, 2))
+            continue
+        c.groove = g
+        done += 1
+    return {"track": t.name, "clips": done, "groove": groove, "unwarped_skipped": unwarped}

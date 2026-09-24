@@ -32,6 +32,10 @@ def main(start, end, out, target="club", keep=False):
         st = client.call("record_status")
     if st["state"] != "done":
         print("render failed:", st, flush=True)
+        try:
+            client.call("delete_track", {"track": name})
+        except Exception as e:  # the track may already be gone
+            print("cleanup:", e, flush=True)
         sys.exit(1)
     res = analysis.analyze(st["file"], target=target, sections=sections, tempo=tempo)
     res["render"] = {"start_bar": start, "end_bar": end, "tempo": tempo}
