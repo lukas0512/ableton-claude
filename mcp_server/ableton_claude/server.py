@@ -3,7 +3,7 @@ import time
 
 from mcp.server.fastmcp import FastMCP
 
-from . import analysis, client, knowledge, mixing, references
+from . import analysis, client, knowledge, mixing, references, timbre
 from .music import groove, harmony, melody, samples, theory
 
 INSTRUCTIONS = """\
@@ -47,6 +47,13 @@ Bridge commands (args):
   set_cue(name, beat|bar) | delete_cue(name|beat|bar) | clear_cues | transport(action=play|stop|continue|locate, beat|bar)
   set_loop(on, start_bar, end_bar)
   record_master(start_bar, end_bar, name) | record_status | record_abort
+  grooves | set_groove(name, timing, random, velocity, quantization, groove_amount)
+  apply_groove(track, groove=None, start_bar, end_bar)  -- pool grooves on arrangement clips
+    (audio clips must be warped; Beats mode suits drums)
+
+Rendering needs an audio output device: if the interface is unplugged Live's engine
+stops and renders fail with "playback never started" (Live's Log.txt then shows
+"Audio In Out: Output Device: No Device"). Ask the user to reconnect or pick a device.
 
 Rendering records the master in real time into a new track via Resampling, so a
 render takes as long as the music it captures.
@@ -63,11 +70,21 @@ A good track, step by step:
     the story (what enters, leaves, asks and answers in each section).
  3. Understand the material: analyze_sample / analyze_bassline on stems; get_notes on MIDI.
  4. Generate parts inside the song's vocabulary (music_*), place them, set locators.
- 5. render_start + render_wait with the locator sections: check the energy curve (build
-    below the drop, breaks not falling into holes) and fix the arrangement first.
- 6. compare_to_genre / mix_toward_genre on the render: broad EQ and limiter drive only;
+ 5. render_start + render_wait with the locator sections: check the energy curve and
+    fix the arrangement first. The drop must *release*: louder than the last 4 bars
+    before it (deep house references: +3.7 LU median) and bringing the kick back (+26 dB):
+    a kick that returns in the build steals the drop. Keep risers under the section they
+    announce. End the build on a dominant (V7sus4 stays inside a hexatonic minor).
+ 6. One groove: swing every 16th-based drum part with the same pool groove
+    (apply_groove) at the swing the song's own tonal loops have (analyze_sample).
+ 7. compare_to_genre / mix_toward_genre on the render: broad EQ and limiter drive only;
     trust the references over rules of thumb (deep house keeps ~90 % below 250 Hz).
- 7. Re-render and compare again. Measurements catch technical problems; they do not
+ 8. analyze_timbre on the render: kick, bass, hats, clap and breakdown against the
+    references. Fix outliers at the source: find_samples ranks a library's one-shots by
+    the genre's timbre; a round (sine) bass gets body from biased saturation (Dynamic
+    Tube bias: symmetric clipping only adds odd harmonics); dry claps/hats get a short
+    room; dark or wide pads get filter, EQ and width.
+ 9. Re-render and compare again. Measurements catch technical problems; they do not
     judge groove or taste: say so, and ask the user to listen.
 """
 
@@ -265,6 +282,36 @@ def mix_toward_genre(path: str, genre: str, apply: bool = False,
     capped bands, limiter drive toward the genre's median loudness (never below its
     lower-quartile crest), and the limiter ceiling. Re-render to check the result."""
     return mixing.toward_profile(path, genre, apply=apply, ceiling=ceiling_db)
+
+
+@mcp.tool()
+def analyze_timbre(path: str, genre: str, bpm: float | None = None) -> dict:
+    """Element timbre of a rendered mix against the genre's references: kick pitch and
+    length, kick-vs-bass weight, bass harmonics, hat brightness/length/level, clap presence
+    and tail, breakdown brightness/warmth/width. Each gets the references' middle half and
+    a verdict (low/ok/high). Needs scripts/build_timbre.py <folder> <genre> once."""
+    a = references.analyze_reference(path, bpm=bpm)
+    ours = timbre.timbre_file(path, a["bpm"], a["first_beat_s"], a["segments"], a["bars_matrix"])
+    prof = knowledge.load_profile(genre) or {}
+    if not prof.get("timbre"):
+        return {"timbre": ours,
+                "error": "no timbre profile; run scripts/build_timbre.py <folder> '%s'" % genre}
+    return {"compare": timbre.compare(ours, prof["timbre"]), "segments": a["segments"]}
+
+
+@mcp.tool()
+def find_samples(folder: str, genre: str, element: str = "hat", limit: int = 10) -> list:
+    """Measure every one-shot under `folder` (Live's Core Library one-shots, a pack, the
+    user's sample folders; cached after the first run) and rank them by closeness to the
+    genre's measured timbre for `element`: hat (brightness + length), clap (tail) or kick
+    (body pitch + length). Load the winner with browse + load_device."""
+    import os
+    prof = knowledge.load_profile(genre) or {}
+    if not prof.get("timbre"):
+        return [{"error": "no timbre profile; run scripts/build_timbre.py <folder> '%s'" % genre}]
+    cache = os.path.normpath(os.path.join(knowledge.KNOWLEDGE_DIR, "..", "samples_cache.json"))
+    rows = timbre.measure_folder(folder, cache_path=cache)
+    return timbre.find_samples(rows, prof["timbre"], element)[:limit]
 
 
 def main():

@@ -4,3 +4,5 @@ __pycache__/
 .pytest_cache/
 knowledge/cache.json
 knowledge/cache.json.*
+knowledge/samples_cache.json
+knowledge/samples_cache.json.*

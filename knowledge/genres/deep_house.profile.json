@@ -839,5 +839,79 @@
    "p75": -5.7,
    "n": 25
   }
+ },
+ "timbre": {
+  "bass_harmonics_db": {
+   "median": -8.2,
+   "p25": -9.9,
+   "p75": -5.3,
+   "n": 25
+  },
+  "break_brightness_hz": {
+   "median": 827.5,
+   "p25": 595.5,
+   "p75": 945.0,
+   "n": 20
+  },
+  "break_warmth_db": {
+   "median": 6.6,
+   "p25": 4.6,
+   "p75": 9.72,
+   "n": 20
+  },
+  "break_width_db": {
+   "median": -8.2,
+   "p25": -13.45,
+   "p75": -5.38,
+   "n": 20
+  },
+  "clap_backbeat_db": {
+   "median": 6.5,
+   "p25": -0.1,
+   "p75": 13.0,
+   "n": 25
+  },
+  "clap_tail_ms": {
+   "median": 55.9,
+   "p25": 33.9,
+   "p75": 239.5,
+   "n": 25
+  },
+  "hat_brightness_hz": {
+   "median": 6360.0,
+   "p25": 5818.0,
+   "p75": 7307.0,
+   "n": 25
+  },
+  "hat_decay_ms": {
+   "median": 59.9,
+   "p25": 43.9,
+   "p75": 83.8,
+   "n": 25
+  },
+  "hat_level_db": {
+   "median": -18.9,
+   "p25": -20.7,
+   "p75": -17.4,
+   "n": 25
+  },
+  "kick_decay_ms": {
+   "median": 133.7,
+   "p25": 105.3,
+   "p75": 163.35,
+   "n": 18
+  },
+  "kick_over_bass_db": {
+   "median": 6.5,
+   "p25": 4.7,
+   "p75": 8.5,
+   "n": 25
+  },
+  "kick_pitch_hz": {
+   "median": 55.2,
+   "p25": 51.8,
+   "p75": 59.9,
+   "n": 25
+  }
  }
 }
