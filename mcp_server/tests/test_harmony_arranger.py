@@ -88,3 +88,17 @@ def test_arranger_refuses_phrases_longer_than_a_slot():
 def test_energy_counts_overlapping_parts():
     curve = energy([("Kick", 1, 5), ("Bass", 3, 5)], bars=6)
     assert curve == [1, 1, 2, 2, 0, 0]
+
+
+def test_progression_with_uneven_lengths_lands_each_change_on_its_bar():
+    """A build that holds IV7sus4 for 6 bars, then V7sus4 for 4 into the drop."""
+    notes, voicings = harmony.progression_notes(["Gm7", "C7sus4", "D7sus4"], bars=[2, 6, 4],
+                                                anticipate=0.5, legato=1.0)
+    starts = sorted({n[1] for n in notes})
+    assert starts == [0.0, 7.5, 31.5]                 # bar 3 and bar 9, each an 8th early
+    last_end = max(n[1] + n[2] for n in notes)
+    assert last_end == 48.0                           # 12 bars in total, no anticipation at the end
+    d7 = {p % 12 for p in voicings[-1]}
+    assert d7 <= {2, 7, 9, 0}                          # D G A C: no F#, stays in the hexatonic set
+    with pytest.raises(ValueError):
+        harmony.progression_notes(["Gm7", "C7sus4"], bars=[2])
