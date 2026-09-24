@@ -3,7 +3,7 @@ import time
 
 from mcp.server.fastmcp import FastMCP
 
-from . import analysis, client, knowledge, mixing, references, timbre
+from . import analysis, client, knowledge, mixing, references, tension, timbre
 from .music import groove, harmony, melody, samples, theory
 
 INSTRUCTIONS = """\
@@ -70,8 +70,8 @@ A good track, step by step:
     the story (what enters, leaves, asks and answers in each section).
  3. Understand the material: analyze_sample / analyze_bassline on stems; get_notes on MIDI.
  4. Generate parts inside the song's vocabulary (music_*), place them, set locators.
- 5. render_start + render_wait with the locator sections: check the energy curve and
-    fix the arrangement first. The drop must *release*: louder than the last 4 bars
+ 5. render_start + render_wait with the locator sections, then analyze_tension: check
+    the energy curve and fix the arrangement first. The drop must *release*: louder than the last 4 bars
     before it (deep house references: +3.7 LU median) and bringing the kick back (+26 dB):
     a kick that returns in the build steals the drop. Keep risers under the section they
     announce. End the build on a dominant (V7sus4 stays inside a hexatonic minor).
@@ -282,6 +282,24 @@ def mix_toward_genre(path: str, genre: str, apply: bool = False,
     capped bands, limiter drive toward the genre's median loudness (never below its
     lower-quartile crest), and the limiter ceiling. Re-render to check the result."""
     return mixing.toward_profile(path, genre, apply=apply, ceiling=ceiling_db)
+
+
+@mcp.tool()
+def analyze_tension(path: str, genre: str, bpm: float | None = None) -> dict:
+    """Tension and release around the main break of a render, against the genre's
+    references: break depth, how far kick and bass drop out, the build's ramp, the
+    pre-drop dip, and the drop's jump in loudness, kick and bass. A drop that is not
+    louder than the bars before it, or does not bring the kick back, does not release.
+    Needs scripts/build_tension.py '<genre>' once (reads the cached references)."""
+    a = references.analyze_reference(path, bpm=bpm)
+    ours = tension.for_track(a["bars_matrix"], a["segments"])
+    if ours is None:
+        return {"error": "no break followed by a full section found", "segments": a["segments"]}
+    prof = (knowledge.load_profile(genre) or {}).get("tension")
+    if not prof:
+        return {"tension": ours, "error": "no tension profile; run scripts/build_tension.py '%s'" % genre}
+    return {"break_bars": ours["break_bars"], "drop_bar": ours["drop_bar"],
+            "compare": tension.compare(ours, prof)}
 
 
 @mcp.tool()
