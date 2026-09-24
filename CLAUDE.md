@@ -18,6 +18,17 @@ Rules that cost real time to learn:
   rules of thumb. Build profiles with `scripts/build_profile.py <folder> <genre>`.
 - The user's projects: work on a copy, never the original. Live has no save API: the
   user saves with Cmd+S.
+- A render that fails with "playback never started" usually means Live has no audio
+  output device (an interface was unplugged). Check Live's `Log.txt` for
+  `Audio In Out: Output Device: No Device` before touching the code; only the user can
+  pick a device (Live > Settings > Audio).
+- Set a device's parameters only after `load_device` returns (it now waits for the
+  device list to settle): values set during the load were reset to the preset defaults.
+- Measure elements, not just the master: `timbre_report.py` / `analyze_timbre` found the
+  "thin, ticky" first mix came from one added sample (808 maracas, 2 ms at 10 kHz) and a
+  sine-like bass, which master EQ could never fix. Choose samples with `find_samples`.
+- The drop must be louder than the bars before it and bring the kick back; check
+  `drop_jump_lu` against the references, not the section averages.
 
 Tests: `cd mcp_server && uv run pytest -q` (offline) and
 `uv run python ../scripts/smoke_live.py --force` (against a running Live).
