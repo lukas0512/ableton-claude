@@ -12,7 +12,7 @@ import types
 
 import Live
 
-VERSION = "0.6.2"
+VERSION = "0.6.5"
 
 COMMANDS = {}
 DEFERRED_TIMEOUT_S = 30.0
@@ -1081,8 +1081,9 @@ def delete_device(ctx, track, device):
     t = _track(ctx, track)
     dv = _device(t, device)
     idx = list(t.devices).index(dv)
+    name = dv.name            # the handle is dead once the device is gone
     t.delete_device(idx)
-    return {"deleted": dv.name}
+    return {"deleted": name, "devices": [d.name for d in t.devices]}
 
 
 # ======================================================================
@@ -1096,6 +1097,13 @@ def _goto(ctx, at, max_ticks=20, settle_ticks=2):
     position. So always give it `settle_ticks`, then confirm."""
     s = ctx.song
     s.current_song_time = at
+    # start_playing() starts from the start marker (Song.start_time), which a click in
+    # the arrangement moves and a playhead move does not always follow: a render once
+    # began at bar 125 instead of 97. Move both.
+    try:
+        s.start_time = at
+    except Exception:
+        pass
     for _ in range(settle_ticks):
         yield
     for _ in range(max_ticks):
@@ -1292,11 +1300,16 @@ def tick(ctx):
         # a count-in can hold the playhead before `start`. Only treat "stopped" as the
         # user stopping once playback has demonstrably begun.
         now = s.current_song_time
-        if not job.get("started") and s.is_playing and now > job["end"]:
-            _finish_record(ctx, job)
-            job["error"] = ("playback started at beat %.2f, outside the render range "
-                            "%.2f-%.2f" % (now, job["start"], job["end"]))
-            return
+        if not job.get("started") and s.is_playing and not job.get("first_now_checked"):
+            job["first_now_checked"] = True
+            # recording runs from wherever playback starts: starting anywhere but the
+            # render start silently shifts or truncates the file, so refuse it
+            if abs(now - job["start"]) > 1.0:
+                _finish_record(ctx, job)
+                job["error"] = ("playback started at beat %.2f instead of %.2f (start "
+                                "marker at %.2f)" % (now, job["start"],
+                                                     getattr(s, "start_time", -1)))
+                return
         if s.is_playing and now > job["start"] + 0.01:
             job["started"] = True
         if now >= job["end"]:
@@ -1386,3 +1399,18 @@ def apply_groove(ctx, track, groove=None, start_bar=None, end_bar=None):
         c.groove = g
         done += 1
     return {"track": t.name, "clips": done, "groove": groove, "unwarped_skipped": unwarped}
+
+
+@command
+def transport_state(ctx):
+    """Everything that decides where playback and recording start and stop."""
+    s = ctx.song
+    out = {}
+    for k in ("is_playing", "current_song_time", "loop", "loop_start", "loop_length",
+              "punch_in", "punch_out", "record_mode", "arrangement_overdub", "session_record",
+              "metronome", "count_in_duration", "is_counting_in", "back_to_arranger",
+              "start_time", "tempo", "re_enable_automation_enabled", "midi_recording_quantization"):
+        if hasattr(s, k):
+            v = getattr(s, k)
+            out[k] = v if isinstance(v, (bool, int, float, str)) or v is None else str(v)
+    return out

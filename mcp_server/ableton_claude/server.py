@@ -3,7 +3,7 @@ import time
 
 from mcp.server.fastmcp import FastMCP
 
-from . import analysis, client, knowledge, mixing, references, tension, timbre
+from . import analysis, client, knowledge, mixing, references, tension, timbre, validate
 from .music import groove, harmony, melody, samples, theory
 
 INSTRUCTIONS = """\
@@ -84,7 +84,8 @@ A good track, step by step:
     the genre's timbre; a round (sine) bass gets body from biased saturation (Dynamic
     Tube bias: symmetric clipping only adds odd harmonics); dry claps/hats get a short
     room; dark or wide pads get filter, EQ and width.
- 9. Re-render and compare again. Measurements catch technical problems; they do not
+ 9. validate_against_genre on the full render: every dimension at once.
+10. Re-render and compare again. Measurements catch technical problems; they do not
     judge groove or taste: say so, and ask the user to listen.
 """
 
@@ -282,6 +283,16 @@ def mix_toward_genre(path: str, genre: str, apply: bool = False,
     capped bands, limiter drive toward the genre's median loudness (never below its
     lower-quartile crest), and the limiter ceiling. Re-render to check the result."""
     return mixing.toward_profile(path, genre, apply=apply, ceiling=ceiling_db)
+
+
+@mcp.tool()
+def validate_against_genre(path: str, genre: str) -> dict:
+    """The whole check in one call: structure, loudness, band balance, groove/harmony/
+    timbre fingerprint (incl. swing measured against the hats' own on-beats), element
+    timbre and tension/release of a render, each against the genre references' middle
+    half with a verdict, plus how many measures sit inside it. Use it after every full
+    render; fix the 'low'/'high' rows that are not deliberate choices."""
+    return validate.report(path, genre, echo=lambda *a: None)
 
 
 @mcp.tool()

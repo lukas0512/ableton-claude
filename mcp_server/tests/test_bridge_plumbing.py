@@ -188,3 +188,26 @@ def test_display_units_convert_to_base_units(bridge):
     assert abs((0.2 + raw * 59.8) - 2.2) < 0.01
     raw = h._raw_for_display(p, "500 ms")
     assert abs((0.2 + raw * 59.8) - 0.5) < 0.01
+
+
+def test_render_refuses_playback_that_starts_away_from_the_render_start(bridge):
+    """Live starts playback at its start marker; once that sat at bar 125 and a render of
+    97-145 silently recorded only 125-145."""
+    h = sys.modules["ClaudeBridge.handlers"]
+
+    class Track:
+        arm = True
+
+    class Song:
+        is_playing, current_song_time, record_mode, metronome, loop = True, 496.0, True, False, False
+        start_time = 496.0
+
+        def stop_playing(self):
+            self.is_playing = False
+
+    ctx = types.SimpleNamespace(song=Song(), pending=[], record_job={
+        "state": "recording", "start": 384.0, "end": 576.0, "track": Track(), "ticks": 0,
+        "saved": {"arm": [], "metronome": False, "loop": False, "record_mode": False}})
+    h.tick(ctx)
+    job = ctx.record_job
+    assert "instead of 384.00" in job["error"] and not ctx.song.is_playing

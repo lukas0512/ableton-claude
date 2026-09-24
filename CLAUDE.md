@@ -29,6 +29,17 @@ Rules that cost real time to learn:
   sine-like bass, which master EQ could never fix. Choose samples with `find_samples`.
 - The drop must be louder than the bars before it and bring the kick back; check
   `drop_jump_lu` against the references, not the section averages.
+- Live starts playback at its start marker (`Song.start_time`), not the playhead: a
+  click in the arrangement once turned a 97-145 render into 125-145. `_goto` moves both
+  and a render refuses playback that starts anywhere else; render_and_analyze checks the
+  recorded length.
+- A short test render that starts in a breakdown has no kick for the beat grid: take the
+  grid from a stretch with kick, or kick/bass and every beat-relative measure swap.
+- Swing: compare `swing_self_pct` (off-beats against the hats' own on-beats). The kick
+  grid lags ~30 ms on soft kicks and made a 58 % groove read 46 %.
+- Rectifier saturation (Roar half/full wave) adds infrasonic thumps that make the
+  limiter pump the kick. High-passing a tambourine removes its tap and it drags.
+- One check for everything: `scripts/validate_render.py` / `validate_against_genre`.
 
 Tests: `cd mcp_server && uv run pytest -q` (offline) and
 `uv run python ../scripts/smoke_live.py --force` (against a running Live).

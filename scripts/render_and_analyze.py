@@ -37,6 +37,13 @@ def main(start, end, out, target="club", keep=False):
         except Exception as e:  # the track may already be gone
             print("cleanup:", e, flush=True)
         sys.exit(1)
+    import soundfile as sf
+    got = sf.info(st["file"]).duration
+    if abs(got - r["expected_seconds"]) > 1.5:     # a shifted or truncated take
+        print("render failed: %.1f s recorded, %.1f s expected" % (got, r["expected_seconds"]),
+              flush=True)
+        client.call("delete_track", {"track": name})
+        sys.exit(1)
     res = analysis.analyze(st["file"], target=target, sections=sections, tempo=tempo)
     res["render"] = {"start_bar": start, "end_bar": end, "tempo": tempo}
     with open(out, "w") as f:

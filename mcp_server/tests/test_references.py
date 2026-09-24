@@ -130,3 +130,26 @@ def test_segment_matches_a_known_arrangement():
                    (176, 184, "outro")], got
     s = references.structure_summary(segs, len(bars))
     assert (s["main_break_bars"], s["intro_bars"], s["outro_bars"]) == (24, 16, 8)
+
+
+
+def test_self_referenced_swing_ignores_where_the_kick_grid_lands():
+    """Hats at 58 % swing measured against a grid 29 ms late (a slow kick attack): the
+    kick-referenced reading drops, the self-referenced one stays at 58."""
+    sr, bpm = 44100, 123.0
+    beat = 60.0 / bpm
+    bars = 24
+    x = np.zeros((int(bars * 4 * beat * sr) + sr, 2), dtype=np.float32)
+    rng = np.random.default_rng(3)
+    hit = (rng.standard_normal(int(0.01 * sr)) * np.exp(-np.arange(int(0.01 * sr)) / (0.002 * sr))).astype(np.float32)
+    from scipy import signal
+    hit = signal.sosfilt(signal.butter(4, 7000, "highpass", fs=sr, output="sos"), hit).astype(np.float32)
+    for k in range(bars * 16):
+        pair, second = divmod(k, 2)
+        t = pair * beat / 2 + (0.58 * beat / 2 if second else 0.0)
+        i = int(t * sr)
+        x[i:i + len(hit)] += hit[:, None] * 0.5
+    t0_late = 0.029
+    fp = references.fingerprint(x, sr, bpm, t0_late, [{"start": 0, "end": bars - 1, "label": "full"}])
+    assert fp["swing_pct"] < 50
+    assert abs(fp["swing_self_pct"] - 58) < 2

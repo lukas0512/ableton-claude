@@ -390,7 +390,7 @@ def slug(genre):
 # fingerprint: groove, harmony, timbre, width, dynamics, movement, arrangement
 # ---------------------------------------------------------------------------
 
-FP_VERSION = 1
+FP_VERSION = 2
 FP_BANDS = {"low": (30, 150), "low_mid": (150, 500), "mid": (500, 2000),
             "high_mid": (2000, 6000), "high": (6000, 16000)}
 
@@ -502,6 +502,14 @@ def fingerprint(x, sr, bpm, t0, segments):
     ph = ((highs_f - t0) % pair) / pair
     off = ph[(ph > 0.35) & (ph < 0.85)]
     res["swing_pct"] = round(float(np.median(off)) * 100, 1) if len(off) >= 8 else None
+    # Self-referenced swing: off-beat 16ths against the same top-end hits' on-beat 16ths.
+    # The grid above comes from the kick's low-band attack, which a soft or long kick
+    # delays by tens of ms and which then reads as "less swing"; measured from the hats'
+    # own on-beat cluster, the delay cancels.
+    on_ph = ph[(ph < 0.25) | (ph > 0.8)]
+    on_ph = np.where(on_ph > 0.5, on_ph - 1.0, on_ph)
+    res["swing_self_pct"] = (round(float(np.median(off) - np.median(on_ph)) * 100, 1)
+                             if len(off) >= 8 and len(on_ph) >= 8 else None)
     dev = []
     sw = (res["swing_pct"] or 50.0) / 100.0
     for t in highs_f:
