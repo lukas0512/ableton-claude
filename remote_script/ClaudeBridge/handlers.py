@@ -12,7 +12,7 @@ import types
 
 import Live
 
-VERSION = "0.6.5"
+VERSION = "0.6.8"
 
 COMMANDS = {}
 DEFERRED_TIMEOUT_S = 30.0
@@ -1396,9 +1396,17 @@ def apply_groove(ctx, track, groove=None, start_bar=None, end_bar=None):
         if c.is_audio_clip and not c.warping:
             unwarped.append(round(c.start_time, 2))
             continue
-        c.groove = g
+        if g is None:
+            if getattr(c, "has_groove", False):
+                del c.groove          # Live refuses None; the property supports delete
+        else:
+            c.groove = g
         done += 1
-    return {"track": t.name, "clips": done, "groove": groove, "unwarped_skipped": unwarped}
+    out = {"track": t.name, "clips": done, "groove": groove, "unwarped_skipped": unwarped}
+    if groove and getattr(ctx.song, "groove_amount", 1.0) == 0:
+        out["warning"] = ("the Song's Global Groove Amount is 0 %: grooves do nothing until "
+                          "set_groove(name, groove_amount=1.0)")
+    return out
 
 
 @command
@@ -1414,3 +1422,10 @@ def transport_state(ctx):
             v = getattr(s, k)
             out[k] = v if isinstance(v, (bool, int, float, str)) or v is None else str(v)
     return out
+
+
+@command
+def clip_attrs(ctx, track, clip=0, match=""):
+    """Names on a clip object containing `match` (API exploration)."""
+    c = _clip(_track(ctx, track), clip)
+    return [a for a in dir(c) if match.lower() in a.lower() and not a.startswith("_")]
