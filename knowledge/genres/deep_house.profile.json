@@ -981,5 +981,346 @@
    "p75": 0.3,
    "n": 21
   }
+ },
+ "ear": {
+  "n_tracks": 18,
+  "bpm": {
+   "median": 124.0,
+   "p25": 123.0,
+   "p75": 125.99,
+   "n": 18
+  },
+  "minor_share": 0.61,
+  "enter_bar": {
+   "bass": {
+    "median": 17.0,
+    "p25": 10.5,
+    "p75": 30.25,
+    "n": 18
+   },
+   "other": {
+    "median": 9.0,
+    "p25": 1.25,
+    "p75": 16.75,
+    "n": 18
+   },
+   "vocals": {
+    "median": 31.5,
+    "p25": 16.25,
+    "p75": 47.0,
+    "n": 18
+   },
+   "clap": {
+    "median": 1.0,
+    "p25": 1.0,
+    "p75": 1.0,
+    "n": 18
+   },
+   "hats": {
+    "median": 1.0,
+    "p25": 1.0,
+    "p75": 1.0,
+    "n": 18
+   }
+  },
+  "has_vocals": 1.0,
+  "break_keeps": {
+   "kick": 0.0,
+   "clap": 0.82,
+   "hats": 0.72,
+   "bass": 0.56,
+   "other": 0.89,
+   "vocals": 0.56
+  },
+  "main_break_bars": {
+   "median": 12.0,
+   "p25": 8.0,
+   "p75": 16.0,
+   "n": 15
+  },
+  "main_break_at": {
+   "median": 0.42,
+   "p25": 0.26,
+   "p75": 0.68,
+   "n": 15
+  },
+  "drums": {
+   "kick": {
+    "typical": "x...x...x...x...",
+    "step_presence": [
+     0.93,
+     0.06,
+     0.01,
+     0.04,
+     0.96,
+     0.06,
+     0.07,
+     0.15,
+     0.95,
+     0.08,
+     0.08,
+     0.05,
+     0.94,
+     0.06,
+     0.09,
+     0.1
+    ],
+    "n": 18
+   },
+   "clap": {
+    "typical": "xgxgx.xxxgxgxgxx",
+    "step_presence": [
+     0.89,
+     0.34,
+     0.95,
+     0.26,
+     0.96,
+     0.2,
+     0.95,
+     0.68,
+     0.89,
+     0.35,
+     0.95,
+     0.35,
+     0.96,
+     0.3,
+     0.92,
+     0.55
+    ],
+    "n": 18
+   },
+   "hats": {
+    "typical": "xgxgxgxxxgxxxgxx",
+    "step_presence": [
+     0.84,
+     0.39,
+     0.94,
+     0.45,
+     0.91,
+     0.44,
+     0.96,
+     0.69,
+     0.81,
+     0.47,
+     0.97,
+     0.52,
+     0.89,
+     0.42,
+     0.94,
+     0.59
+    ],
+    "n": 18
+   }
+  },
+  "four_on_floor_share": 1.0,
+  "backbeat_share": 1.0,
+  "hat_swing_pct": {
+   "median": 55.85,
+   "p25": 52.48,
+   "p75": 61.9,
+   "n": 16
+  },
+  "hat_timing_spread_ms": {
+   "median": 1.75,
+   "p25": 1.32,
+   "p75": 2.05,
+   "n": 18
+  },
+  "bass": {
+   "notes_per_bar": {
+    "median": 5.75,
+    "p25": 4.35,
+    "p75": 6.69,
+    "n": 18
+   },
+   "offbeat_share": {
+    "median": 0.7,
+    "p25": 0.65,
+    "p75": 0.86,
+    "n": 18
+   },
+   "with_kick_share": {
+    "median": 0.3,
+    "p25": 0.23,
+    "p75": 0.39,
+    "n": 18
+   },
+   "median_len_steps": {
+    "median": 1.6,
+    "p25": 1.27,
+    "p75": 1.77,
+    "n": 18
+   },
+   "long_share": {
+    "median": 0.0,
+    "p25": 0.0,
+    "p75": 0.06,
+    "n": 18
+   },
+   "degrees": {
+    "1": 0.32,
+    "4": 0.19,
+    "3": 0.08,
+    "5": 0.08,
+    "b3": 0.07,
+    "b6": 0.07,
+    "6": 0.05,
+    "2": 0.04,
+    "b2": 0.03,
+    "b7": 0.03,
+    "7": 0.02,
+    "#4": 0.02
+   },
+   "rhythms": [
+    [
+     "..x-.....x-...xx",
+     1
+    ],
+    [
+     "..x-..x-.x-...xx",
+     1
+    ],
+    [
+     "..x-..x-.x-...x-",
+     1
+    ],
+    [
+     ".xxx-xxx.xxx-xxx",
+     1
+    ],
+    [
+     ".xxx-xxx.x-x-xxx",
+     1
+    ],
+    [
+     ".xxx-xxx.x.x-xxx",
+     1
+    ],
+    [
+     "...x-x-..x-..x.x",
+     1
+    ],
+    [
+     ".x.x.x-x-x-..x.x",
+     1
+    ],
+    [
+     ".x.x-x-x-x-..x.x",
+     1
+    ],
+    [
+     "x-------........",
+     1
+    ]
+   ]
+  },
+  "harmony": {
+   "changes_per_8_bars": {
+    "median": 0.41,
+    "p25": 0.28,
+    "p75": 0.61,
+    "n": 18
+   },
+   "qualities": {
+    "m9": 0.42,
+    "maj9": 0.36,
+    "m11": 0.11,
+    "7sus4": 0.06,
+    "add9": 0.04,
+    "m6": 0.0,
+    "m7b5": 0.0
+   },
+   "cycles": [
+    [
+     "i9 | i9",
+     6
+    ],
+    [
+     "i9 | i9 | i9 | i9",
+     4
+    ],
+    [
+     "Imaj9 | Imaj9",
+     3
+    ],
+    [
+     "Imaj9 | Imaj9 | Imaj9 | Imaj9",
+     3
+    ],
+    [
+     "vi11 | vi11",
+     2
+    ],
+    [
+     "iv9 | iv9",
+     2
+    ],
+    [
+     "iv9 | iv9 | iv9 | iv9",
+     2
+    ],
+    [
+     "i11 | i11",
+     2
+    ],
+    [
+     "i11 | i11 | i11 | i11",
+     2
+    ],
+    [
+     "VImaj9 | VImaj9",
+     2
+    ]
+   ]
+  },
+  "mix": {
+   "bass_vs_drums_db": {
+    "median": -5.7,
+    "p25": -6.7,
+    "p75": -3.85,
+    "n": 18
+   },
+   "bass_width_db": {
+    "median": -43.6,
+    "p25": -50.95,
+    "p75": -34.98,
+    "n": 18
+   },
+   "other_vs_drums_db": {
+    "median": -11.45,
+    "p25": -12.88,
+    "p75": -8.95,
+    "n": 18
+   },
+   "other_width_db": {
+    "median": -7.55,
+    "p25": -10.65,
+    "p75": -2.6,
+    "n": 18
+   },
+   "vocals_vs_drums_db": {
+    "median": -19.15,
+    "p25": -23.95,
+    "p75": -15.03,
+    "n": 18
+   },
+   "vocals_width_db": {
+    "median": -11.6,
+    "p25": -14.5,
+    "p75": -3.9,
+    "n": 18
+   }
+  },
+  "why": [
+   "Kick and bass take turns. The median reference plays 70% of its bass notes off the beat and only 30% together with the kick, so each owns its moment in the low end: the sub stays clean and the groove bounces between them.",
+   "Basslines lean on the root: degrees 1 32%, 4 19%, 3 8%, 5 8%. Staying on 1 and 5 keeps the low end stable under harmony that can drift above it.",
+   "The kick is four on the floor in 100% of the references (typical x...x...x...x...): the constant pulse that lets everything else be syncopated.",
+   "Clap/snare on 2 and 4 in 100% of them (typical mid-percussion xgxgx.xxxgxgxgxx): the backbeat marks the bar for dancers.",
+   "Hats swing: median 56% (middle half 52-62%), timing spread 2 ms. Late off-beat 16ths are what make a straight 4/4 feel played rather than programmed.",
+   "Harmony is patient: 0.4 chord changes per 8 bars (median), mostly m9, maj9, m11, 7sus4. Rich but slow chords colour the groove without pulling focus from it.",
+   "Breaks work by subtraction: the kick stays in 0% of breaks, the bass in 56%, chords/pads in 89%, vocals in 56%. Taking the pulse away builds the tension the drop releases.",
+   "The track unfolds slowly: bass enters at bar 17, chords/stabs at bar 9 (medians). DJs need those drum bars to mix in, and each entry is an event.",
+   "Balance: bass -6 dB, chords/stabs -11 dB and vocals -19 dB against the drums (medians). The drums lead; harmony colours from behind."
+  ]
  }
 }

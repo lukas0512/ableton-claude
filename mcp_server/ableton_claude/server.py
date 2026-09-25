@@ -1,9 +1,10 @@
 """MCP server exposing Ableton Live (via ClaudeBridge) and audio analysis to Claude."""
+import os
 import time
 
 from mcp.server.fastmcp import FastMCP
 
-from . import analysis, client, knowledge, mixing, references, tension, timbre, validate
+from . import analysis, client, knowledge, library, mixing, references, tension, timbre, validate
 from .music import groove, harmony, melody, samples, theory
 
 INSTRUCTIONS = """\
@@ -85,6 +86,12 @@ A good track, step by step:
     Tube bias: symmetric clipping only adds odd harmonics); dry claps/hats get a short
     room; dark or wide pads get filter, EQ and width.
  9. validate_against_genre on the full render: every dimension at once.
+    The ear goes further: listen(path) hears form, drum steps and swing, bassline, chords
+    and layer balance; genre_principles(genre) says what the references share and why it
+    works; compare_by_ear(render, genre) says what to change in producer terms.
+    Before synthesizing a part, look in the user's sample packs: library_search (roles,
+    key, tempo) and library_midi (royalty-free pack MIDI, transposed). Grooves: a reference's
+    feel becomes a Groove Pool file with extract_groove.
 10. Re-render and compare again. Measurements catch technical problems; they do not
     judge groove or taste: say so, and ask the user to listen.
 """
@@ -341,6 +348,150 @@ def find_samples(folder: str, genre: str, element: str = "hat", limit: int = 10)
     cache = os.path.normpath(os.path.join(knowledge.KNOWLEDGE_DIR, "..", "samples_cache.json"))
     rows = timbre.measure_folder(folder, cache_path=cache)
     return timbre.find_samples(rows, prof["timbre"], element)[:limit]
+
+
+# ---------------------------------------------------------------------------- the ear
+
+def _key_arg(key):
+    """'G minor' / 'Gm' / 'F# major' -> (pc, mode) or (None, None)."""
+    if not key:
+        return None, None
+    pc, mode = library._key(key.replace(" ", "_"))
+    return pc, mode
+
+
+def _slim(rep):
+    from .ear import listen as EL
+    d = rep["drums"]
+    return {"summary": rep["summary"], "file": rep["file"], "bpm": rep["grid"]["bpm"], "key": rep["key"],
+            "bars": rep["grid"]["n_bars"], "form": EL.form(rep["arrangement"]["sections"]),
+            "sections": rep["arrangement"]["sections"], "entries": rep["arrangement"]["first_bar"],
+            "drums": {"main_patterns": d.get("main_patterns"),
+                      "hats": {k: d["hats"].get(k) for k in ("swing_pct", "late_ms_offbeat_vs_onbeat", "timing_spread_ms")},
+                      "by_section": d.get("by_section")},
+            "bass": {k: v for k, v in rep["bass"].items() if k != "notes"},
+            "harmony": {k: rep["harmony"].get(k) for k in ("key", "key_confidence", "loops", "changes_per_8_bars",
+                                                            "qualities", "bars")},
+            "mix": rep["mix"], "id": rep["id"]}
+
+
+@mcp.tool()
+def listen(path: str, bpm: float | None = None) -> dict:
+    """Hear a track like a producer: tempo and bar grid, key, form (which elements play in
+    each section and when each enters), drum patterns on the 16-step grid with swing,
+    microtiming and accents, the bassline (register, degrees, typical bar, how it dodges
+    the kick), chords with Roman numerals and harmonic rhythm, and how loud and wide each
+    layer sits against the drums. Stems via Demucs, beats via Beat This; ~20 s per file on
+    first listen, cached after. The heard parts are saved as MIDI (see heard_midi)."""
+    from .ear import listen as EL
+    return _slim(EL.listen(path, bpm_hint=bpm))
+
+
+@mcp.tool()
+def genre_principles(genre: str) -> dict:
+    """What a genre's references share, measured by ear, each habit with the reason it
+    works: drum patterns per step and swing, how the bass takes turns with the kick,
+    degrees, harmonic rhythm and chord qualities, what breaks keep, when elements enter,
+    and each layer's level against the drums. Build with scripts/build_principles.py."""
+    prof = knowledge.load_profile(genre) or {}
+    if not prof.get("ear"):
+        return {"error": "no ear principles for %r: run scripts/listen_folder.py <folder> then "
+                         "scripts/build_principles.py '%s'" % (genre, genre)}
+    return prof["ear"]
+
+
+@mcp.tool()
+def compare_by_ear(path: str, genre: str, bpm: float | None = None) -> dict:
+    """Listen to a render and say, in producer terms, where it leaves the genre's habits
+    (bass colliding with the kick, swing, chord motion, break length, drum steps, layer
+    balance) and which way to move."""
+    from .ear import listen as EL, why
+    prof = knowledge.load_profile(genre) or {}
+    if not prof.get("ear"):
+        return {"error": "no ear principles for %r" % genre}
+    rep = EL.listen(path, bpm_hint=bpm)
+    return {"summary": rep["summary"], "differences": why.compare(rep, prof["ear"])}
+
+
+@mcp.tool()
+def extract_groove(path: str, name: str | None = None, part: str = "hats") -> dict:
+    """Turn a track's feel into a Live groove file: one bar of 16ths placed where its hits
+    land (median microtiming per step) with its accents, written to the User Library
+    (Grooves/Claude). Load it with load_device(track, path=<browser_path>) to put it in
+    the Groove Pool, then apply_groove to clips. part: hats | clap | kick."""
+    from .ear import groove_file, listen as EL
+    rep = EL.listen(path)
+    tmpl = rep["drums"].get(part, {}).get("template")
+    if not tmpl:
+        return {"error": "no %s groove heard in %s" % (part, rep["file"])}
+    nm = name or "%s %s groove" % (os.path.splitext(rep["file"])[0][:40], part)
+    out = groove_file.write(nm, groove_file.notes_from_template(tmpl, rep["grid"]["period"]))
+    return {"file": out, "browser_path": "user_library/Grooves/Claude/" + os.path.basename(out),
+            "swing_pct": rep["drums"][part].get("swing_pct"),
+            "offsets_ms": [t["offset_ms"] for t in tmpl], "accents_db": [t["accent_db"] for t in tmpl]}
+
+
+@mcp.tool()
+def heard_midi(path: str, part: str, start_bar: int = 1, bars: int = 8) -> list:
+    """Notes the ear heard in a track (part: bass | chords | drums) from start_bar for
+    `bars` bars, re-based to 0 and ready for create_midi_clip. For studying and re-voicing
+    a groove or progression; do not reuse a commercial track's melody or bassline as is."""
+    from .ear import listen as EL, midi
+    rep = EL.listen(path)
+    parts = dict(midi.read_notes(os.path.join(EL.CACHE_DIR, rep["id"], "heard.mid")))
+    key = {"bass": "bass (heard)", "chords": "chords (heard)", "drums": "drums (heard)"}[part]
+    a, b = (start_bar - 1) * 4.0, (start_bar - 1 + bars) * 4.0
+    return [[p, round(t - a, 4), d, v] for p, t, d, v in parts.get(key, []) if a <= t < b]
+
+
+# ------------------------------------------------------------------------- the library
+
+@mcp.tool()
+def library_index(roots: list[str] | None = None) -> dict:
+    """Index the user's sample folders (role, loop or one-shot, tempo and key from the
+    names, length). Without roots, re-index the last folders. Fast: names and headers only."""
+    if not roots:
+        idx = library.load_index()
+        roots = idx["roots"] if idx else []
+    if not roots:
+        return {"error": "give the sample folders to index"}
+    idx = library.build_index(roots)
+    return {"n": idx["n"], "roots": roots, "by_role": library.summary(idx)}
+
+
+@mcp.tool()
+def library_search(role: str | None = None, text: str | None = None, key: str | None = None,
+                   bpm: float | None = None, loop: bool | None = None, genre: str | None = None,
+                   limit: int = 15) -> list:
+    """Find ready material in the user's sample packs before synthesizing it. role: kick,
+    clap, snare, hat, shaker, perc, ride, crash, drum_loop, top_loop, bass, chord, pad, lead,
+    vocal, fx, midi. key e.g. 'G minor' (tonal material must match or be relative/a fifth
+    away); bpm ranks loops by tempo; genre e.g. 'deep house|house'. Place audio with
+    create_audio_clip(track, path, bar); read MIDI with library_midi."""
+    pc, mode = _key_arg(key)
+    rows = library.search(role=role, text=text, key_pc=pc, mode=mode, bpm=bpm, loop=loop,
+                          genre=genre, limit=limit)
+    return [{k: r.get(k) for k in ("path", "role", "midi_role", "loop", "bpm", "key_pc", "mode", "dur_s", "score")}
+            for r in rows]
+
+
+@mcp.tool()
+def library_midi(path: str, to_key: str | None = None) -> list:
+    """Notes of a sample-pack MIDI file (royalty-free material), optionally transposed from
+    the key in its file name to `to_key` (e.g. 'G minor'), ready for create_midi_clip:
+    [[pitch, start_beat, dur_beats, velocity]] per track."""
+    from .ear import midi
+    tracks = midi.read_notes(path)
+    shift = 0
+    if to_key:
+        src_pc, _ = library._key(os.path.splitext(os.path.basename(path))[0])
+        dst_pc, _ = _key_arg(to_key)
+        if src_pc is not None and dst_pc is not None:
+            shift = (dst_pc - src_pc) % 12
+            shift = shift - 12 if shift > 6 else shift
+    return [{"track": name, "transposed": shift,
+             "notes": [[p + shift, round(t, 4), round(d, 4), v] for p, t, d, v in notes]}
+            for name, notes in tracks]
 
 
 def main():

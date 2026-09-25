@@ -16,6 +16,12 @@ ableton-claude-mcp = "ableton_claude.server:main"
 
 [dependency-groups]
 dev = ["pytest>=8"]
+ear = [
+    "beat-this",
+    "demucs>=4.0.1",
+    "torch>=2.14.0",
+    "torchaudio>=2.11.0",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -23,3 +29,9 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["ableton_claude"]
+
+[tool.uv.sources]
+beat-this = { url = "https://github.com/CPJKU/beat_this/archive/main.zip" }
+
+[tool.uv]
+default-groups = ["dev", "ear"]

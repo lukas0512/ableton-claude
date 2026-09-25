@@ -40,6 +40,16 @@ Rules that cost real time to learn:
 - Rectifier saturation (Roar half/full wave) adds infrasonic thumps that make the
   limiter pump the kick. High-passing a tambourine removes its tap and it drags.
 - One check for everything: `scripts/validate_render.py` / `validate_against_genre`.
+- The ear's grid: Beat This reports beats on 20 ms frames and adds half-beat detections
+  in kickless sections; fit tempo with the phase comb in ear/grid.py, never the median gap.
+- Drum hearing is grid-synchronous (every 16th slot checked for an attack) with a
+  smoothing window of at least one cycle of the band's lowest tone: a 5 ms window made a
+  52 Hz kick ripple into a second kick 120 ms later. Judge claps by the energy they
+  sustain after the crack; at the peak a kick's click is as loud.
+- Over a bass pedal, read the upper chord without the bass and write a slash chord.
+- If files on the Desktop suddenly fail with "Operation not permitted", macOS withdrew
+  the Desktop permission (Privacy & Security > Files and Folders); only the user can
+  restore it. The Ableton project and renders live on the Desktop.
 
 Tests: `cd mcp_server && uv run pytest -q` (offline) and
 `uv run python ../scripts/smoke_live.py --force` (against a running Live).

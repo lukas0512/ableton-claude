@@ -6,3 +6,6 @@ knowledge/cache.json
 knowledge/cache.json.*
 knowledge/samples_cache.json
 knowledge/samples_cache.json.*
+knowledge/ear/
+knowledge/samples_index.json
+knowledge/samples_index.json.*

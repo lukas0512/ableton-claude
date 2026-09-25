@@ -56,6 +56,33 @@ After editing `handlers.py`: `scripts/install_remote_script.sh`, then the `reloa
 | `genre_knowledge`, `genre_plan_structure` | What a genre is (conventions + measured numbers); a section plan for N minutes. |
 | `analyze_reference`, `compare_to_genre`, `mix_toward_genre` | Measure a reference; hold a mix against a genre; move the Live master toward it. |
 
+## The ear
+
+Claude does not hear audio, so the connector translates it. `listen(path)` separates a
+track into drums, bass, harmony and vocals (Demucs), puts it on a beat and bar grid
+(Beat This), and transcribes it:
+
+- drums on the 16-step grid, per instrument (kick, clap/perc, hats): which steps are
+  played, accents, microtiming, swing measured against the hats' own on-beats;
+- the bassline as MIDI: register, degrees, the typical bar, how often it lands with the kick;
+- chords per beat with Roman numerals, pedal points as slash chords, key, harmonic rhythm;
+- what plays in every bar, the sections that follow, and each layer's level and width
+  against the drums.
+
+The result is a listening report in words plus the heard MIDI, cached per file.
+`scripts/listen_folder.py` hears a folder of references; `scripts/build_principles.py`
+pools them into what the genre shares and why it works (`genre_principles`), and
+`compare_by_ear` holds a render against them in producer terms. `extract_groove` turns a
+reference's feel into a Live groove file (Groove Pool).
+
+The user's sample packs are a resource too: `library_index` indexes them (role, loop or
+one-shot, tempo and key from the names), `library_search` finds material in key and tempo,
+`library_midi` reads royalty-free pack MIDI transposed to the song's key.
+
+Measured on our own track, where the truth is known: tempo, bars, form, entries, the
+bassline (G1/D2 off the kick) and the hats' swing come out right; chord roots in a busy
+breakdown are right about half the time (chords from a finished mix are the hard part).
+
 ## Teaching it a genre
 
 ```bash
