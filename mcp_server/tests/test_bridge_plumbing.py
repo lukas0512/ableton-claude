@@ -190,6 +190,35 @@ def test_display_units_convert_to_base_units(bridge):
     assert abs((0.2 + raw * 59.8) - 0.5) < 0.01
 
 
+def test_display_target_lands_on_the_reading_not_one_step_under(bridge):
+    """A coarse display ('7.9 dB' in 0.1 dB steps) must read the target, not the step
+    below it: the limiter drive asked for 7.9 dB came back as 7.8."""
+    h = sys.modules["ClaudeBridge.handlers"]
+
+    class Gain:
+        min, max = 0.0, 1.0
+
+        def str_for_value(self, v):
+            return "%.1f dB" % (round(v * 12.0, 1))
+
+    raw = h._raw_for_display(Gain(), "7.9 dB")
+    assert Gain().str_for_value(raw) == "7.9 dB"
+
+
+def test_warp_modes_and_audio_shaping(bridge):
+    h = sys.modules["ClaudeBridge.handlers"]
+    assert h._warp_mode("complex_pro") == 6 and h._warp_mode("Beats") == 0 and h._warp_mode(3) == 3
+    with pytest.raises(ValueError):
+        h._warp_mode("granular")
+
+    class Clip:
+        warping, warp_mode, pitch_coarse, pitch_fine = False, 0, 0, 0.0
+
+    c = Clip()
+    h._shape_audio(c, warp=True, warp_mode="texture", pitch=5, detune=-80)
+    assert (c.warping, c.warp_mode, c.pitch_coarse, c.pitch_fine) == (True, 2, 5, -50.0)
+
+
 def test_render_refuses_playback_that_starts_away_from_the_render_start(bridge):
     """Live starts playback at its start marker; once that sat at bar 125 and a render of
     97-145 silently recorded only 125-145."""

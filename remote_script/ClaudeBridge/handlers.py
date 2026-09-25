@@ -12,7 +12,7 @@ import types
 
 import Live
 
-VERSION = "0.6.8"
+VERSION = "0.6.9"
 
 COMMANDS = {}
 DEFERRED_TIMEOUT_S = 30.0
@@ -357,7 +357,8 @@ def _raw_for_display(param, target):
             lo = mid
         else:
             hi = mid
-    return (lo + hi) / 2.0
+    # the side whose display has reached the goal ('7.9 dB', not the '7.8 dB' just under it)
+    return hi if increasing else lo
 
 
 def _param_info(p):
@@ -376,6 +377,31 @@ def _track_kind(t):
     return "audio"
 
 
+WARP_MODES = {"beats": 0, "tones": 1, "texture": 2, "repitch": 3, "re-pitch": 3, "complex": 4,
+              "rex": 5, "complex_pro": 6, "complex pro": 6}
+
+
+def _warp_mode(mode):
+    if isinstance(mode, int):
+        return mode
+    key = str(mode).strip().lower()
+    if key not in WARP_MODES:
+        raise ValueError("warp_mode must be one of %s" % sorted(WARP_MODES))
+    return WARP_MODES[key]
+
+
+def _shape_audio(c, warp=None, warp_mode=None, pitch=None, detune=None):
+    """Warp first: Live ignores the warp mode and detune of an unwarped clip."""
+    if warp is not None:
+        c.warping = bool(warp)
+    if warp_mode is not None:
+        c.warp_mode = _warp_mode(warp_mode)
+    if pitch is not None:
+        c.pitch_coarse = int(pitch)
+    if detune is not None:
+        c.pitch_fine = max(-50.0, min(49.0, float(detune)))
+
+
 def _clip_info(c, markers=False):
     d = {"name": c.name, "start": round(c.start_time, 4), "end": round(c.end_time, 4),
          "length": round(c.length, 4), "muted": c.muted,
@@ -391,6 +417,7 @@ def _clip_info(c, markers=False):
         d["warping"] = c.warping
         d["warp_mode"] = c.warp_mode
         d["pitch"] = c.pitch_coarse
+        d["detune"] = round(c.pitch_fine, 1)
         d["gain_db"] = _db_of_clip_gain(c)
     return d
 
@@ -718,17 +745,15 @@ def add_notes(ctx, track, clip, notes, replace=False):
 
 @command
 def create_audio_clip(ctx, track, path, beat=None, bar=None, name=None, warp=None,
-                      gain_db=None, pitch=None, length=None, envelopes=None):
+                      gain_db=None, pitch=None, length=None, envelopes=None, warp_mode=None,
+                      detune=None):
     t = _track(ctx, track)
     start = _t(ctx, beat, bar)
 
     def shape(c):
         if name:
             c.name = name
-        if warp is not None:
-            c.warping = bool(warp)
-        if pitch is not None:
-            c.pitch_coarse = int(pitch)
+        _shape_audio(c, warp, warp_mode, pitch, detune)
         if gain_db is not None:
             _set_clip_gain_db(c, float(gain_db))
         if length is not None and c.looping:
@@ -770,7 +795,7 @@ def _set_clip_gain_db(c, db):
 @command
 def set_clip(ctx, track, clip, name=None, muted=None, pitch=None, gain_db=None,
              looping=None, loop_start=None, loop_end=None, warping=None,
-             start_marker=None, end_marker=None):
+             start_marker=None, end_marker=None, warp_mode=None, detune=None):
     c = _clip(_track(ctx, track), clip)
     if start_marker is not None:
         c.start_marker = float(start_marker)
@@ -780,8 +805,6 @@ def set_clip(ctx, track, clip, name=None, muted=None, pitch=None, gain_db=None,
         c.name = name
     if muted is not None:
         c.muted = bool(muted)
-    if pitch is not None:
-        c.pitch_coarse = int(pitch)
     if gain_db is not None:
         _set_clip_gain_db(c, float(gain_db))
     if looping is not None:
@@ -790,8 +813,10 @@ def set_clip(ctx, track, clip, name=None, muted=None, pitch=None, gain_db=None,
         c.loop_start = float(loop_start)
     if loop_end is not None:
         c.loop_end = float(loop_end)
-    if warping is not None:
-        c.warping = bool(warping)
+    if c.is_audio_clip:
+        _shape_audio(c, warping, warp_mode, pitch, detune)
+    elif pitch is not None:
+        c.pitch_coarse = int(pitch)
     return _clip_info(c, markers=True)
 
 
@@ -1422,6 +1447,54 @@ def transport_state(ctx):
             v = getattr(s, k)
             out[k] = v if isinstance(v, (bool, int, float, str)) or v is None else str(v)
     return out
+
+
+def _warp_info(c):
+    return {"warping": c.warping, "sample_s": c.sample_length / float(c.sample_rate or 1),
+            "markers": [{"beat": round(m.beat_time, 4), "sample_s": round(m.sample_time, 5)}
+                        for m in c.warp_markers]}
+
+
+@command
+def warp_markers(ctx, track, clip):
+    return _warp_info(_clip(_track(ctx, track), clip))
+
+
+@command
+def set_warp_markers(ctx, track, clip, markers=None, beats=None):
+    """Replace a clip's warp markers. `markers` = [[beat, seconds], ...]; or `beats` alone
+    pins the whole file to that many beats (a loop of known length: exact tempo, no
+    auto-warp guess). Live keeps a marker at 0, so that one is moved, not removed."""
+    c = _clip(_track(ctx, track), clip)
+    if not c.is_audio_clip:
+        raise ValueError("warp markers belong to audio clips")
+    c.warping = True
+    length_s = c.sample_length / float(c.sample_rate or 1)
+    if beats is not None:
+        markers = [[0.0, 0.0], [float(beats), length_s]]
+    if not markers:
+        raise ValueError("give markers or beats")
+    for m in list(c.warp_markers):
+        if m.beat_time > 1e-6:
+            try:
+                c.remove_warp_marker(m.beat_time)
+            except Exception:
+                pass
+    import Live
+    for beat, sec in markers:
+        if beat <= 1e-6:
+            continue
+        c.add_warp_marker(Live.Clip.WarpMarker(float(sec), float(beat)))   # (sample_time, beat_time)
+    return _warp_info(c)
+
+
+@command
+def api_probe(ctx, expr):
+    """Evaluate a read-only expression against the Live API (exploration only):
+    names: Live, song, app. Returns repr() of the result."""
+    import Live
+    return repr(eval(expr, {"Live": Live, "song": ctx.song, "app": ctx.app, "dir": dir,
+                            "getattr": getattr, "type": type}))[:4000]
 
 
 @command

@@ -78,7 +78,7 @@ def principles(reports):
         mean = np.mean(np.array(profs), axis=0)
         typical = "".join("x" if v >= 0.5 else ("g" if v >= 0.25 else ".") for v in mean)
         P["drums"][role] = {"typical": typical, "step_presence": [round(float(v), 2) for v in mean],
-                            "n": len(profs)}
+                            "n": len(profs), "template": groove_template(reports, role)}
     kicks = [r["drums"]["main_patterns"].get("kick", {}).get("step_share") for r in reports]
     P["four_on_floor_share"] = round(np.mean([bool(k) and min(k[0], k[4], k[8], k[12]) >= 0.5 for k in kicks]), 2)
     claps = [r["drums"]["main_patterns"].get("clap", {}).get("step_share") for r in reports]
@@ -126,6 +126,33 @@ def principles(reports):
         P["mix"][stem + "_width_db"] = _stats([r["mix"].get(stem, {}).get("width_db") for r in reports])
     P["why"] = explain(P)
     return P
+
+
+def groove_template(reports, role="hats"):
+    """The references' shared feel for one drum, per 16th step: the median over tracks of
+    each track's own template (offset against its own on-beats, accent against its strong
+    hits, timing variation). A step fewer than half the tracks play stays None."""
+    offs, accs, spr = ([[] for _ in range(16)] for _ in range(3))
+    n = 0
+    for r in reports:
+        t = r["drums"].get(role, {}).get("template")
+        if not t or len(t) != 16:
+            continue
+        n += 1
+        for s in t:
+            if s.get("offset_ms") is None:
+                continue
+            offs[s["step"]].append(s["offset_ms"])
+            accs[s["step"]].append(s["accent_db"])
+            if s.get("spread_ms") is not None:
+                spr[s["step"]].append(s["spread_ms"])
+    steps = []
+    for i in range(16):
+        used = len(offs[i]) >= max(1, n / 2.0)
+        med = lambda v: round(float(np.median(v)), 1) if used and v else None
+        steps.append({"step": i, "offset_ms": med(offs[i]), "accent_db": med(accs[i]),
+                      "spread_ms": med(spr[i]), "share": round(len(offs[i]) / max(1, n), 2)})
+    return {"n": n, "steps": steps}
 
 
 def _pct(x):

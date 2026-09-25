@@ -39,6 +39,30 @@ Rules that cost real time to learn:
   grid lags ~30 ms on soft kicks and made a 58 % groove read 46 %.
 - Rectifier saturation (Roar half/full wave) adds infrasonic thumps that make the
   limiter pump the kick. High-passing a tambourine removes its tap and it drags.
+- A construction kit's loops were balanced at unity: the first After Midnight mix sat every
+  non-kick layer 4-14 dB under the kick and its breaks fell 9-12 LU. Start from unity, then
+  fit each loop's band powers to the references' 1/3-octave curve and stem balance.
+- Never high-pass a bass or pad above its root: a 34 Hz cut under a C1 bass made the ear
+  and the key reading hear G minor (the 3rd harmonic took over).
+- Pack loops can be out of tune with their own kit: the After Midnight vocal sat ~55 cents
+  sharp of the stab. Measure before layering; fix with `set_clip(warping=True,
+  warp_mode="complex_pro", detune=cents)`. Live's auto-warp can overshoot a loop's end
+  marker (32.8 beats for a 16-beat loop): pin `end_marker`. Grooves and detune only act on
+  warped clips.
+- A pack loop carries its feel and timbre together, a one-shot neither: `find_samples`
+  picks the one-shot by the genre's timbre and `groove_loop` / `loops.from_template`
+  places it with the references' per-16th feel. The median template reads flatter than
+  most references (54.8 % vs 55-76 %): pass `swing_pct`. Straight loops next to it pull
+  the measured swing back down; swing them too (warp + `apply_groove`).
+- The ear's chroma votes with spectral peaks only, 110-1500 Hz: summing every bin let the
+  noise floor and the root's 5th/15th harmonics turn a C minor organ into "Cmaj9"; below
+  110 Hz the 5.4 Hz bins smear C2 into D and F. Harmonic-series chord templates made it
+  worse. Check any harmony change on the kit's organ and stab (Cm, Cm9).
+- A kick's low band rises twice (click, then the pitch sweep landing ~60 ms later): the
+  validation grid takes the earlier hump, or a 64 ms late first beat merges the intro into
+  the groove and shifts every beat-relative measure.
+- A one-bar slice of a loop in the arrangement: `set_clip(looping=True, loop_start,
+  loop_end)` then `trim_clip(end_beat)`; markers alone keep the clip's length.
 - One check for everything: `scripts/validate_render.py` / `validate_against_genre`.
 - The ear's grid: Beat This reports beats on 20 ms frames and adds half-beat detections
   in kickless sections; fit tempo with the phase comb in ear/grid.py, never the median gap.

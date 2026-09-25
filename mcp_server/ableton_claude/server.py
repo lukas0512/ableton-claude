@@ -4,7 +4,7 @@ import time
 
 from mcp.server.fastmcp import FastMCP
 
-from . import analysis, client, knowledge, library, mixing, references, tension, timbre, validate
+from . import analysis, client, knowledge, library, loops, mixing, references, tension, timbre, validate
 from .music import groove, harmony, melody, samples, theory
 
 INSTRUCTIONS = """\
@@ -26,9 +26,11 @@ Bridge commands (args):
   set_send(track, send, db)
   create_midi_clip(track, length, notes=[[pitch,start,dur,vel],...], name, beat|bar, loop)
   add_notes(track, clip, notes, replace=False)
-  create_audio_clip(track, path, beat|bar, name, warp, gain_db, pitch)
+  create_audio_clip(track, path, beat|bar, name, warp, gain_db, pitch, detune, warp_mode)
   set_clip(track, clip, name, muted, pitch, gain_db, looping, loop_start, loop_end, warping,
-           start_marker, end_marker)   -- markers move content, they do not resize the clip
+           start_marker, end_marker, detune, warp_mode)   -- markers move content, they do not
+           resize the clip; detune is cents (-50..49) and, like warp_mode (beats|tones|texture|
+           repitch|complex|complex_pro), needs warping on: measure a loop's tuning before use
   mute_clips_in_range(track, muted, start_bar, end_bar)
   duplicate_clip(track, clip, beat|bar) | delete_clip(track, clip)
   delete_clips_in_range(track, start_bar, end_bar)
@@ -50,6 +52,9 @@ Bridge commands (args):
   record_master(start_bar, end_bar, name) | record_status | record_abort
   grooves | set_groove(name, timing, random, velocity, quantization, groove_amount)
   apply_groove(track, groove=None, start_bar, end_bar)  -- pool grooves on arrangement clips
+  warp_markers(track, clip) | set_warp_markers(track, clip, beats=16 | markers=[[beat, s],..])
+           -- a loop of known length gets its exact tempo (auto-warp guessed 122.83 and 252)
+  api_probe(expr)  -- eval a read-only expression against Live's API (exploration)
     (audio clips must be warped; Beats mode suits drums)
 
 Rendering needs an audio output device: if the interface is unplugged Live's engine
@@ -82,7 +87,11 @@ A good track, step by step:
     trust the references over rules of thumb (deep house keeps ~90 % below 250 Hz).
  8. analyze_timbre on the render: kick, bass, hats, clap and breakdown against the
     references. Fix outliers at the source: find_samples ranks a library's one-shots by
-    the genre's timbre; a round (sine) bass gets body from biased saturation (Dynamic
+    the genre's timbre and groove_loop places the winner with the references' per-16th
+    feel (a pack loop carries its timbre and feel together, a one-shot neither); a
+    construction kit starts from its own unity balance; never high-pass a bass or pad
+    above its root (it moves the heard key); a round (sine) bass gets body from biased
+    saturation (Dynamic
     Tube bias: symmetric clipping only adds odd harmonics); dry claps/hats get a short
     room; dark or wide pads get filter, EQ and width.
  9. validate_against_genre on the full render: every dimension at once.
@@ -348,6 +357,32 @@ def find_samples(folder: str, genre: str, element: str = "hat", limit: int = 10)
     cache = os.path.normpath(os.path.join(knowledge.KNOWLEDGE_DIR, "..", "samples_cache.json"))
     rows = timbre.measure_folder(folder, cache_path=cache)
     return timbre.find_samples(rows, prof["timbre"], element)[:limit]
+
+
+@mcp.tool()
+def groove_loop(shots: dict, out: str, bpm: float, role: str = "hats", genre: str = "deep house",
+                bars: int = 4, steps: list | None = None, seed: int = 0,
+                swing_pct: float | None = None) -> dict:
+    """Build a WAV loop from one-shots placed with the genre's measured groove for `role`
+    (hats, clap or kick): per-16th micro-timing, accents and timing variation pooled from
+    the references' ear reports (genre_principles). `shots` maps a step 0-15 or "default"
+    to a file (pick them with find_samples: e.g. an open hat on the off-beat 8ths 2/6/10/14,
+    a closed one elsewhere); `steps` limits the steps played; `swing_pct` re-centres the
+    off-beat 16ths (the median template sits flatter than most references: compare with
+    the genre's swing_self_pct). Place the WAV with create_audio_clip(warp=False): it is
+    exactly `bars` long at `bpm`."""
+    from .ear import why
+    prof = knowledge.load_profile(genre) or {}
+    tmpl = ((prof.get("ear") or {}).get("drums", {}).get(role) or {}).get("template")
+    if not tmpl:
+        tmpl = why.groove_template(why.load_reports(), role)
+    if not tmpl or not tmpl.get("n"):
+        return {"error": "no %s groove measured; run listen_folder.py and build_principles.py" % role}
+    y = loops.from_template(shots, tmpl, bpm, bars=bars, steps=steps, seed=seed, swing_pct=swing_pct)
+    loops.write(out, y)
+    return {"file": out, "bars": bars, "bpm": bpm, "from_references": tmpl["n"],
+            "steps": [(s["step"], s["offset_ms"], s["accent_db"]) for s in tmpl["steps"]
+                      if s["offset_ms"] is not None and (steps is None or s["step"] in steps)]}
 
 
 # ---------------------------------------------------------------------------- the ear

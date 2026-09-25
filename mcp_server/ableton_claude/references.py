@@ -77,14 +77,23 @@ def _low_flux(mono, sr, hop=256):
     return np.maximum(np.diff(env, prepend=env[0]), 0), sr / float(hop)
 
 
-def _grid_score(flux, fps, bpm):
-    """Best phase and its score: low-band attacks summed on a beat grid at `bpm`."""
+def _grid_score(flux, fps, bpm, near=0.88, window_s=0.1):
+    """Best phase and its score: low-band attacks summed on a beat grid at `bpm`.
+
+    A kick's low band rises twice, at the click and again ~60 ms later when its pitch
+    sweep lands in the band, so the score has two humps per beat. The attack is the
+    earlier one: among phases within `near` of the best score and up to `window_s` before
+    it, the earliest wins (a grid on the second hump read a 64 ms late first beat and
+    merged a drums-only intro into the groove)."""
     period = 60.0 / bpm * fps
     phases = np.arange(0, period, 0.5)
     n = int((len(flux) - period) / period)
     idx = (phases[:, None] + np.arange(n)[None, :] * period).astype(int)
     scores = flux[np.clip(idx, 0, len(flux) - 1)].sum(axis=1)
     k = int(np.argmax(scores))
+    back = ((phases[k] - phases) % period) / fps                 # how far before the best, circular
+    ok = np.where((scores >= near * scores[k]) & (back <= window_s))[0]
+    k = int(ok[np.argmax(back[ok])]) if ok.size else k
     return phases[k] / fps, float(scores[k])
 
 

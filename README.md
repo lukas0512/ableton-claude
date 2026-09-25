@@ -55,6 +55,8 @@ After editing `handlers.py`: `scripts/install_remote_script.sh`, then the `reloa
 | `analyze_sample`, `analyze_bassline` | Key, BPM, swing, role; bass notes per beat. |
 | `genre_knowledge`, `genre_plan_structure` | What a genre is (conventions + measured numbers); a section plan for N minutes. |
 | `analyze_reference`, `compare_to_genre`, `mix_toward_genre` | Measure a reference; hold a mix against a genre; move the Live master toward it. |
+| `analyze_timbre`, `find_samples`, `groove_loop` | Kick, bass, hats, clap and breakdown against the genre; rank a folder's one-shots by that timbre; place a one-shot on the references' per-16th feel as a loop. |
+| `validate_against_genre`, `analyze_tension` | Every measure at once; break depth, build and drop against the references. |
 
 ## The ear
 
@@ -77,11 +79,19 @@ reference's feel into a Live groove file (Groove Pool).
 
 The user's sample packs are a resource too: `library_index` indexes them (role, loop or
 one-shot, tempo and key from the names), `library_search` finds material in key and tempo,
-`library_midi` reads royalty-free pack MIDI transposed to the song's key.
+`library_midi` reads royalty-free pack MIDI transposed to the song's key. A pack loop
+carries its producer's feel and timbre together and a one-shot carries neither, so
+`find_samples` picks the one-shot by the genre's measured timbre and `groove_loop` places
+it with the references' per-16th micro-timing, accents and timing variation (pooled from
+their ear reports into the genre's `ear.drums.<role>.template`), giving the genre's sound
+with the genre's groove. Pack material can also be out of tune with itself: measure, then
+`set_clip(warping=True, warp_mode="complex_pro", detune=cents)`.
 
-Measured on our own track, where the truth is known: tempo, bars, form, entries, the
-bassline (G1/D2 off the kick) and the hats' swing come out right; chord roots in a busy
-breakdown are right about half the time (chords from a finished mix are the hard part).
+Measured on our own tracks, where the truth is known: tempo, bars, form, entries, the
+bassline (G1/D2 off the kick) and the hats' swing come out right; the chroma votes with
+spectral peaks in 110-1500 Hz only, so a C minor organ and stab read Cm / Cm9 and the
+finished mix reads C minor, Cm7 (summing every bin had turned the root's overtones into
+"Cmaj9"). Chord roots in a busy breakdown are still right only about half the time.
 
 ## Teaching it a genre
 

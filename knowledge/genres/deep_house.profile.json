@@ -1065,7 +1065,124 @@
      0.09,
      0.09
     ],
-    "n": 22
+    "n": 22,
+    "template": {
+     "n": 22,
+     "steps": [
+      {
+       "step": 0,
+       "offset_ms": -0.1,
+       "accent_db": -3.6,
+       "spread_ms": 2.5,
+       "share": 1.0
+      },
+      {
+       "step": 1,
+       "offset_ms": null,
+       "accent_db": null,
+       "spread_ms": null,
+       "share": 0.32
+      },
+      {
+       "step": 2,
+       "offset_ms": 9.6,
+       "accent_db": -14.0,
+       "spread_ms": 1.9,
+       "share": 0.55
+      },
+      {
+       "step": 3,
+       "offset_ms": null,
+       "accent_db": null,
+       "spread_ms": null,
+       "share": 0.27
+      },
+      {
+       "step": 4,
+       "offset_ms": -0.4,
+       "accent_db": -4.2,
+       "spread_ms": 2.1,
+       "share": 1.0
+      },
+      {
+       "step": 5,
+       "offset_ms": null,
+       "accent_db": null,
+       "spread_ms": null,
+       "share": 0.14
+      },
+      {
+       "step": 6,
+       "offset_ms": 11.5,
+       "accent_db": -16.3,
+       "spread_ms": 1.5,
+       "share": 0.68
+      },
+      {
+       "step": 7,
+       "offset_ms": 12.3,
+       "accent_db": -16.9,
+       "spread_ms": 4.4,
+       "share": 0.68
+      },
+      {
+       "step": 8,
+       "offset_ms": -0.2,
+       "accent_db": -4.5,
+       "spread_ms": 3.0,
+       "share": 1.0
+      },
+      {
+       "step": 9,
+       "offset_ms": null,
+       "accent_db": null,
+       "spread_ms": null,
+       "share": 0.32
+      },
+      {
+       "step": 10,
+       "offset_ms": 15.2,
+       "accent_db": -12.2,
+       "spread_ms": 3.2,
+       "share": 0.68
+      },
+      {
+       "step": 11,
+       "offset_ms": 10.1,
+       "accent_db": -16.7,
+       "spread_ms": 2.5,
+       "share": 0.5
+      },
+      {
+       "step": 12,
+       "offset_ms": -0.8,
+       "accent_db": -3.9,
+       "spread_ms": 1.9,
+       "share": 1.0
+      },
+      {
+       "step": 13,
+       "offset_ms": null,
+       "accent_db": null,
+       "spread_ms": null,
+       "share": 0.41
+      },
+      {
+       "step": 14,
+       "offset_ms": 17.3,
+       "accent_db": -6.7,
+       "spread_ms": 2.3,
+       "share": 0.82
+      },
+      {
+       "step": 15,
+       "offset_ms": 7.3,
+       "accent_db": -13.3,
+       "spread_ms": 1.5,
+       "share": 0.5
+      }
+     ]
+    }
    },
    "clap": {
     "typical": "xgxgxgxxxgxgxgxx",
@@ -1087,7 +1204,124 @@
      0.91,
      0.5
     ],
-    "n": 22
+    "n": 22,
+    "template": {
+     "n": 22,
+     "steps": [
+      {
+       "step": 0,
+       "offset_ms": -0.1,
+       "accent_db": -10.9,
+       "spread_ms": 0.6,
+       "share": 1.0
+      },
+      {
+       "step": 1,
+       "offset_ms": 39.9,
+       "accent_db": -18.1,
+       "spread_ms": 0.9,
+       "share": 0.86
+      },
+      {
+       "step": 2,
+       "offset_ms": 0.5,
+       "accent_db": -6.8,
+       "spread_ms": 0.8,
+       "share": 1.0
+      },
+      {
+       "step": 3,
+       "offset_ms": 15.4,
+       "accent_db": -18.9,
+       "spread_ms": 1.4,
+       "share": 0.91
+      },
+      {
+       "step": 4,
+       "offset_ms": -0.6,
+       "accent_db": 0.0,
+       "spread_ms": 0.6,
+       "share": 1.0
+      },
+      {
+       "step": 5,
+       "offset_ms": 20.2,
+       "accent_db": -19.0,
+       "spread_ms": 1.4,
+       "share": 0.82
+      },
+      {
+       "step": 6,
+       "offset_ms": 0.6,
+       "accent_db": -7.2,
+       "spread_ms": 0.8,
+       "share": 1.0
+      },
+      {
+       "step": 7,
+       "offset_ms": 22.9,
+       "accent_db": -11.9,
+       "spread_ms": 1.1,
+       "share": 0.95
+      },
+      {
+       "step": 8,
+       "offset_ms": 0.1,
+       "accent_db": -13.4,
+       "spread_ms": 0.6,
+       "share": 1.0
+      },
+      {
+       "step": 9,
+       "offset_ms": 21.7,
+       "accent_db": -18.8,
+       "spread_ms": 1.4,
+       "share": 0.95
+      },
+      {
+       "step": 10,
+       "offset_ms": 0.5,
+       "accent_db": -6.2,
+       "spread_ms": 0.9,
+       "share": 1.0
+      },
+      {
+       "step": 11,
+       "offset_ms": 19.5,
+       "accent_db": -15.9,
+       "spread_ms": 1.4,
+       "share": 0.95
+      },
+      {
+       "step": 12,
+       "offset_ms": -1.2,
+       "accent_db": 0.1,
+       "spread_ms": 0.9,
+       "share": 1.0
+      },
+      {
+       "step": 13,
+       "offset_ms": 12.5,
+       "accent_db": -17.4,
+       "spread_ms": 1.4,
+       "share": 0.86
+      },
+      {
+       "step": 14,
+       "offset_ms": 0.2,
+       "accent_db": -6.5,
+       "spread_ms": 1.1,
+       "share": 1.0
+      },
+      {
+       "step": 15,
+       "offset_ms": 28.1,
+       "accent_db": -12.3,
+       "spread_ms": 1.1,
+       "share": 0.95
+      }
+     ]
+    }
    },
    "hats": {
     "typical": "xgxgxxxxxxxxxgxx",
@@ -1109,7 +1343,124 @@
      0.94,
      0.58
     ],
-    "n": 22
+    "n": 22,
+    "template": {
+     "n": 22,
+     "steps": [
+      {
+       "step": 0,
+       "offset_ms": 0.2,
+       "accent_db": -8.9,
+       "spread_ms": 0.8,
+       "share": 1.0
+      },
+      {
+       "step": 1,
+       "offset_ms": 17.2,
+       "accent_db": -11.5,
+       "spread_ms": 1.0,
+       "share": 0.86
+      },
+      {
+       "step": 2,
+       "offset_ms": 0.2,
+       "accent_db": -0.2,
+       "spread_ms": 0.8,
+       "share": 1.0
+      },
+      {
+       "step": 3,
+       "offset_ms": 23.8,
+       "accent_db": -14.9,
+       "spread_ms": 1.6,
+       "share": 0.91
+      },
+      {
+       "step": 4,
+       "offset_ms": -0.2,
+       "accent_db": -5.7,
+       "spread_ms": 0.9,
+       "share": 1.0
+      },
+      {
+       "step": 5,
+       "offset_ms": 11.4,
+       "accent_db": -14.2,
+       "spread_ms": 0.8,
+       "share": 0.95
+      },
+      {
+       "step": 6,
+       "offset_ms": -0.2,
+       "accent_db": -0.6,
+       "spread_ms": 0.7,
+       "share": 1.0
+      },
+      {
+       "step": 7,
+       "offset_ms": 21.2,
+       "accent_db": -8.3,
+       "spread_ms": 1.0,
+       "share": 0.95
+      },
+      {
+       "step": 8,
+       "offset_ms": 0.5,
+       "accent_db": -7.7,
+       "spread_ms": 0.7,
+       "share": 0.95
+      },
+      {
+       "step": 9,
+       "offset_ms": 16.1,
+       "accent_db": -12.2,
+       "spread_ms": 1.0,
+       "share": 1.0
+      },
+      {
+       "step": 10,
+       "offset_ms": -0.1,
+       "accent_db": -0.2,
+       "spread_ms": 0.9,
+       "share": 1.0
+      },
+      {
+       "step": 11,
+       "offset_ms": 10.3,
+       "accent_db": -13.6,
+       "spread_ms": 1.2,
+       "share": 0.91
+      },
+      {
+       "step": 12,
+       "offset_ms": -0.3,
+       "accent_db": -6.0,
+       "spread_ms": 1.0,
+       "share": 1.0
+      },
+      {
+       "step": 13,
+       "offset_ms": 4.6,
+       "accent_db": -14.3,
+       "spread_ms": 0.9,
+       "share": 1.0
+      },
+      {
+       "step": 14,
+       "offset_ms": -0.2,
+       "accent_db": -0.4,
+       "spread_ms": 1.0,
+       "share": 1.0
+      },
+      {
+       "step": 15,
+       "offset_ms": 23.2,
+       "accent_db": -8.7,
+       "spread_ms": 1.4,
+       "share": 0.95
+      }
+     ]
+    }
    }
   },
   "four_on_floor_share": 1.0,

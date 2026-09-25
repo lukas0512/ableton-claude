@@ -43,16 +43,28 @@ def _templates():
     return labels, np.array(T), np.array(sizes), np.array(roots)
 
 
-def chroma_per_beat(stem, sr, g, fmin=110.0, fmax=3000.0):
+def chroma_per_beat(stem, sr, g, fmin=110.0, fmax=1500.0, floor=0.01):
+    """Pitch-class weights per beat, from spectral peaks only.
+
+    Summing every STFT bin let the noise floor between partials vote and flattened the
+    chroma (a C minor organ read C 17 %, E 10 %, B 10 %: the E and B were the root's 5th
+    and 15th harmonics plus floor); only local maxima above `floor` of the frame's peak
+    count, their power is pooled per pitch class over the beat and compressed once at the
+    end (sqrt), so several notes stay visible. Below 110 Hz the bins (5.4 Hz) are wider
+    than a semitone and smear C2 into D and F; above 1.5 kHz the upper harmonics of the
+    chord tones outvote the chord tones themselves (the same organ read Cmaj9)."""
     y = stem.mean(axis=1) if stem.ndim == 2 else stem
     n_fft, hop = 8192, 2048
     f, t, Z = signal.stft(y, sr, nperseg=n_fft, noverlap=n_fft - hop, boundary=None, padded=False)
-    mag = np.sqrt(np.abs(Z))                                # compress: several notes count
     sel = (f >= fmin) & (f <= fmax)
+    pw = np.abs(Z[sel]) ** 2
+    pk = np.zeros_like(pw)
+    pk[1:-1] = pw[1:-1] * ((pw[1:-1] > pw[:-2]) & (pw[1:-1] >= pw[2:]))
+    pk[pk < floor * pw.max(axis=0, keepdims=True)] = 0.0
     pcs = (np.round(69 + 12 * np.log2(f[sel] / 440.0)).astype(int)) % 12
-    M = np.zeros((12, mag.shape[1]))
+    M = np.zeros((12, pw.shape[1]))
     for p in range(12):
-        M[p] = mag[sel][pcs == p].sum(axis=0)
+        M[p] = pk[pcs == p].sum(axis=0)
     n_beats = g["n_bars"] * 4
     out = np.zeros((n_beats, 12))
     energy = np.zeros(n_beats)
@@ -60,7 +72,7 @@ def chroma_per_beat(stem, sr, g, fmin=110.0, fmax=3000.0):
         a = G.bar_start(g, 0) + k * g["period"]
         m = (t >= a) & (t < a + g["period"])
         if m.any():
-            out[k] = M[:, m].mean(axis=1)
+            out[k] = np.sqrt(M[:, m].mean(axis=1))
             energy[k] = out[k].sum()
     norm = np.linalg.norm(out, axis=1, keepdims=True) + 1e-12
     return out / norm, energy
