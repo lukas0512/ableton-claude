@@ -97,3 +97,25 @@ def test_trim_hit_cuts_and_fades(tmp_path):
     out = loops.trim_hit(src, str(tmp_path / "short.wav"), 0.09, fade_ms=10)
     y, sr = sf.read(out)
     assert len(y) == int(0.09 * SR) and abs(y[-1, 0]) < 1e-6 and y[0, 0] == pytest.approx(0.8)
+
+
+def test_from_notes_scales_by_velocity_and_chokes(tmp_path):
+    src = _click(tmp_path, "sn.wav", n=SR, first=1.0)
+    y = loops.from_notes(src, [[39, 0.0, 0.5, 127], [39, 1.0, 0.5, 64]], BPM, 1)
+    beat = int(round(60 / BPM * SR))
+    assert y[0, 0] == pytest.approx(0.999, abs=1e-3) or y[0, 0] == pytest.approx(1.0)
+    assert y[beat, 0] == pytest.approx(64 / 127, rel=1e-3)
+    assert abs(y[beat - 1, 0]) < 1e-6                     # the first hit is choked at the second
+
+
+def test_gaps_and_slices(tmp_path):
+    ones = np.ones((int(4 * 60 / BPM * SR), 2)) * 0.5            # one bar of DC
+    src = str(tmp_path / "bar.wav")
+    sf.write(src, ones, SR, subtype="FLOAT")
+    out = loops.with_gaps(src, str(tmp_path / "gap.wav"), BPM, [(2.0, 4.0)], fade_ms=0)
+    y, _ = sf.read(out)
+    beat = int(round(60 / BPM * SR))
+    assert y[beat, 0] == pytest.approx(0.5) and y[2 * beat + 10, 0] == 0.0 and y[-1, 0] == 0.0
+    sl = loops.slice_beats(src, str(tmp_path / "s.wav"), BPM, 3.0, 4.0, reverse=True)
+    z, _ = sf.read(sl)
+    assert abs(len(z) - beat) <= 1

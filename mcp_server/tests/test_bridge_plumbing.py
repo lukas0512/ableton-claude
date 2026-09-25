@@ -204,6 +204,16 @@ def test_display_target_lands_on_the_reading_not_one_step_under(bridge):
     raw = h._raw_for_display(Gain(), "7.9 dB")
     assert Gain().str_for_value(raw) == "7.9 dB"
 
+    class Release:               # Glue Compressor: '.1' ... '1.2', then 'Auto' at the top
+        min, max = 0.0, 1.0
+        steps = [".1", ".2", ".4", ".6", ".8", "1.2", "Auto"]
+
+        def str_for_value(self, v):
+            return self.steps[min(6, int(v * 7))]
+
+    raw = h._raw_for_display(Release(), ".2")
+    assert Release().str_for_value(raw) == ".2"
+
 
 def test_warp_modes_and_audio_shaping(bridge):
     h = sys.modules["ClaudeBridge.handlers"]

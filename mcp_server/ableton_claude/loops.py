@@ -39,6 +39,34 @@ def _length(bpm, bars, sr):
     return int(round(bars * 4 * 60.0 / bpm * sr))
 
 
+def with_gaps(path, out, bpm, gaps, fade_ms=8.0, sr=SR):
+    """A loop with holes: `gaps` = [(from_beat, to_beat), ...] silenced with short fades
+    (a kick that leaves for the last two beats of a phrase, hats that vanish for a bar).
+    Groove by absence: the ear leans into what stopped."""
+    x = read(path, sr).copy()
+    beat = 60.0 / bpm
+    f = int(fade_ms / 1000.0 * sr)
+    for a, b in gaps:
+        i, j = int(round(a * beat * sr)), min(len(x), int(round(b * beat * sr)))
+        if j <= i:
+            continue
+        if f and i >= f:
+            x[i - f:i] *= np.linspace(1.0, 0.0, f)[:, None]
+        x[i:j] = 0.0
+        if f and j + f <= len(x):
+            x[j:j + f] *= np.linspace(0.0, 1.0, f)[:, None]
+    return write(out, x, sr)
+
+
+def slice_beats(path, out, bpm, from_beat, to_beat, reverse=False, sr=SR):
+    """Beats [from, to) of a loop at `bpm` as their own file, optionally reversed (the
+    vocal's last bar sucked backwards into the drop)."""
+    x = read(path, sr)
+    beat = 60.0 / bpm
+    y = x[int(round(from_beat * beat * sr)): int(round(to_beat * beat * sr))]
+    return write(out, y[::-1] if reverse else y, sr)
+
+
 def stretch_to(path, out, bpm, bars, sr=SR):
     """A one-shot FX (riser, sweep, downlifter) resampled to exactly `bars` at `bpm`, so
     it can be placed unwarped and end on the downbeat. Pitch moves with the length
@@ -84,6 +112,20 @@ def four_on_floor(shot, bpm, bars=4, sr=SR):
     starts = [int(round(k * beat * sr)) for k in range(bars * 4)] + [len(y)]
     for a, b in zip(starts, starts[1:]):
         _place(y, hit, a, b, 1.0, 10.0, sr)
+    return y
+
+
+def from_notes(shot, notes, bpm, bars, choke_ms=5.0, sr=SR):
+    """A one-shot played by MIDI-style notes [[pitch, start_beat, dur_beats, vel], ...]
+    (e.g. music.groove.build_roll): velocity scales the level, each hit is cut where the
+    next begins. Pitch is ignored (one sample)."""
+    hit = read(shot, sr)
+    y = np.zeros((_length(bpm, bars, sr), 2))
+    beat = 60.0 / bpm
+    starts = sorted((int(round(n[1] * beat * sr)), n[3]) for n in notes)
+    for i, (a, vel) in enumerate(starts):
+        end = starts[i + 1][0] if i + 1 < len(starts) else len(y)
+        _place(y, hit, a, end, max(0.0, min(127, vel)) / 127.0, choke_ms, sr)
     return y
 
 

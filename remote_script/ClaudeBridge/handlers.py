@@ -12,7 +12,7 @@ import types
 
 import Live
 
-VERSION = "0.6.9"
+VERSION = "0.7.0"
 
 COMMANDS = {}
 DEFERRED_TIMEOUT_S = 30.0
@@ -323,7 +323,7 @@ def _set_by_display(param, target):
     param.value = _raw_for_display(param, target)
 
 
-_UNIT_RE = re.compile(r"([-+]?\d+(?:\.\d+)?)\s*(khz|hz|ms|s|db|%)?", re.I)
+_UNIT_RE = re.compile(r"([-+]?(?:\d+(?:\.\d+)?|\.\d+))\s*(khz|hz|ms|s|db|%)?", re.I)   # Glue shows '.6'
 _UNIT_SCALE = {"khz": 1000.0, "hz": 1.0, "ms": 0.001, "s": 1.0}
 
 
@@ -350,7 +350,14 @@ def _raw_for_display(param, target):
         x = _to_base(param.str_for_value(v))
         return float("-inf") if x is None else x
 
-    increasing = num(hi) >= num(lo)
+    # the numeric stretch of the range: a Glue release ends in 'Auto', a filter in 'Off'
+    probe = [(lo + (hi - lo) * k / 16.0) for k in range(17)]
+    finite = [(v, num(v)) for v in probe if num(v) not in (float("inf"), float("-inf"))]
+    if len(finite) >= 2:
+        lo, hi = finite[0][0], finite[-1][0]
+        increasing = finite[-1][1] >= finite[0][1]
+    else:
+        increasing = num(hi) >= num(lo)
     for _ in range(48):
         mid = (lo + hi) / 2.0
         if (num(mid) < goal) == increasing:
@@ -864,21 +871,39 @@ def delete_clips_in_range(ctx, track, start_bar, end_bar):
             "stuck": [round(c.start_time, 3) for c in remaining[:20]]}
 
 
+PARK = 1.0e6      # beats: far beyond any song, where clips wait while a trim runs
+
+
 def _trim_at(t, cut):
     """Shorten every clip that crosses `cut` so it ends there. Live has no API for a
     clip's length, but a clip dropped on top of another truncates it: drop a copy at
-    `cut`, then delete the copy. Only use where nothing lies after `cut` yet."""
+    `cut`, then delete the copy. Clips that start inside the copy's span would be eaten
+    by it, so they are parked far away first and brought back after."""
     n = 0
     for _ in range(64):
         crossing = [c for c in t.arrangement_clips
                     if c.start_time < cut - 1e-3 and c.end_time > cut + 1e-3]
         if not crossing:
             break
-        t.duplicate_clip_to_arrangement(crossing[0], cut)
-        blocker = next((c for c in t.arrangement_clips if abs(c.start_time - cut) < 1e-3),
+        c = crossing[0]
+        span = c.end_time - c.start_time
+        parked = []
+        for other in list(t.arrangement_clips):
+            if cut - 1e-3 <= other.start_time < cut + span + 1e-3:
+                offset = other.start_time - cut
+                t.duplicate_clip_to_arrangement(other, PARK + offset)
+                t.delete_clip(other)
+                parked.append(offset)
+        t.duplicate_clip_to_arrangement(c, cut)
+        blocker = next((x for x in t.arrangement_clips if abs(x.start_time - cut) < 1e-3),
                        None)
         if blocker is not None:
             t.delete_clip(blocker)
+        for offset in sorted(parked):
+            p = next((x for x in t.arrangement_clips if abs(x.start_time - (PARK + offset)) < 1e-3), None)
+            if p is not None:
+                t.duplicate_clip_to_arrangement(p, cut + offset)
+                t.delete_clip(p)
         n += 1
     return n
 
@@ -895,6 +920,82 @@ def trim_clip(ctx, track, clip, end_bar=None, end_beat=None):
                          % (cut, c.start_time, c.end_time))
     _trim_at(t, cut)
     return _clip_info(_clip(t, {"at": start}), markers=False)
+
+
+def _device_inputs(d):
+    if not hasattr(d, "available_input_routing_types"):
+        raise ValueError("%s has no sidechain input" % d.name)
+    return {"types": [r.display_name for r in d.available_input_routing_types],
+            "channels": [r.display_name for r in d.available_input_routing_channels],
+            "type": d.input_routing_type.display_name if d.input_routing_type else None,
+            "channel": d.input_routing_channel.display_name if d.input_routing_channel else None}
+
+
+def _pick(options, name, what):
+    m = [r for r in options if r.display_name == name] or \
+        [r for r in options if name.lower() in r.display_name.lower()]
+    if not m:
+        raise ValueError("no %s %r; choices: %s" % (what, name, [r.display_name for r in options]))
+    return m[0]
+
+
+@command
+def track_routing(ctx, track):
+    t = _track(ctx, track)
+    return {"output": t.output_routing_type.display_name,
+            "output_channel": t.output_routing_channel.display_name if t.output_routing_channel else None,
+            "outputs": [r.display_name for r in t.available_output_routing_types],
+            "input": t.input_routing_type.display_name if hasattr(t, "input_routing_type") and t.input_routing_type else None}
+
+
+@command
+def set_track_input(ctx, track, source, channel=None):
+    """A track's input: "No Input" for a bus (a fresh audio track listens to Ext. In, the
+    interface's mic, and monitoring "in" then feeds it back), a track name, "Ext. In"."""
+    t = _track(ctx, track)
+    t.input_routing_type = _pick(list(t.available_input_routing_types), source, "input")
+    if channel is not None:
+        t.input_routing_channel = _pick(list(t.available_input_routing_channels), channel, "channel")
+    return track_routing(ctx, track)
+
+
+@command
+def set_track_output(ctx, track, dest, channel=None):
+    """Send a track's output to another track (a bus: Live's API makes no group tracks),
+    to "Main" or to "Sends Only". The bus must monitor "in" (set_track monitoring=in)."""
+    t = _track(ctx, track)
+    t.output_routing_type = _pick(list(t.available_output_routing_types), dest, "output")
+    if channel is not None:
+        t.output_routing_channel = _pick(list(t.available_output_routing_channels), channel, "channel")
+    return track_routing(ctx, track)
+
+
+@command
+def device_inputs(ctx, track, device):
+    """A device's sidechain input choices (Compressor, Gate, Auto Filter...)."""
+    return _device_inputs(_device(_track(ctx, track), device))
+
+
+@command
+def set_device_input(ctx, track, device, source, channel=None):
+    """Route a device's sidechain input: `source` is a track name as the chooser shows
+    it (e.g. "Kick"), `channel` one of its channels ("Post FX", "Post Mixer", "Pre FX")."""
+    d = _device(_track(ctx, track), device)
+    info = _device_inputs(d)
+    types = list(d.available_input_routing_types)
+    match = [r for r in types if r.display_name == source] or \
+            [r for r in types if source.lower() in r.display_name.lower()]
+    if not match:
+        raise ValueError("no input %r; choices: %s" % (source, info["types"]))
+    d.input_routing_type = match[0]
+    if channel is not None:
+        chans = list(d.available_input_routing_channels)
+        cm = [r for r in chans if r.display_name == channel] or \
+             [r for r in chans if channel.lower() in r.display_name.lower()]
+        if not cm:
+            raise ValueError("no channel %r; choices: %s" % (channel, [r.display_name for r in chans]))
+        d.input_routing_channel = cm[0]
+    return _device_inputs(d)
 
 
 @command

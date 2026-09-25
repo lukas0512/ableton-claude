@@ -55,6 +55,11 @@ Bridge commands (args):
   warp_markers(track, clip) | set_warp_markers(track, clip, beats=16 | markers=[[beat, s],..])
            -- a loop of known length gets its exact tempo (auto-warp guessed 122.83 and 252)
   api_probe(expr)  -- eval a read-only expression against Live's API (exploration)
+  track_routing(track) | set_track_output(track, dest="Drum Bus"|"Main"|"Sends Only")
+  set_track_input(track, source="No Input"|<track>|"Ext. In")  -- a bus = audio track with
+           monitoring "in", input "No Input" (else the mic feeds back) and members routed in
+  device_inputs(track, device) | set_device_input(track, device, source="Kick", channel="Post Mixer")
+           -- a real sidechain for Compressor / Gate / Auto Filter
     (audio clips must be warped; Beats mode suits drums)
 
 Rendering needs an audio output device: if the interface is unplugged Live's engine

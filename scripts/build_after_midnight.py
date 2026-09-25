@@ -36,6 +36,20 @@ pattern in the drop), a one-bar vocal "call" every 4 bars before the vocal enter
 real, the organ answering in the last groove, and a iv turnaround (the stab up a fourth,
 Cm -> Fm) in the two bars before the main break and before the last groove.
 
+Theme, tension and release (the user's second ask: "repetitiva, sem tema, sem tensao e
+alivio, falta atmosfera"): a two-bar call and two-bar response in C minor hexatonic
+(music.melody, seed 7) on Live's Atmo Pluck, hinted in the stab section (call only,
+filtered), stated over the second groove, driven through the build with its filter
+opening, full in the drop and echoed (response only) after it; the pad carries a real
+progression under the grooves (Cm9 - Fm9 - Cm9 - Abmaj7 over the C pedal bass) and in
+the main break climbs Cm9 - Abmaj9 - Fm9 - G7sus4 with its low-pass opening over 16 bars
+(clip envelope), so the drop resolves a dominant; an 8-bar snare roll, the kick back four
+bars early, a two-beat cut before the drop with only the vocal call and the reverse crash
+left, a down-pitched kick impact on the drop; vibe chords answer the vocal in the second
+half of the drop; pad, theme, stab, organ and vibes duck to the kick through a Compressor
+with a real sidechain (set_device_input), and the returns get room (reverb 3.5 s, delay
+filtered) for atmosphere.
+
 Re-running is safe: clips are synced to the plan (missing ones added, strays removed,
 existing ones kept), devices are loaded only when missing and their parameters set.
 
@@ -47,6 +61,7 @@ import unicodedata
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "mcp_server"))
 from ableton_claude import client, knowledge, loops  # noqa: E402
+from ableton_claude.music import harmony as MH, melody  # noqa: E402
 
 C = client.call
 PACKS = os.path.expanduser("~/Documents/Documents - Lukas’s MacBook Pro/SAMPÇE Packs/Loopmasters - Ultimate Deep House")
@@ -71,6 +86,12 @@ SNARE_SHOT = os.path.join(HITS, "DRUM_HITS/SNARES/NSL_Snare_20.wav")        # 4.
 CRASH = os.path.join(HITS, "DRUM_HITS/CYMBALS/DGH_CRASH_004.wav")           # 5 s, 6.2 kHz
 CRASH_REV = os.path.join(HITS, "DRUM_HITS/CYMBALS/MD2_CRASH_20.wav")        # 1.35 s rise
 RISER = os.path.join(HITS, "FX/DCW_126_The_Rise_Fx.wav")                    # 4 bars at 126
+IMPACT = os.path.join(HITS, "FX/DCW_126_Kick_Down_Fx.wav")                  # down-pitched kick
+VIBES = os.path.expanduser("~/Documents/Documents - Lukas’s MacBook Pro/SAMPÇE Packs/"
+                           "Loopmasters - Ultimate Deep House/WAV_LOOPS/MUSIC_LOOPS/NSL_125_Cm_VibeChords.wav")
+THEME_INSTRUMENT = "sounds/Guitar & Plucked/Atmo Pluck.adg"
+THEME_SEED = 7
+THEME_CHORDS = ("Cm9", "Cm9", "Fm9", "Fm9")
 OUT_DIR = os.path.expanduser("~/Music/Ableton/User Library/Samples/Claude/After Midnight")
 BPM = 123.0
 BEAT_S = 60.0 / BPM
@@ -83,48 +104,75 @@ TOPS_GROOVE_TIMING = 50.0               # half its 66 % swing: the mix read 69 %
 SECTIONS = [("Intro", 1), ("Groove", 17), ("Stab", 33), ("Break", 49), ("Groove B", 57),
             ("Main Break", 89), ("Drop", 105), ("Groove C", 137), ("Outro", 153), ("DJ Outro", 169)]
 PLAN = {   # track: [(start_bar, end_bar[, variant]), ...] in 4-bar loops
-    "Kick":      [(1, 49), (57, 89), (105, 185)],
-    "Hats":      [(1, 17, "closed"), (17, 89, "open"), (97, 169, "open"), (169, 185, "closed")],
-    "Ghost":     [(17, 49, "a"), (57, 89, "a"), (105, 137, "b"), (137, 169, "a")],
-    "Tops 1":    [(9, 57), (137, 169)],
+    "Kick":      [(1, 49), (57, 71), (73, 89), (105, 119), (121, 151), (153, 185)],   # 2-bar gaps at phrase ends
+    "Hats":      [(1, 57, "closed"), (57, 89, "open"), (97, 137, "open"), (137, 185, "closed")],   # open = lifted sections
+    "Ghost":     [(17, 49, "a"), (57, 89, "a"), (93, 105, "a"), (105, 137, "b"), (137, 169, "a")],
+    "Tops 1":    [(9, 57), (105, 169)],                # both top layers only in the drop
     "Tops 2":    [(57, 89), (97, 137)],                # main break: hats and tops return at 97
     "Perc Tops": [(33, 57), (73, 81), (89, 153)],      # out at 81-89 so the drop tops the pre-break
-    "Clap":      [(17, 49), (53, 89), (105, 169)],     # first break: back after 4 bars
-    "Bass":      [(17, 49), (57, 89), (105, 169)],
-    "Stab":      [(33, 57), (65, 89), (93, 101), (105, 145)],   # space before the drop; call in Groove C
-    "Organ":     [(73, 89), (105, 137), (145, 153)],   # answers in the last groove
-    "Vox Chops": [(49, 57), (65, 73), (89, 105), (121, 137)],
-    "FX 1":      [(13, 17), (45, 49), (85, 89), (101, 105)],
+    "Clap":      [(17, 169)],                          # stays through breaks (81 % of references)
+    "Bass":      [(17, 49), (57, 89), (97, 169)],      # back before the kick: groove without pulse
+    "Stab":      [(33, 37), (41, 57), (65, 89), (93, 101), (105, 145)],   # shown, taken away, returned; drives the drop
+    "Organ":     [(73, 89), (145, 153)],               # one supporting voice; returns known
+    "Vox Chops": [(49, 57), (65, 73), (89, 105), (113, 137)],   # silent for the drop's first 8: the theme speaks
+    "FX 1":      [(45, 49), (85, 89), (101, 105)],
     "FX 2":      [(49, 53), (89, 93), (137, 141), (181, 185)],
-    "Riser":     [(53, 57), (101, 105)],
+    "Riser":     [(101, 105)],
 }
+REMOVE_TRACKS = ["Roll", "Vibes"]                      # one story: too many voices were speaking
 HITS_PLAN = {  # track: [(bar, variant)] one-shots on downbeats (reverse crash ends on it)
-    "Crash": [(17, "hit"), (33, "hit"), (49, "hit"), (57, "hit"), (89, "hit"), (105, "hit"),
-              (137, "hit"), (169, "hit"), (17, "rev"), (33, "rev"), (57, "rev"), (105, "rev"),
-              (137, "rev")],
+    "Crash": [(17, "hit"), (57, "hit"), (105, "hit"), (137, "hit"), (57, "rev"), (105, "rev")],
+    "Impact": [(105, "hit")],
 }
-VOX_CALLS = [44, 48, 80, 84, 88, 116, 120, 156, 160, 164]   # the loop's last bar, alone
+PREDROP_CUT = None                             # the references keep everything but the kick
+PREDROP_TRACKS = []
+# bar: (call?, response?, filter Hz, velocity scale) for the theme
+THEME_PLAN = {41: (1, 0, 1200, 0.7), 45: (1, 0, 1200, 0.7),                 # hint: the question alone
+              65: (1, 1, 3000, 0.9), 73: (1, 1, 3000, 0.9), 81: (1, 1, 3000, 0.9),
+              97: (1, 0, None, 0.75), 99: (1, 0, None, 0.85), 101: (1, 0, None, 0.95), 103: (1, 0, None, 1.0),
+              105: (1, 1, 12000, 1.0), 113: (1, 1, 12000, 1.0),
+              121: (1, 1, 12000, 1.0), 129: (1, 1, 12000, 1.0),               # climax: octave doubled
+              137: (0, 1, 8000, 0.85), 145: (0, 1, 8000, 0.85)}               # echo: the answer alone
+THEME_OCTAVE_BARS = (121, 129)
+THEME_UP_BARS = (103,)                  # the last question rises an octave into the drop
+THEME_SWING = 60.0
+# pad: (start, end, chords, bars per chord, velocity, filter points [[beat, Hz], ...])
+PAD_PLAN = [
+    (29, 31, ["Cm9"], 2, 40, [[0, 700], [8, 700]]),                     # a glimpse before the break
+    (49, 57, ["Cm9", "Fm9"], 4, 84, [[0, 400], [32, 3000]]),
+    (57, 89, ["Cm9", "Fm9", "Cm9", "Abmaj7"] * 4, 2, 48, [[0, 1800], [128, 1800]]),   # scenery, not a voice
+    (89, 105, ["Cm9", "Cm9", "Abmaj9", "Abmaj9", "Fm9", "Fm9", "G7sus4", "G7sus4"], 2, 92,
+     [[0, 300], [32, 900], [56, 4000], [64, 14000]]),                # dominant + filter = tension
+    (105, 137, ["Cm9", "Fm9", "Cm9", "Abmaj7"] * 4, 2, 52, [[0, 3000], [128, 3000]]),
+    (137, 153, ["Cm9", "Fm9"] * 2, 4, 60, [[0, 2500], [64, 2500]]),
+]
+SIDECHAIN = ["Pad", "Theme", "Stab", "Stab iv", "Organ"]      # duck to the kick
+# buses: Live's API makes no group tracks, so tracks route into audio tracks that monitor
+# in; each family is glued by one compressor and shares one short room (return C)
+BUSES = {"Drum Bus": ["Kick", "Hats", "Tops 1", "Tops 2", "Perc Tops", "Clap", "Ghost", "Crash", "Impact"],
+         "Music Bus": ["Stab", "Stab iv", "Organ", "Pad", "Theme"],
+         "Vox Bus": ["Vox Chops", "Vox Call"]}
+RETURNS = ["Reverb", "Delay", "Room"]        # Live shows them as A-Reverb, B-Delay, C-Room
+VOX_CALLS = [44, 48, 71, 79, 88, 104, 116, 156, 164]   # the voice answers the theme (bar 7 of its phrase)
 STAB_IV = [(87, 89), (135, 137)]               # Cm -> Fm turnaround; the Cm stab is cut there
 KICK_DROPS = [45, 85]                          # the kick clip that loses its last beat
 TOPS_SWUNG = ["Tops 1", "Tops 2", "Perc Tops"]
-PAD_RANGES = [(49, 57, "Cm9"), (89, 105, None), (137, 153, "Cm9")]
-MAIN_BREAK_CHORDS = ["Cm9", "Cm9", "Abmaj9", "Abmaj9"] * 2   # i9 - VImaj9, 4 bars each (refs: 0.3-0.8 changes / 8 bars)
-# root position on purpose: with bass and kick out, the pad's lowest note is the bass.
-# The two chords share C Eb G Bb; only the root moves (C3 -> Ab2) and D4 leaves.
-VOICINGS = {"Cm9": [48, 51, 55, 58, 62], "Abmaj9": [44, 48, 51, 55, 58]}
 # the open hat, crash, snare ghosts and risers of v6 put 2-6 kHz at 4.5 % (references
 # 1.6-3.2) and the riser + FX filled the four bars before the drop (drop jump 1.7 LU):
 # transitions sit under the drums, not on top of them
 LEVELS = {"Kick": -8.0, "Clap": -6.0, "Hats": -19.5, "Ghost": -16.0, "Tops 1": -13.0,
           "Tops 2": -13.0, "Perc Tops": -5.5, "Bass": -10.5, "Stab": -4.0, "Stab iv": -4.0,
-          "Organ": -5.0, "Vox Chops": -6.0, "Vox Call": -6.0, "FX 1": -18.0, "FX 2": -14.0,
-          "Riser": -22.0, "Crash": -18.0, "Pad": -10.0}
+          "Organ": -8.0, "Vox Chops": -6.0, "Vox Call": -6.0, "FX 1": -18.0, "FX 2": -14.0,
+          "Riser": -20.0, "Crash": -18.0, "Pad": -14.0, "Theme": -9.0, "Impact": -12.0,
+          "Drum Bus": 0.0, "Music Bus": 0.0, "Vox Bus": 0.0}
 PANS = {"Hats": -0.1, "Tops 1": -0.25, "Tops 2": 0.25, "Perc Tops": 0.3, "Stab": 0.1,
-        "Stab iv": 0.1, "Organ": -0.1, "Ghost": 0.15}
-SENDS = {  # track: [A-Reverb dB, B-Delay dB]
-    "Pad": [-14.0, None], "Stab": [-16.0, -22.0], "Stab iv": [-16.0, -22.0], "Organ": [-18.0, None],
-    "Vox Chops": [-16.0, -14.0], "Vox Call": [-14.0, -10.0], "Hats": [-26.0, None],
-    "Clap": [-18.0, None], "Ghost": [-18.0, -20.0], "Crash": [-14.0, None]}
+        "Stab iv": 0.1, "Organ": -0.1, "Ghost": 0.15, "Theme": -0.15}
+SENDS = {  # track: [A-Reverb (hall) dB, B-Delay dB, C-Room (short, glues the drums) dB]
+    "Pad": [-14.0, None, None], "Stab": [-18.0, -22.0, -14.0], "Stab iv": [-18.0, -22.0, -14.0],
+    "Organ": [-20.0, None, -16.0], "Vox Chops": [-16.0, -14.0, None], "Vox Call": [-14.0, -10.0, None],
+    "Hats": [None, None, -22.0], "Clap": [None, None, -12.0], "Ghost": [None, -20.0, -14.0],
+    "Perc Tops": [None, None, -16.0], "Tops 1": [None, None, -20.0], "Tops 2": [None, None, -20.0],
+    "Crash": [-14.0, None, None], "Theme": [-14.0, -10.0, None]}
 # v2's Drum Buss boom and bass saturation, made moot by the new kick; Dynamic Tube did not
 # change this bass (its 2nd+3rd harmonics already sit 8-19 dB over the fundamental)
 REMOVE = [("Kick", "Drum Buss"), ("Bass", "Saturator"), ("Bass", "Dynamic Tube")]
@@ -133,11 +181,30 @@ DEVICES = [
     # never above a root: a 34 Hz cut under the C1 bass and a 200 Hz one under the C3 pad
     # made the ear hear G minor (G1 took over the low end)
     ("Bass", "EQ Eight", {"1 Filter Type A": "High Pass 12dB", "1 Frequency A": "25.0 Hz"}),
-    ("Organ", "EQ Eight", {"1 Filter Type A": "High Pass 12dB", "1 Frequency A": "100 Hz"}),
-    ("Hats", "EQ Eight", {"7 Filter On A": "Off"}),     # the new hats are dark already
-    ("Tops 1", "EQ Eight", {"7 Filter On A": "On", "7 Filter Type A": "High Shelf",
+    # a clean mix: below 180 Hz belongs to kick and bass; the stab's and organ's 300 Hz
+    # mud goes; the hats own nothing under 400 Hz
+    ("Organ", "EQ Eight", {"1 Filter Type A": "High Pass 12dB", "1 Frequency A": "200 Hz",
+                           "2 Filter On A": "On", "2 Filter Type A": "Bell", "2 Frequency A": "350 Hz",
+                           "2 Gain A": "-3.0 dB", "2 Q A": "1.0"}),
+    ("Stab", "EQ Eight", {"1 Filter Type A": "High Pass 12dB", "1 Frequency A": "160 Hz",
+                          "2 Filter On A": "On", "2 Filter Type A": "Bell", "2 Frequency A": "300 Hz",
+                          "2 Gain A": "-3.0 dB", "2 Q A": "1.0"}),
+    ("Stab iv", "EQ Eight", {"1 Filter Type A": "High Pass 12dB", "1 Frequency A": "160 Hz"}),
+    ("Theme", "EQ Eight", {"1 Filter Type A": "High Pass 12dB", "1 Frequency A": "220 Hz"}),
+    ("Vox Chops", "EQ Eight", {"1 Filter Type A": "High Pass 12dB", "1 Frequency A": "180 Hz"}),
+    ("Vox Call", "EQ Eight", {"1 Filter Type A": "High Pass 12dB", "1 Frequency A": "180 Hz"}),
+    ("Clap", "EQ Eight", {"1 Filter Type A": "High Pass 12dB", "1 Frequency A": "150 Hz"}),
+    ("Ghost", "EQ Eight", {"1 Filter Type A": "High Pass 12dB", "1 Frequency A": "200 Hz"}),
+    ("Perc Tops", "EQ Eight", {"1 Filter Type A": "High Pass 12dB", "1 Frequency A": "200 Hz"}),
+    ("Crash", "EQ Eight", {"1 Filter Type A": "High Pass 12dB", "1 Frequency A": "300 Hz"}),
+    ("Riser", "EQ Eight", {"1 Filter Type A": "High Pass 12dB", "1 Frequency A": "300 Hz"}),
+    ("Hats", "EQ Eight", {"1 Filter Type A": "High Pass 12dB", "1 Frequency A": "400 Hz",
+                          "7 Filter On A": "Off"}),     # the new hats are dark already
+    ("Tops 1", "EQ Eight", {"1 Filter Type A": "High Pass 12dB", "1 Frequency A": "250 Hz",
+                            "7 Filter On A": "On", "7 Filter Type A": "High Shelf",
                             "7 Frequency A": "10.0 kHz", "7 Gain A": "-4.0 dB"}),
-    ("Tops 2", "EQ Eight", {"7 Filter On A": "On", "7 Filter Type A": "High Shelf",
+    ("Tops 2", "EQ Eight", {"1 Filter Type A": "High Pass 12dB", "1 Frequency A": "250 Hz",
+                            "7 Filter On A": "On", "7 Filter Type A": "High Shelf",
                             "7 Frequency A": "10.0 kHz", "7 Gain A": "-4.0 dB"}),
     # crisp: sharper attacks, not more top end (hat level and high-mid already sit at the
     # references' upper edge)
@@ -148,10 +215,28 @@ DEVICES = [
     ("Pad", "Utility", {"Stereo Width": "45 %", "Bass Mono": "On", "Bass Freq": "120 Hz"}),
     ("Organ", "Utility", {"Bass Mono": "On", "Bass Freq": "120 Hz"}),
     ("Pad", "EQ Eight", {"1 Filter On A": "On", "1 Filter Type A": "High Pass 12dB",
-                         "1 Frequency A": "90 Hz", "7 Filter On A": "Off"}),   # keeps Ab2
-    ("return:B-Delay", "Delay", {"Ping Pong": "On"}),
+                         "1 Frequency A": "180 Hz", "7 Filter On A": "Off"}),  # scenery sits above the bass
+    ("return:A-Reverb", "Reverb", {"Decay Time": "3.5 s", "Predelay": "15 ms"}),
+    ("return:C-Room", "Hybrid Reverb", {"Algo Type": "Quartz", "Decay": "0.6 s", "Size": "30 %",
+                                        "Predelay": "5 ms", "Dry/Wet": "100 %"}),   # a short room, shared
+    ("Drum Bus", "Glue Compressor", {"Threshold": "-10 dB", "Ratio": "4", "Attack": "3",
+                                     "Release": ".2", "Output": "2.0 dB"}),      # ms, ratio, s
+    ("Music Bus", "Glue Compressor", {"Threshold": "-14 dB", "Ratio": "2", "Attack": "30",
+                                      "Release": ".4", "Output": "1.0 dB"}),
+    ("Music Bus", "EQ Eight", {"1 Filter Type A": "High Pass 12dB", "1 Frequency A": "150 Hz"}),
+    ("Vox Bus", "Compressor", {"Threshold": "-18 dB", "Ratio": "3.00 : 1", "Attack": "5.00 ms",
+                               "Release": "60 ms", "Makeup": "On"}),
+    ("return:B-Delay", "Delay", {"Ping Pong": "On", "Feedback": "35 %", "Filter On": "On",
+                                 "Filter Freq": "1.2 kHz", "Filter Width": "6.0"}),
+    ("Theme", "Auto Filter", {"Filter Type": "Low-pass", "Resonance": "12 %"}),
+    ("Pad", "Auto Filter", {"Filter Type": "Low-pass", "Resonance": "10 %"}),
+    ("Stab", "Auto Filter", {"Filter Type": "Low-pass", "Resonance": "8 %", "Frequency": "20.0 kHz"}),
     ("master", "Limiter", {"Input Gain": "10.4 dB"}),
 ]
+
+
+COMPRESSOR = {"Threshold": "-22 dB", "Ratio": "4.00 : 1", "Attack": "1.00 ms", "Release": "90 ms",
+              "Auto Release On/Off": "Off", "Makeup": "Off", "S/C On": "On", "S/C EQ On": "Off"}
 
 
 def log(*a):
@@ -164,7 +249,10 @@ def _is_option(v):
 
 def setp(track, device, param, v):
     args = {"track": track, "device": device, "param": param}
-    args["item" if _is_option(v) else "display"] = v
+    if isinstance(v, str) and v.startswith("item:"):
+        args["item"] = v[5:]
+    else:
+        args["item" if _is_option(v) else "display"] = v
     return C("set_param", args)
 
 
@@ -206,6 +294,7 @@ def make_loops():
                                    loops.from_template({"default": SNARE_SHOT}, clap_t, BPM,
                                                        steps=[7, 10, 13, 15], seed=3))
     files["Riser"] = loops.stretch_to(RISER, out("AM_Rise_4bars_123bpm.wav"), BPM, 4)
+    files["Impact:hit"] = IMPACT
     files["Crash:hit"] = CRASH
     files["Crash:rev"] = CRASH_REV
     return files
@@ -229,10 +318,13 @@ def sync(track, want):
     have = {c["start"] for c in clips if c["start"] in want and _same_file(c.get("file", ""), want[c["start"]][0])}
     for beat in sorted({c["start"] for c in clips} - have, reverse=True):
         C("delete_clip", {"track": track, "clip": {"at": beat}})
+    for c in clips:                                    # a kept clip that must now end earlier
+        if c["start"] in have and "length" in want[c["start"]][1] and c["end"] > c["start"] + want[c["start"]][1]["length"] + 1e-3:
+            C("trim_clip", {"track": track, "clip": {"at": c["start"]}, "end_beat": c["start"] + want[c["start"]][1]["length"]})
     for beat in sorted(set(want) - have):
         path, o = want[beat]
         args = {"track": track, "path": path, "beat": beat, "warp": bool(o.get("warp")), "name": track}
-        for k in ("warp_mode", "detune", "pitch"):
+        for k in ("warp_mode", "detune", "pitch", "envelopes"):
             if k in o:
                 args[k] = o[k]
         C("create_audio_clip", args)
@@ -243,12 +335,26 @@ def sync(track, want):
                     fix[k] = o[k]
             C("set_clip", fix)
             a, b = o.get("loop", (0.0, LOOP_BEATS))
-            C("set_warp_markers", {"track": track, "clip": {"at": beat}, "beats": LOOP_BEATS})
+            C("set_warp_markers", {"track": track, "clip": {"at": beat}, "beats": o.get("beats", LOOP_BEATS)})
             C("set_clip", {"track": track, "clip": {"at": beat}, "end_marker": b})
             C("set_clip", {"track": track, "clip": {"at": beat}, "looping": True, "loop_start": a, "loop_end": b})
         if "length" in o:
             C("trim_clip", {"track": track, "clip": {"at": beat}, "end_beat": beat + o["length"]})
     return len(set(want) - have), len({c["start"] for c in clips} - have)
+
+
+# automation with a purpose, as clip envelopes (Live's API writes no arrangement lanes):
+# (track, param, device, unit) -> points per 4-bar clip at bar X, default when None
+AUTOMATION = {
+    # the stab's low-pass closes over the 8 bars into the main break: tension by taking away
+    "Stab": ("Frequency", "Auto Filter", "display", lambda bar: {
+        33: [[0, 1200], [16, 1200]], 41: [[0, 1500], [16, 3000]], 45: [[0, 3000], [16, 9000]],
+        81: [[0, 20000], [16, 4000]], 85: [[0, 4000], [16, 600]]}.get(bar, [[0, 20000], [16, 20000]])),
+    # the vocal's last phrase of every loop throws into the delay
+    "Vox Chops": ("send:1", None, "db", lambda bar: [[0, -14], [12, -14], [12.01, -5], [16, -5]]),
+    # the bass leans in for the drop
+    "Bass": ("volume", None, "db", lambda bar: [[0, -8.5], [16, -8.5]] if 105 <= bar < 137 else [[0, -10.5], [16, -10.5]]),
+}
 
 
 def loop_wants(files, track, ranges):
@@ -259,8 +365,17 @@ def loop_wants(files, track, ranges):
         opts = {"warp": True, "warp_mode": "complex_pro", "detune": VOX_DETUNE} if track == "Vox Chops" else {}
         if track in TOPS_SWUNG:
             opts = {"warp": True, "warp_mode": "beats"}
-        for bar in range(a, b, 4):
-            want[(bar - 1) * 4.0] = (path_for(files, track, variant), opts)
+        step = 4
+        if track == "Roll":
+            step = 8                                            # an 8-bar file
+        for bar in range(a, b, step):
+            o = dict(opts)
+            if bar + step > b:                                  # a range ending mid-loop: a gap
+                o["length"] = (b - bar) * 4.0
+            if track in AUTOMATION:
+                param, device, unit, pts = AUTOMATION[track]
+                o["envelopes"] = [{"param": param, "device": device, "points": pts(bar), "unit": unit}]
+            want[(bar - 1) * 4.0] = (path_for(files, track, variant), o)
     return want
 
 
@@ -281,11 +396,15 @@ def trims():
         c = C("set_clip", {"track": "Kick", "clip": {"at": beat}})
         if c["end"] > beat + 15.0:
             C("trim_clip", {"track": "Kick", "clip": {"at": beat}, "end_beat": beat + 15.0})
-    for a, b in STAB_IV:
-        beat = (a - (a - 1) % 4 - 1) * 4.0                            # the loop that spans a
-        c = C("set_clip", {"track": "Stab", "clip": {"at": beat}})
-        if c["end"] > (a - 1) * 4.0:
-            C("trim_clip", {"track": "Stab", "clip": {"at": beat}, "end_bar": a})
+    stab = C("get_track", {"track": "Stab", "max_clips": 500})["clips"]
+    for a, b in STAB_IV:                                              # the Cm stab makes room
+        for c in stab:
+            if c["start"] < (a - 1) * 4.0 < c["end"]:
+                C("trim_clip", {"track": "Stab", "clip": {"at": c["start"]}, "end_bar": a})
+    for t in (PREDROP_TRACKS if PREDROP_CUT else []):                 # two beats of air
+        for c in C("get_track", {"track": t, "max_clips": 500})["clips"]:
+            if c["start"] < PREDROP_CUT < c["end"]:
+                C("trim_clip", {"track": t, "clip": {"at": c["start"]}, "end_beat": PREDROP_CUT})
 
 
 def pin_warps():
@@ -305,18 +424,55 @@ def swing_tops():
         C("apply_groove", {"track": t, "groove": TOPS_GROOVE, "start_bar": 1, "end_bar": END})
 
 
+def _env(points, send_a=None):
+    env = [{"param": "Frequency", "device": "Auto Filter", "points": points, "unit": "display"}]
+    if send_a:
+        env.append({"param": "send:0", "points": send_a, "unit": "db"})
+    return env
+
+
 def pad_clips():
+    """The pad's chords, voice-led (common tones held, changes on the 'and' of 4), with
+    its low-pass drawn into each clip; the main break ends two beats early (the cut)."""
     C("delete_clips_in_range", {"track": "Pad", "start_bar": 1, "end_bar": END})
-    for a, b, chord in PAD_RANGES:
-        seq = [chord] if chord else MAIN_BREAK_CHORDS
-        span = (b - a) * 4.0 / len(seq)
-        notes = []
-        for i, ch in enumerate(seq):
-            start = i * span - (0.5 if i else 0.0)             # changes land on the "and" of 4
-            dur = span - (0.5 if i < len(seq) - 1 else 0.0) + (0.5 if i else 0.0)
-            notes += [[p, start, dur * 0.98, 84] for p in VOICINGS[ch]]
-        C("create_midi_clip", {"track": "Pad", "bar": a, "length": (b - a) * 4, "notes": notes,
-                               "name": chord or "Cm9 - Abmaj9"})
+    for a, b, chords, per, vel, pts in PAD_PLAN:
+        notes, _ = MH.progression_notes(chords, per, 53, 77, 4, 0.5, vel)
+        length = (b - a) * 4.0
+        if b == 105 and PREDROP_CUT:
+            notes = [[p, st, min(d, PREDROP_CUT - (a - 1) * 4.0 - st), v] for p, st, d, v in notes
+                     if st < PREDROP_CUT - (a - 1) * 4.0]
+        send_a = [[0, -14], [length, -6]] if b in (57, 105) else [[0, -14], [length, -14]]   # breaks: the room grows
+        C("create_midi_clip", {"track": "Pad", "bar": a, "length": length, "notes": notes,
+                               "name": " ".join(dict.fromkeys(chords)), "envelopes": _env(pts, send_a)})
+
+
+def theme_clips():
+    """One motif for the whole track: the call asks (ends on the 2nd degree), the response
+    answers (ends on the tonic). Where it plays, how open its filter is and how hard it is
+    hit change per section; the build's two statements open the filter over 8 bars."""
+    C("delete_clips_in_range", {"track": "Theme", "start_bar": 1, "end_bar": END})
+    m = melody.call_and_response("C", "minor_hexatonic", THEME_CHORDS, 2, (62, 79), (55, 74), THEME_SEED)
+    m = {k: MH.swing(v, THEME_SWING) for k, v in m.items() if k in ("call", "response")}   # same feel as the hats
+    for bar, (call, resp, hz, scale) in sorted(THEME_PLAN.items()):
+        for part, on, offset in (("call", call, 0), ("response", resp, 8)):
+            if not on:
+                continue
+            notes = [[p, st, d, int(v * scale)] for p, st, d, v in m[part]]
+            if bar in THEME_OCTAVE_BARS:
+                notes += [[p - 12, st, d, int(v * 0.6)] for p, st, d, v in notes]
+            if bar in THEME_UP_BARS:
+                notes = [[p + 12, st, d, v] for p, st, d, v in notes]
+            start = (bar - 1) * 4.0 + offset
+            if hz is None:                                        # build: 97 -> 105, opening
+                f0 = 2000 + (start - 384.0) / 32.0 * 8000
+                pts = [[0, f0], [8, f0 + 2000]]
+            else:
+                pts = [[0, hz], [8, hz]]
+            env = _env(pts)
+            throw = -4 if bar == 103 else -10                      # the last question echoes into the drop
+            env.append({"param": "send:1", "points": [[0, throw], [8, throw]], "unit": "db"})
+            C("create_midi_clip", {"track": "Theme", "beat": start, "length": 8.0, "notes": notes,
+                                   "name": "%s %s" % (part, bar), "envelopes": env})
 
 
 def mix():
@@ -334,22 +490,46 @@ def mix():
         for p, v in params.items():
             got = setp(track, device, p, v)
             log("  %-15s %-10s %-16s %s" % (track, device, p, got.get("display")))
+    for track in SIDECHAIN:
+        ensure_device(track, "Compressor")
+        for p, v in COMPRESSOR.items():
+            setp(track, "Compressor", p, v)
+        r = C("set_device_input", {"track": track, "device": "Compressor", "source": "Kick", "channel": "Post Mixer"})
+        log("  %-15s sidechain <- %s %s" % (track, r["type"], r["channel"]))
 
 
 def main():
     C("set_tempo", {"bpm": BPM})
-    order = list(PLAN) + list(HITS_PLAN) + ["Vox Call", "Stab iv", "Pad"]
-    before = [t["name"] for t in C("get_song")["tracks"]]
+    order = list(PLAN) + list(HITS_PLAN) + ["Vox Call", "Stab iv", "Pad", "Theme"] + list(BUSES)
+    song = C("get_song")
+    before = [t["name"] for t in song["tracks"]]
     for name in order:
         if name not in before:
-            C("create_track", {"kind": "midi" if name == "Pad" else "audio", "name": name})
+            C("create_track", {"kind": "midi" if name in ("Pad", "Theme") else "audio", "name": name})
+    have_returns = [r["name"] for r in song.get("returns", [])]
+    for name in RETURNS:
+        if not any(r.endswith("-" + name) for r in have_returns):
+            C("create_return", {"name": name})
+    for bus, members in BUSES.items():
+        C("set_track_input", {"track": bus, "source": "No Input"})   # never the interface's mic
+        C("set_track", {"track": bus, "monitoring": "in"})
+        for m in members:
+            C("set_track_output", {"track": m, "dest": bus})
     for name in reversed(before):                      # the blank set's empty default tracks
         if name in order:
             continue                                   # (a set must keep at least one track,
         info = C("get_track", {"track": name})         #  so ours are created first)
         if not info.get("clips") and not info.get("devices"):
             C("delete_track", {"track": name})
+    for name in REMOVE_TRACKS:
+        if name in before:
+            C("delete_track", {"track": name})
     files = make_loops()
+    for name, (param, device, unit, pts) in AUTOMATION.items():
+        if device:                          # a clip envelope needs its device before the clip
+            ensure_device(name, device)
+        if name in before:                  # sync keeps matching clips: envelopes need fresh ones
+            C("delete_clips_in_range", {"track": name, "start_bar": 1, "end_bar": END})
     for name, ranges in PLAN.items():
         log("%-10s +%d -%d  %s" % ((name,) + sync(name, loop_wants(files, name, ranges)) + (ranges,)))
     for name, hits in HITS_PLAN.items():
@@ -367,8 +547,11 @@ def main():
     swing_tops()
     if "Celestial Pad" not in [d["name"] for d in C("get_track", {"track": "Pad"})["devices"]]:
         C("load_device", {"track": "Pad", "path": "sounds/Pad/Celestial Pad.adg"})
+    if not C("get_track", {"track": "Theme", "clips": False})["devices"]:
+        C("load_device", {"track": "Theme", "path": THEME_INSTRUMENT})
+    mix()                                   # devices first: clip envelopes need Auto Filter
     pad_clips()
-    mix()
+    theme_clips()
     song = C("get_song")
     if [(c["name"], c["bar"]) for c in song["cues"]] != [(n, float(b)) for n, b in SECTIONS]:
         if C("transport_state")["is_playing"]:          # Live refuses locator edits while playing

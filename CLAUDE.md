@@ -61,6 +61,12 @@ Rules that cost real time to learn:
 - A kick's low band rises twice (click, then the pitch sweep landing ~60 ms later): the
   validation grid takes the earlier hump, or a 64 ms late first beat merges the intro into
   the groove and shifts every beat-relative measure.
+- Buses: Live's API makes no group tracks; route tracks into an audio track
+  (`set_track_output`) that monitors "in". A fresh audio track's input is Ext. In (the
+  interface's mic): set it to "No Input" first (`set_track_input`) or monitoring "in"
+  feeds the room back into the mix. Returns get Live's letter prefix: create "Room" and
+  address it as "return:C-Room". A device's sidechain is `set_device_input` (Compressor,
+  Gate, Auto Filter).
 - A one-bar slice of a loop in the arrangement: `set_clip(looping=True, loop_start,
   loop_end)` then `trim_clip(end_beat)`; markers alone keep the clip's length.
 - One check for everything: `scripts/validate_render.py` / `validate_against_genre`.
