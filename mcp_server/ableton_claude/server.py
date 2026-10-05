@@ -4,11 +4,20 @@ import time
 
 from mcp.server.fastmcp import FastMCP
 
-from . import analysis, client, knowledge, library, loops, mixing, references, tension, timbre, validate
+from . import analysis, client, journal, knowledge, library, loops, mixing, references, tension, timbre, validate
 from .music import groove, harmony, melody, samples, theory
 
 INSTRUCTIONS = """\
 Drives Ableton Live through the ClaudeBridge Remote Script (127.0.0.1:9878).
+
+Before you change anything in a project, call `producer_brief` and work by it: inspect,
+diagnose, prioritize, modify in small groups, verify by render, compare, repeat.
+Every change is journaled: `change_log` lists it, `revert_changes` restores what it
+replaced (keep or revert after each render), `live_undo` is Live's own undo.
+References for the track being made: `study_references(name, paths|folder|from_live)`
+studies ~5 of them (measured and heard) in the background; `study_status` returns a brief
+(what they share and why, where they disagree, a section plan). The study's name then
+works as `genre` in every genre tool. Propose ideas from it and ask before changing the set.
 
 Start with `ableton_status`. Use `ableton_command` for any bridge command and
 `ableton_batch` to run many in one Live tick (much faster for building arrangements).
@@ -112,6 +121,32 @@ A good track, step by step:
 
 mcp = FastMCP("ableton-claude", instructions=INSTRUCTIONS)
 
+BRIEFS = os.path.join(os.path.dirname(__file__), "briefs")
+
+
+def _brief(name: str) -> str:
+    with open(os.path.join(BRIEFS, name + ".md"), encoding="utf-8") as f:
+        return f.read()
+
+
+@mcp.tool()
+def producer_brief() -> str:
+    """The working brief for every production or mix task: how to inspect, diagnose,
+    prioritize, change and verify a project, and the lessons learned on real tracks.
+    Read it before changing anything."""
+    return _brief("producer") + "\n\n" + _brief("lessons")
+
+
+@mcp.prompt(name="produce", description="Take the open Live project to a club-ready release, by the producer brief.")
+def produce_prompt(goal: str = "") -> str:
+    task = goal or "Transform the open project into a professional, club-ready production."
+    return producer_brief() + "\n\n## Task\n\n" + task
+
+
+@mcp.resource("brief://producer", mime_type="text/markdown")
+def producer_resource() -> str:
+    return producer_brief()
+
 
 @mcp.tool()
 def ableton_status() -> dict:
@@ -120,18 +155,84 @@ def ableton_status() -> dict:
     return client.call("get_song")
 
 
+def _before(cmd, args):
+    """State the bridge does not report itself, read before the change."""
+    if cmd == "add_notes" and args.get("replace"):
+        try:
+            return {"notes": client.call("get_notes", {"track": args["track"],
+                                                       "clip": args["clip"]})}
+        except client.BridgeError:
+            return None
+    return None
+
+
+def _journaled(cmd, args=None):
+    """client.call that journals the change (see journal.py) so it can be reverted."""
+    args = args or {}
+    before = _before(cmd, args)
+    result = client.call(cmd, args)
+    rid = journal.record(cmd, args, result, before)
+    if rid is not None and isinstance(result, dict):
+        result = dict(result, change_id=rid)
+    return result
+
+
 @mcp.tool()
 def ableton_command(cmd: str, args: dict | None = None) -> object:
-    """Run one ClaudeBridge command. See the server instructions for the command list."""
-    return client.call(cmd, args or {})
+    """Run one ClaudeBridge command. See the server instructions for the command list.
+    Changes are journaled: the result carries a change_id for revert_changes."""
+    return _journaled(cmd, args)
 
 
 @mcp.tool()
 def ableton_batch(commands: list[dict]) -> list:
     """Run many commands in one Live main-thread tick.
     commands: [{"cmd": "create_midi_clip", "args": {...}}, ...]. Each result has ok/result
-    or ok/error; a failure does not stop the rest."""
-    return client.batch(commands)
+    or ok/error; a failure does not stop the rest. Changes are journaled."""
+    befores = [_before(c.get("cmd"), c.get("args") or {}) for c in commands]
+    out = client.batch(commands)
+    for c, b, r in zip(commands, befores, out):
+        if r.get("ok"):
+            rid = journal.record(c.get("cmd"), c.get("args") or {}, r.get("result"), b)
+            if rid is not None:
+                r["change_id"] = rid
+    return out
+
+
+@mcp.tool()
+def change_log(last: int = 20) -> list:
+    """The latest changes sent to Live in this session: command, arguments, the values they
+    replaced, and whether revert_changes can put them back."""
+    return journal.recent(last)
+
+
+@mcp.tool()
+def revert_changes(ids: list[int] | None = None, last: int = 1) -> dict:
+    """Put back what the given changes (change_id) or the last N changes replaced, newest
+    first. Deletes and range edits cannot be reverted here: use live_undo or the user's
+    saved copy. Re-render afterwards to confirm the revert (the VERIFY step)."""
+    done, skipped = [], []
+    for rec in journal.find(ids, last):
+        inv = journal.inverse(rec)
+        if inv is None:
+            skipped.append({"id": rec["id"], "cmd": rec["cmd"], "why": "not reversible here"})
+            continue
+        try:
+            for cmd, args in inv:
+                client.call(cmd, args)
+        except client.BridgeError as e:
+            skipped.append({"id": rec["id"], "cmd": rec["cmd"], "why": str(e).split("\n")[0]})
+            continue
+        journal.mark_reverted(rec)
+        done.append({"id": rec["id"], "cmd": rec["cmd"], "restored": rec["before"]})
+    return {"reverted": done, "skipped": skipped}
+
+
+@mcp.tool()
+def live_undo(steps: int = 1) -> dict:
+    """Live's own undo (Cmd+Z), at most 50 steps. Live groups API changes into undo steps
+    its own way, so prefer revert_changes and check the state after this."""
+    return client.call("undo", {"steps": steps})
 
 
 @mcp.tool()
@@ -303,7 +404,7 @@ def mix_toward_genre(path: str, genre: str, apply: bool = False,
     master toward it: an EQ Eight before the bus compressor with at most four broad,
     capped bands, limiter drive toward the genre's median loudness (never below its
     lower-quartile crest), and the limiter ceiling. Re-render to check the result."""
-    return mixing.toward_profile(path, genre, apply=apply, ceiling=ceiling_db)
+    return mixing.toward_profile(path, genre, apply=apply, ceiling=ceiling_db, call=_journaled)
 
 
 @mcp.tool()
@@ -427,6 +528,92 @@ def listen(path: str, bpm: float | None = None) -> dict:
     return _slim(EL.listen(path, bpm_hint=bpm))
 
 
+_STUDIES = {}
+
+
+def _live_reference_files():
+    """Audio files of the clips on the set's reference tracks (name contains "REF")."""
+    files = []
+    for t in client.call("get_song")["tracks"]:
+        if "REF" not in t["name"].upper() or t["kind"] != "audio":
+            continue
+        for c in client.call("get_track", {"track": t["i"]}).get("clips", []):
+            if c.get("file") and c["file"] not in files:
+                files.append(c["file"])
+    return files
+
+
+@mcp.tool()
+def study_references(name: str, paths: list[str] | None = None, folder: str | None = None,
+                     from_live: bool = False) -> dict:
+    """Study a handful of reference tracks (about 5) for the track being made: measured
+    and heard, then saved as a profile named `name` that every genre tool accepts, plus a
+    study brief (study_status / reference_study). Give file paths, a folder, or
+    from_live=True for the audio on the set's tracks named "REF". Files dropped in the
+    study's folder (returned) are included. Runs in the background, a few minutes for 5
+    tracks; do not start a render meanwhile."""
+    from . import study
+    job = _STUDIES.get(name)
+    if job and job["state"] == "running":
+        return {"state": "running", "log": job["log"][-5:]}
+    try:
+        if client.call("record_status").get("state") in ("recording", "finalizing"):
+            return {"error": "a render is running: study after it (renders are real time)"}
+    except client.BridgeError:
+        pass  # Live is not needed to study files
+    if from_live:
+        paths = list(paths or []) + _live_reference_files()
+    folder_ = study.collect(name, paths, folder)
+    job = {"state": "running", "log": [], "started": time.time(), "folder": folder_}
+    _STUDIES[name] = job
+
+    def work():
+        try:
+            job["result"] = study.run(name, folder_, log=job["log"].append)
+            job["state"] = "done"
+        except Exception as e:
+            job["state"], job["error"] = "failed", "%s: %s" % (type(e).__name__, e)
+
+    import threading
+    threading.Thread(target=work, name="study:" + name, daemon=True).start()
+    return {"state": "running", "folder": folder_,
+            "files": [os.path.basename(p) for p in study.audio_files(folder_)],
+            "next": "call study_status('%s') every minute or so" % name}
+
+
+@mcp.tool()
+def study_status(name: str, wait_s: float = 50) -> dict:
+    """Progress of study_references; waits up to wait_s for it to finish. When done,
+    returns the study brief."""
+    from . import study
+    job = _STUDIES.get(name)
+    if not job:
+        brief = study.load_brief(name)
+        return {"state": "done", "study": brief} if brief else {"error": "no study %r" % name}
+    end = time.time() + max(0.0, min(wait_s, 55.0))
+    while job["state"] == "running" and time.time() < end:
+        time.sleep(1.0)
+    out = {"state": job["state"], "elapsed_s": round(time.time() - job["started"]),
+           "log": job["log"][-6:]}
+    if job["state"] == "done":
+        out["study"] = job["result"]
+    if job["state"] == "failed":
+        out["error"] = job["error"]
+    return out
+
+
+@mcp.tool()
+def reference_study(name: str | None = None) -> object:
+    """A finished study brief by name; without a name, the list of studies."""
+    from . import study
+    if name:
+        return study.load_brief(name) or {"error": "no study %r" % name}
+    if not os.path.isdir(study.STUDIES_DIR):
+        return []
+    return sorted(d for d in os.listdir(study.STUDIES_DIR)
+                  if os.path.exists(os.path.join(study.STUDIES_DIR, d, "study.json")))
+
+
 @mcp.tool()
 def genre_principles(genre: str) -> dict:
     """What a genre's references share, measured by ear, each habit with the reason it
@@ -535,7 +722,14 @@ def library_midi(path: str, to_key: str | None = None) -> list:
 
 
 def main():
-    mcp.run()
+    # stdio for desktop clients (Claude, Cursor, LM Studio); --http serves Streamable HTTP
+    # on 127.0.0.1:8000/mcp for clients that connect by URL (ChatGPT, through a tunnel).
+    import sys
+    if "--http" in sys.argv:
+        mcp.settings.port = int(os.environ.get("ABLETON_MCP_PORT", "8000"))
+        mcp.run(transport="streamable-http")
+    else:
+        mcp.run()
 
 
 if __name__ == "__main__":

@@ -12,7 +12,7 @@ import types
 
 import Live
 
-VERSION = "0.7.0"
+VERSION = "0.8.0"
 
 COMMANDS = {}
 DEFERRED_TIMEOUT_S = 30.0
@@ -525,8 +525,9 @@ def get_notes(ctx, track, clip):
 
 @command
 def set_tempo(ctx, bpm):
+    before = {"bpm": ctx.song.tempo}
     ctx.song.tempo = float(bpm)
-    return {"tempo": ctx.song.tempo}
+    return {"tempo": ctx.song.tempo, "before": before}
 
 
 @command
@@ -574,6 +575,21 @@ def delete_track(ctx, track):
 def set_track(ctx, track, name=None, volume_db=None, pan=None, mute=None, solo=None,
               arm=None, monitoring=None, color_index=None):
     t = _track(ctx, track)
+    m = t.mixer_device
+    before = {}
+    for key, arg, read in (("name", name, lambda: t.name),
+                           ("volume_raw", volume_db, lambda: m.volume.value),
+                           ("pan_raw", pan, lambda: m.panning.value),
+                           ("mute", mute, lambda: t.mute), ("solo", solo, lambda: t.solo),
+                           ("arm", arm, lambda: t.arm if t.can_be_armed else None),
+                           ("monitoring", monitoring,
+                            lambda: ["in", "auto", "off"][t.current_monitoring_state]),
+                           ("color_index", color_index, lambda: t.color_index)):
+        if arg is not None:
+            try:
+                before[key] = read()
+            except Exception:
+                pass
     if name is not None:
         t.name = name
     if volume_db is not None:
@@ -591,14 +607,16 @@ def set_track(ctx, track, name=None, volume_db=None, pan=None, mute=None, solo=N
     if color_index is not None:
         t.color_index = int(color_index)
     return {"name": t.name, "vol_db": _db_of(t.mixer_device.volume),
-            "pan": t.mixer_device.panning.value, "mute": t.mute}
+            "pan": t.mixer_device.panning.value, "mute": t.mute, "before": before}
 
 
 @command
 def set_send(ctx, track, send, db):
     t = _track(ctx, track)
-    _set_db(t.mixer_device.sends[int(send)], float(db))
-    return {"send": send, "db": _db_of(t.mixer_device.sends[int(send)])}
+    p = t.mixer_device.sends[int(send)]
+    before = {"raw": p.value}
+    _set_db(p, float(db))
+    return {"send": send, "db": _db_of(p), "before": before}
 
 
 # ======================================================================
@@ -804,6 +822,18 @@ def set_clip(ctx, track, clip, name=None, muted=None, pitch=None, gain_db=None,
              looping=None, loop_start=None, loop_end=None, warping=None,
              start_marker=None, end_marker=None, warp_mode=None, detune=None):
     c = _clip(_track(ctx, track), clip)
+    before = {}
+    for key, arg, attr in (("start_marker", start_marker, "start_marker"),
+                           ("end_marker", end_marker, "end_marker"), ("name", name, "name"),
+                           ("muted", muted, "muted"), ("looping", looping, "looping"),
+                           ("loop_start", loop_start, "loop_start"),
+                           ("loop_end", loop_end, "loop_end"), ("pitch", pitch, "pitch_coarse"),
+                           ("warping", warping, "warping"), ("warp_mode", warp_mode, "warp_mode"),
+                           ("detune", detune, "pitch_fine")):
+        if arg is not None and hasattr(c, attr):
+            before[key] = getattr(c, attr)
+    if gain_db is not None:
+        before["gain_raw"] = c.gain
     if start_marker is not None:
         c.start_marker = float(start_marker)
     if end_marker is not None:
@@ -824,7 +854,7 @@ def set_clip(ctx, track, clip, name=None, muted=None, pitch=None, gain_db=None,
         _shape_audio(c, warping, warp_mode, pitch, detune)
     elif pitch is not None:
         c.pitch_coarse = int(pitch)
-    return _clip_info(c, markers=True)
+    return dict(_clip_info(c, markers=True), before=before)
 
 
 @command
@@ -1172,6 +1202,7 @@ def set_param(ctx, track, device, param, value=None, display=None, db=None, item
     """Set a device parameter by raw value, by display number (e.g. 150 for '150 Hz'),
     by dB, or by the name of a list option (item="Low Shelf")."""
     p = _param(_device(_track(ctx, track), device), param)
+    before = {"value": p.value, "display": p.str_for_value(p.value)}
     if item is not None:
         items = list(p.value_items)
         if item not in items:
@@ -1183,14 +1214,49 @@ def set_param(ctx, track, device, param, value=None, display=None, db=None, item
         _set_by_display(p, display)
     else:
         p.value = max(p.min, min(p.max, float(value)))
-    return _param_info(p)
+    return dict(_param_info(p), before=before)
 
 
 @command
 def set_device_on(ctx, track, device, on=True):
     dv = _device(_track(ctx, track), device)
+    before = {"on": dv.parameters[0].value > 0.5}
     dv.parameters[0].value = 1.0 if on else 0.0
-    return {"device": dv.name, "on": bool(on)}
+    return {"device": dv.name, "on": bool(on), "before": before}
+
+
+@command
+def set_raw(ctx, track, target, value, device=None):
+    """Restore an exact raw value: target = "volume" | "pan" | "send:<n>" | a parameter
+    of `device` | "clip_gain" with device=<clip spec>. Used to revert journaled changes."""
+    t = _track(ctx, track)
+    if target == "clip_gain":
+        c = _clip(t, device)
+        c.gain = float(value)
+        return {"clip": c.name, "gain_db": _db_of_clip_gain(c)}
+    if device is None:
+        p = _mixer_param(t, target)
+    else:
+        p = _param(_device(t, device), target)
+    p.value = max(p.min, min(p.max, float(value)))
+    return _param_info(p)
+
+
+MAX_UNDO = 50
+
+
+@command
+def undo(ctx, steps=1):
+    """Live's own undo, `steps` times (at most 50). Live groups API changes into undo
+    steps its own way: check the result with get_track/get_song after undoing."""
+    s = ctx.song
+    done = 0
+    for _ in range(max(0, min(int(steps), MAX_UNDO))):
+        if not s.can_undo:
+            break
+        s.undo()
+        done += 1
+    return {"undone": done, "can_undo": s.can_undo}
 
 
 @command

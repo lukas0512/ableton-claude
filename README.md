@@ -46,7 +46,9 @@ After editing `handlers.py`: `scripts/install_remote_script.sh`, then the `reloa
 
 | Tool | Does |
 |---|---|
+| `producer_brief` (also the `produce` prompt) | The method (`briefs/producer.md`) and the lessons from real tracks (`briefs/lessons.md`). Any AI reads it before changing a project. |
 | `ableton_status`, `ableton_command`, `ableton_batch`, `ableton_reload_bridge` | Read and drive Live (the command list is in the server instructions). |
+| `change_log`, `revert_changes`, `live_undo` | Every change is journaled with the value it replaced (`~/.ableton-claude/journal.jsonl`) and can be put back exactly. |
 | `render_start`, `render_wait`, `analyze_audio`, `compare_to_reference` | Record the master and measure it. |
 | `music_chords` | Roman numerals → chord symbols in a key. |
 | `music_progression` | Voice-led chord part (held common tones, anticipation). |
@@ -56,6 +58,7 @@ After editing `handlers.py`: `scripts/install_remote_script.sh`, then the `reloa
 | `genre_knowledge`, `genre_plan_structure` | What a genre is (conventions + measured numbers); a section plan for N minutes. |
 | `analyze_reference`, `compare_to_genre`, `mix_toward_genre` | Measure a reference; hold a mix against a genre; move the Live master toward it. |
 | `analyze_timbre`, `find_samples`, `groove_loop` | Kick, bass, hats, clap and breakdown against the genre; rank a folder's one-shots by that timbre; place a one-shot on the references' per-16th feel as a loop. |
+| `study_references`, `study_status`, `reference_study` | Study ~5 references chosen for this track (paths, a folder, or the set's REF tracks): measured and heard in the background, saved as a profile under the study's name (usable as `genre` everywhere) with a brief of what they share, where they disagree and a section plan. Audio stays where it is (`~/Music/Ableton Claude/References/<name>/` holds links and is also a drop-in inbox). |
 | `validate_against_genre`, `analyze_tension` | Every measure at once; break depth, build and drop against the references. |
 
 ## The ear

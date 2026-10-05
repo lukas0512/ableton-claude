@@ -3,6 +3,10 @@
 Start with README.md (pieces, tools, Live API limits) and the MCP server instructions in
 `mcp_server/ableton_claude/server.py` (the step-by-step workflow for making a track).
 
+Lessons for whichever AI drives the connector live in
+`mcp_server/ableton_claude/briefs/lessons.md` (served by `producer_brief`): add new production
+lessons there, not only here. The method is `briefs/producer.md`.
+
 Rules that cost real time to learn:
 
 - Drive Live only through ClaudeBridge commands. Never write new clips into an `.als`
@@ -53,7 +57,9 @@ Rules that cost real time to learn:
   picks the one-shot by the genre's timbre and `groove_loop` / `loops.from_template`
   places it with the references' per-16th feel. The median template reads flatter than
   most references (54.8 % vs 55-76 %): pass `swing_pct`. Straight loops next to it pull
-  the measured swing back down; swing them too (warp + `apply_groove`).
+  the measured swing back down; swing them too (warp + `apply_groove`). The 55-76 % may
+  be from the old profile swing, which ignored the beat's phase (fixed 2026-10-05): one
+  swing everywhere now, `samples.swing_of`; studies take the key from the ear.
 - The ear's chroma votes with spectral peaks only, 110-1500 Hz: summing every bin let the
   noise floor and the root's 5th/15th harmonics turn a C minor organ into "Cmaj9"; below
   110 Hz the 5.4 Hz bins smear C2 into D and F. Harmonic-series chord templates made it
