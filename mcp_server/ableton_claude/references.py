@@ -28,6 +28,7 @@ from .music import samples
 AUDIO_EXT = (".wav", ".aif", ".aiff", ".flac", ".mp3", ".m4a", ".ogg")
 SR = 44100
 KEY_METHOD = "bass_anchored_v1"
+SWING_METHOD = "self_v1"      # cached tracks measured otherwise get their swing re-measured
 ANALYSIS_VERSION = 3          # bump to re-analyse cached tracks
 THIRD_OCTAVES = [25, 31.5, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630, 800,
                  1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000, 12500,
@@ -253,12 +254,11 @@ def analyze_reference(path, bpm=None):
     peak = float(np.abs(x).max())
     rms = float(np.sqrt(np.mean(mono ** 2)))
     bands, f, p = analysis.band_levels(mono, sr)
-    swing = samples.estimate_swing(
-        signal.sosfilt(signal.butter(4, 6000, "highpass", fs=sr, output="sos"), mid), sr, tempo)
+    swing = hat_swing(mono, sr, tempo, t0)
     return analysis._plain({
         "file": os.path.basename(path), "id": _file_id(path), "version": ANALYSIS_VERSION,
         "duration_s": round(len(mono) / sr, 1), "bpm": tempo, "first_beat_s": round(t0, 3),
-        **key, "swing_pct": swing,
+        **key, "swing_pct": swing, "swing_method": SWING_METHOD,
         "loudness": {"integrated_lufs": round(integ, 1), "true_peak_dbtp": round(tp, 2),
                      "crest_db": round(analysis._db(peak) - analysis._db(rms), 1)},
         "bands_share": {k: v["share_pct"] for k, v in bands.items()},
@@ -269,6 +269,12 @@ def analyze_reference(path, bpm=None):
         "structure": structure_summary(segs, len(bars)),
         "bars_matrix": np.round(bars, 1).tolist(),
     })
+
+
+def hat_swing(mono, sr, bpm, t0):
+    """Swing of the top end (hats, shakers) over the whole track, self-referenced
+    (samples.swing_of). The excerpt-based measure it replaces ignored the beat's phase."""
+    return samples.swing_of(_band_onsets(mono, sr, 6000, 16000), bpm, t0)
 
 
 def _stats(vals):
@@ -303,6 +309,13 @@ def build_profile(folder, genre, cache=None, log=print, on_track=None):
                 x, sr = load_audio(p)
                 r.update(analysis._plain(key_fields(x.mean(axis=1), sr, r["bpm"])))
                 log("re-keyed %-50s %s" % (r["file"][:50], r["key"]))
+                if on_track:
+                    on_track(cache)
+            if r.get("swing_method") != SWING_METHOD:
+                x, sr = load_audio(p)
+                r["swing_pct"] = hat_swing(x.mean(axis=1), sr, r["bpm"], r["first_beat_s"])
+                r["swing_method"] = SWING_METHOD
+                log("re-swung %-50s %s" % (r["file"][:50], r["swing_pct"]))
                 if on_track:
                     on_track(cache)
             tracks.append(r)

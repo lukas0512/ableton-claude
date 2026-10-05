@@ -153,3 +153,33 @@ def test_self_referenced_swing_ignores_where_the_kick_grid_lands():
     fp = references.fingerprint(x, sr, bpm, t0_late, [{"start": 0, "end": bars - 1, "label": "full"}])
     assert fp["swing_pct"] < 50
     assert abs(fp["swing_self_pct"] - 58) < 2
+
+
+def _swung_hats(swing, bpm=124.0, sr=44100, bars=16, t0=0.37, lag=0.0):
+    """16th-note noise ticks (6+ kHz) with off-beat 16ths at `swing` %, first beat at t0;
+    `lag` delays every hit (a late grid must not change the swing)."""
+    import numpy as np
+    rng = np.random.default_rng(1)
+    x = np.zeros(int(sr * (t0 + bars * 4 * 60 / bpm + 1)))
+    pair = 60 / bpm / 2
+    tick = rng.normal(0, 1, int(0.004 * sr)) * np.hanning(int(0.004 * sr))
+    for k in range(bars * 8):
+        for frac in (0.0, swing / 100.0):
+            i = int((t0 + lag + k * pair + frac * pair) * sr)
+            x[i:i + tick.size] += tick
+    return x, sr, bpm, t0
+
+
+def test_hat_swing_reads_the_swing_whatever_the_phase_or_grid_lag():
+    from ableton_claude import references
+    for swing in (50, 58, 66):
+        x, sr, bpm, t0 = _swung_hats(swing, t0=0.37, lag=0.03)
+        got = references.hat_swing(x, sr, bpm, t0)
+        assert abs(got - swing) <= 2.5, (swing, got)
+
+
+def test_swing_of_needs_offbeat_sixteenths():
+    from ableton_claude.music import samples
+    pair = 60 / 124 / 2
+    eighths_only = [k * pair for k in range(64)]  # nothing between the 8ths
+    assert samples.swing_of(eighths_only, 124) is None

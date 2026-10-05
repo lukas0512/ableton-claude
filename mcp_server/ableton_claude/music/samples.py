@@ -173,17 +173,25 @@ def onsets(mono, sr, threshold=0.25, min_gap_s=0.05):
     return out
 
 
-def estimate_swing(mono, sr, bpm):
-    """Median position of off-beat 16ths inside their 8th-note pair, as MPC swing %."""
+def swing_of(times, bpm, t0=0.0, min_hits=8):
+    """MPC swing % of onset times: the off-beat 16ths' median position in their 8th-note
+    pair, measured against the same hits' on-beat 16ths (so a grid that lags, e.g. one
+    taken from a soft kick, cancels out). t0 is the time of a beat. None when there are
+    too few off-beat 16ths to tell (hats on the 8ths only: no 16th swing to measure)."""
     pair = 60.0 / bpm / 2.0
-    ratios = []
-    for t in onsets(mono, sr):
-        pos = (t % pair) / pair
-        if 0.35 < pos < 0.85:            # off-beat hits only
-            ratios.append(pos)
-    if len(ratios) < 4:
+    ph = ((np.asarray(times, float) - t0) % pair) / pair
+    off = ph[(ph > 0.3) & (ph < 0.85)]
+    on = ph[(ph < 0.2) | (ph > 0.85)]
+    on = np.where(on > 0.5, on - 1.0, on)
+    if len(off) < min_hits or len(off) < 0.15 * max(1, len(on)):
         return None
-    return round(float(np.median(ratios)) * 100.0, 1)
+    ref = float(np.median(on)) if len(on) >= min_hits else 0.0
+    return round((float(np.median(off)) - ref) * 100.0, 1)
+
+
+def estimate_swing(mono, sr, bpm, t0=0.0):
+    """Swing % of a loop or excerpt whose beat falls at t0 (0 for a loop cut on the beat)."""
+    return swing_of(onsets(mono, sr), bpm, t0)
 
 
 def band_shares(mono, sr):
