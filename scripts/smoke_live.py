@@ -5,11 +5,14 @@ bar 3, clips, and renders bars 1-3, then deletes everything it created.
 
     cd mcp_server && uv run python ../scripts/smoke_live.py
 """
-import glob
 import os
 import sys
+import tempfile
 import time
 import traceback
+
+import numpy as np
+import soundfile as sf
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "mcp_server"))
 from ableton_claude import analysis, client  # noqa: E402
@@ -49,6 +52,11 @@ if busy and "--force" not in sys.argv:
     print("\nThe open Set has clips on its tracks. Open an empty Live Set, or pass --force "
           "(everything the test creates is deleted afterwards).")
     sys.exit(2)
+test_names = {'CB MIDI', 'CB Audio', 'CB Pad', 'CB Render'}
+if song and (any(t['name'] in test_names for t in song['tracks']) or
+             any(c['name'] == 'CB Test' for c in song.get('cues', []))):
+    raise SystemExit('Test track/cue names already exist. Rename them or use a different project copy before testing.')
+test_audio = tempfile.TemporaryDirectory(prefix='ableton-claude-live-test-')
 step("set_tempo round-trip")(lambda: client.call("set_tempo", {"bpm": tempo0 + 1}))
 
 
@@ -105,13 +113,16 @@ step("set_cue")(lambda: client.call("set_cue", {"name": "CB Test", "bar": 3}))
 
 
 def _mk_audio():
-    wav = sorted(glob.glob(os.path.expanduser(
-        "~/Desktop/*/Ableton Projects/*/*/Samples/Imported/LG_riser_noise_4bar_123.wav")))
-    if not wav:
-        raise RuntimeError("no test wav found")
+    # A deterministic local fixture makes integration testing independent of
+    # somebody else's Desktop, sample packs and project folder names.
+    wav = os.path.join(test_audio.name, 'fixture.wav')
+    sr = 44100
+    t = np.arange(sr * 4) / sr
+    tone = .1 * np.sin(2 * np.pi * 220 * t) * np.minimum(t * 10, 1)
+    sf.write(wav, np.column_stack((tone, tone)), sr)
     client.call("create_track", {"kind": "audio", "name": "CB Audio"})
     made_tracks.append("CB Audio")
-    return client.call("create_audio_clip", {"track": "CB Audio", "path": wav[0], "bar": 1,
+    return client.call("create_audio_clip", {"track": "CB Audio", "path": wav, "bar": 1,
                                              "name": "riser", "gain_db": -12})
 
 
@@ -190,6 +201,7 @@ except Exception as e:
     print("cleanup: could not delete cue: %s" % e)
 client.call("set_tempo", {"bpm": tempo0})
 left = len(client.call("get_song")["tracks"])
+test_audio.cleanup()
 if left != n0:
     print("cleanup: track count %d, expected %d" % (left, n0))
 

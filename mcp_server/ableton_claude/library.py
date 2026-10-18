@@ -127,6 +127,7 @@ def build_index(roots, log=None):
                         pass
                 rows.append({"path": p, "dur_s": dur, "sr": sr_, **classify(p, dur)})
     idx = {"roots": roots, "built": time.strftime("%Y-%m-%d %H:%M"), "n": len(rows), "items": rows}
+    os.makedirs(os.path.dirname(os.path.abspath(INDEX_PATH)), exist_ok=True)
     tmp = INDEX_PATH + ".tmp"
     with open(tmp, "w") as fh:
         json.dump(idx, fh)

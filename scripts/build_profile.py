@@ -2,8 +2,8 @@
 
     build_profile.py "/path/to/2026 Tracks/Deep House" "deep house"
 
-Writes knowledge/genres/<genre>.profile.json. Per-track analyses are cached in
-knowledge/cache.json (keyed by file content) and saved after every track, so a re-run
+Writes ~/Music/Ableton Claude/knowledge/genres/<genre>.profile.json. Per-track analyses are cached in
+the user's knowledge/cache.json (keyed by file content) and saved after every track, so a re-run
 resumes where the last one stopped and overlapping folders are not analysed twice.
 """
 import json
@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "mcp_server"))
 from ableton_claude import knowledge, references  # noqa: E402
 
 folder, genre = sys.argv[1], sys.argv[2]
+folder = os.path.abspath(os.path.expanduser(folder))
 cache_path = os.path.normpath(os.path.join(knowledge.KNOWLEDGE_DIR, "..", "cache.json"))
 os.makedirs(knowledge.KNOWLEDGE_DIR, exist_ok=True)
 cache = {}

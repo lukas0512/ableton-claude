@@ -8,4 +8,4 @@ and, over a folder of references, the principles a genre follows.
 
 Heavy models (Demucs, Beat This) are imported lazily, so the MCP server starts fast.
 """
-EAR_VERSION = 1
+EAR_VERSION = 3

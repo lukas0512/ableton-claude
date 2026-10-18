@@ -11,7 +11,9 @@ import os
 
 from . import references
 
-KNOWLEDGE_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "knowledge", "genres")
+from .storage import DATA_DIR
+
+KNOWLEDGE_DIR = os.path.join(DATA_DIR, "knowledge", "genres")
 
 CONVENTIONS = {
     "deep_house": {
@@ -146,7 +148,38 @@ def key_of(genre):
 
 
 def profile_path(genre):
-    return os.path.join(KNOWLEDGE_DIR, "%s.profile.json" % key_of(genre))
+    key = key_of(genre)
+    if not key:
+        raise ValueError("genre name must contain letters or numbers")
+    return os.path.join(KNOWLEDGE_DIR, "%s.profile.json" % key)
+
+
+def trained_genres():
+    """Only valid profiles in this user's data directory, never bundled examples."""
+    if not os.path.isdir(KNOWLEDGE_DIR):
+        return []
+    genres = []
+    for name in sorted(os.listdir(KNOWLEDGE_DIR)):
+        if not name.endswith(".profile.json"):
+            continue
+        path = os.path.join(KNOWLEDGE_DIR, name)
+        try:
+            with open(path, encoding="utf-8") as f:
+                prof = json.load(f)
+            if not isinstance(prof, dict) or not prof.get("n_tracks"):
+                continue
+            genres.append({"genre": prof.get("genre") or name[:-13],
+                           "n_tracks": prof["n_tracks"], "profile": path})
+        except (OSError, ValueError):
+            continue
+    return genres
+
+
+def genre_context():
+    genres = trained_genres()
+    if not genres:
+        return "GENRE CONTEXT: No genres trained yet. Use learn_genres(pasta) with one subfolder per genre; follow the project's musical identity."
+    return "GENRE CONTEXT: User-trained profiles: " + json.dumps(genres, ensure_ascii=False) + ". Use these names with genre_knowledge and all genre tools; choose the profile that fits the project."
 
 
 def load_profile(genre):
@@ -165,9 +198,11 @@ def get(genre):
         out["measured"] = {kk: prof[kk] for kk in ("n_tracks", "bpm", "swing_pct", "keys",
                                                     "modes", "duration_s", "loudness",
                                                     "bands_share", "tilt", "structure")}
+        if prof.get("ear"):
+            out["measured"]["perception"] = prof["ear"].get("perception")
     if not out["conventions"] and not prof:
         out["note"] = ("no conventions or profile for %r yet; build one with "
-                       "reference_profile_build from a folder of references" % genre)
+                       "learn_genres(pasta), with one subfolder per genre" % genre)
     return out
 
 

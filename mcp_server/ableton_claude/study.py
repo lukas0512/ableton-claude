@@ -20,9 +20,10 @@ import time
 import numpy as np
 
 from . import knowledge, references, tension, timbre
+from .storage import DATA_DIR, serialized_analysis
 
 STUDIES_DIR = os.environ.get("ABLETON_CLAUDE_STUDIES",
-                             os.path.expanduser("~/Music/Ableton Claude/References"))
+                             os.path.join(DATA_DIR, "References"))
 CACHE_PATH = os.path.normpath(os.path.join(knowledge.KNOWLEDGE_DIR, "..", "cache.json"))
 MAX_REFS = 12
 
@@ -60,8 +61,8 @@ def collect(name, paths=None, folder=None):
 
 
 def audio_files(folder):
-    return sorted(p for p in glob.glob(os.path.join(folder, "*"))
-                  if p.lower().endswith(references.AUDIO_EXT))
+    return sorted(p for p in glob.glob(os.path.join(folder, "**", "*"), recursive=True)
+                  if os.path.isfile(p) and p.lower().endswith(references.AUDIO_EXT))
 
 
 def _load_cache():
@@ -73,6 +74,7 @@ def _load_cache():
 
 
 def _save_cache(c):
+    os.makedirs(os.path.dirname(CACHE_PATH), exist_ok=True)
     tmp = CACHE_PATH + ".tmp"
     with open(tmp, "w") as f:
         json.dump(c, f)
@@ -87,7 +89,8 @@ def _stats(vals):
             "p75": round(float(np.percentile(v, 75)), 3), "n": int(v.size)}
 
 
-def run(name, folder, log=print, ear=True):
+@serialized_analysis
+def run(name, folder, log=print, ear=True, brief_folder=None, kind="reference_set"):
     """Measure and hear every file in `folder`, save the profile under `name`, write the
     study brief next to it. Cached per file: a re-run only does what is new."""
     os.makedirs(knowledge.KNOWLEDGE_DIR, exist_ok=True)
@@ -107,7 +110,7 @@ def run(name, folder, log=print, ear=True):
     prof["timbre"] = timbre.profile_stats(trefs)
     _save_cache(cache)
     prof["tension"] = tension.profile_stats(refs)
-    prof["kind"] = "reference_set"
+    prof["kind"] = kind
     prof["studied"] = time.strftime("%Y-%m-%d %H:%M")
 
     reports = []
@@ -128,7 +131,9 @@ def run(name, folder, log=print, ear=True):
                 ear_keys(prof, reports)
     references.save_profile(prof, knowledge.profile_path(name))
     brief = make_brief(name, prof, reports)
-    with open(os.path.join(folder, "study.json"), "w") as f:
+    dest = brief_folder or folder
+    os.makedirs(dest, exist_ok=True)
+    with open(os.path.join(dest, "study.json"), "w") as f:
         json.dump(brief, f, indent=1)
     log("done")
     return brief

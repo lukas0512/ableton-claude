@@ -6,6 +6,7 @@ at most four wide regions (low shelf, low bell, mid bell, high shelf) and capped
 point is to bring a mix into the genre's range, not to clone a curve.
 """
 import math
+import re
 
 REGIONS = [  # name, low Hz, high Hz, filter type in EQ Eight
     ("sub", 20, 90, "Low Shelf"),
@@ -65,6 +66,19 @@ def loudness_move(current_lufs, current_crest, profile, max_step=4.0):
     return round(max(-max_step, min(max_step, move)), 1)
 
 
+def limiter_controls(params):
+    """Only use dB controls actually exposed by the installed limiter."""
+    by_name = {p["name"]: p for p in params}
+    for gain, ceiling in (("Input Gain", "Ceiling"), ("Gain", "Ceiling"), ("Gain", "Output Level")):
+        if gain not in by_name or ceiling not in by_name:
+            continue
+        display = str(by_name[gain].get("display", "")).strip()
+        if not re.fullmatch(r"[+-]?\d+(?:[.,]\d+)?\s*dB", display, re.I):
+            raise ValueError("Limiter gain is not an unambiguous dB display; inspect it before applying")
+        return gain, ceiling, float(re.sub(r"\s*dB$", "", display, flags=re.I).replace(",", "."))
+    raise ValueError("No supported gain/ceiling controls; inspect the installed limiter")
+
+
 def eq_eight_commands(track, device, plan):
     """Bridge commands that set EQ Eight bands 2-7 to the plan and switch every other
     band off, band 1 included: a user's default EQ Eight preset often carries a
@@ -93,9 +107,9 @@ def eq_eight_commands(track, device, plan):
 
 def toward_profile(path, genre, apply=False, ceiling=-1.5, call=None):
     """Compare a rendered mix with a genre profile and, with apply=True, move the Live
-    master toward it: an EQ Eight right after the master's first device (before the bus
-    compressor and limiter) with the planned bands, Pro-L 2 Gain by the loudness move,
-    and the limiter ceiling."""
+    master toward it. Preflight the existing final limiter before any edits; support
+    Live Limiter and Pro-L 2 only when their actual dB controls are exposed. Re-render
+    and measure true peak afterwards: a drive estimate is not a verified master."""
     from . import client, knowledge, references
     call = call or client.call
     prof = knowledge.load_profile(genre)
@@ -108,22 +122,33 @@ def toward_profile(path, genre, apply=False, ceiling=-1.5, call=None):
     report = {"notes": cmp_["notes"], "eq_moves": cmp_["eq_moves"], "eq_plan": plan,
               "loudness_now": L, "limiter_move_db": move,
               "profile_lufs": prof["loudness"]["integrated_lufs"],
-              "profile_crest": prof["loudness"]["crest_db"], "applied": False}
+              "profile_crest": prof["loudness"]["crest_db"], "applied": False,
+              "verification_required": "Re-render the same interval; level-match, measure exported true peak/crest and audition kick punch, pumping and mono."}
     if not apply:
         return report
+    if not math.isfinite(ceiling) or not -12 <= ceiling <= 0:
+        raise ValueError("ceiling must be finite and between -12 and 0 dB")
     names = lambda: [d["name"] for d in call("get_track", {"track": "master",
                                                             "clips": False})["devices"]]
-    if "EQ Eight" not in names():
+    chain = names()
+    if not chain or chain[-1] not in ("Limiter", "Pro-L 2"):
+        raise ValueError("Inspect the master: its final device must be an existing Limiter or Pro-L 2 before applying")
+    limiter = chain[-1]
+    params = call("get_device", {"track": "master", "device": len(chain) - 1})["params"]
+    gain_param, ceiling_param, cur_db = limiter_controls(params)
+    if "EQ Eight" not in chain:
         call("load_device", {"track": "master", "path": "audio_effects/EQ Eight"})
-    call("move_device", {"track": "master", "device": names().index("EQ Eight"), "position": 1})
+    # EQ before all dynamics, leaving the preflighted limiter last even on a short chain.
+    call("move_device", {"track": "master", "device": names().index("EQ Eight"), "position": 0})
     res = call("batch", {"commands": eq_eight_commands("master", "EQ Eight", plan)})
     report["eq_errors"] = [r for r in res if not r["ok"]][:3]
-    params = call("get_device", {"track": "master", "device": "Pro-L 2"})["params"]
-    cur = next(p for p in params if p["name"] == "Gain")
-    cur_db = float(cur["display"].replace("dB", "").replace("+", "").strip())
-    call("set_param", {"track": "master", "device": "Pro-L 2", "param": "Gain",
+    if report["eq_errors"]:
+        report["partial_application"] = "EQ was partially applied; limiter unchanged. Inspect before retrying."
+        return report
+    limiter_index = len(names()) - 1
+    call("set_param", {"track": "master", "device": limiter_index, "param": gain_param,
                        "display": round(cur_db + move, 2)})
-    call("set_param", {"track": "master", "device": "Pro-L 2", "param": "Output Level",
+    call("set_param", {"track": "master", "device": limiter_index, "param": ceiling_param,
                        "display": ceiling})
     report.update({"applied": True, "master_chain": names(),
                    "limiter_gain_db": [cur_db, round(cur_db + move, 2)], "ceiling_db": ceiling})

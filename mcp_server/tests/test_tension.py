@@ -21,7 +21,7 @@ def test_finds_the_break_and_the_drop():
     bars, segs = _song()
     assert tension.main_break(segs) == (32, 56, 56)
     m = tension.for_track(bars, segs)
-    assert m["break_bars"] == [33, 57] and m["drop_bar"] == 57
+    assert m["break_bars"] == [33, 56] and m["drop_bar"] == 57
     assert m["kick_out_db"] > 40 and m["bass_out_db"] > 30
     assert m["build_lu_per_bar"] > 0.2 and m["build_high_db_per_bar"] > 0.5
     assert m["drop_jump_lu"] > 2 and m["drop_jump_kick_db"] > 40

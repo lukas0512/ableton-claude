@@ -196,9 +196,13 @@ def _track(ctx, spec):
         raise ValueError("return track not found: %s" % key)
     if spec.lstrip("-").isdigit():
         return s.tracks[int(spec)]
-    for t in s.tracks:
-        if t.name == spec:
-            return t
+    exact = [t for t in s.tracks if t.name == spec]
+    if len(exact) == 1:
+        return exact[0]
+    if exact:
+        # Three tracks named "CLOSED/OPENHH": by name, every edit landed on the first one.
+        raise ValueError("%d tracks are named %r: address them by index %s"
+                         % (len(exact), spec, [i for i, t in enumerate(s.tracks) if t.name == spec]))
     hits = [t for t in s.tracks if spec.lower() in t.name.lower()]
     if len(hits) == 1:
         return hits[0]
@@ -771,7 +775,9 @@ def add_notes(ctx, track, clip, notes, replace=False):
 @command
 def create_audio_clip(ctx, track, path, beat=None, bar=None, name=None, warp=None,
                       gain_db=None, pitch=None, length=None, envelopes=None, warp_mode=None,
-                      detune=None):
+                      detune=None, beats=None):
+    """`beats` pins the whole file to that many beats (auto-warp guessed 1.14 beats for a
+    33-beat recording); `length` loops the clip and sets its length in beats."""
     t = _track(ctx, track)
     start = _t(ctx, beat, bar)
 
@@ -779,10 +785,14 @@ def create_audio_clip(ctx, track, path, beat=None, bar=None, name=None, warp=Non
         if name:
             c.name = name
         _shape_audio(c, warp, warp_mode, pitch, detune)
+        if beats is not None:
+            _pin_warp(c, float(beats))
         if gain_db is not None:
             _set_clip_gain_db(c, float(gain_db))
-        if length is not None and c.looping:
-            c.loop_end = c.loop_start + float(length)
+        if length is not None:
+            c.looping = True
+            c.loop_start = 0.0
+            c.loop_end = float(length)
         for spec in envelopes or []:
             _write_envelope(t, c, spec)
         return c
@@ -1025,6 +1035,10 @@ def set_device_input(ctx, track, device, source, channel=None):
         if not cm:
             raise ValueError("no channel %r; choices: %s" % (channel, [r.display_name for r in chans]))
         d.input_routing_channel = cm[0]
+    # Routing alone leaves Compressor's sidechain switched off: it listened and never reacted.
+    for p in d.parameters:
+        if p.name == "S/C On" and p.value < 0.5:
+            p.value = 1.0
     return _device_inputs(d)
 
 
@@ -1085,6 +1099,41 @@ def delete_clip(ctx, track, clip):
     info = _clip_info(c)
     t.delete_clip(c)
     return {"deleted": info}
+
+
+@command
+def shift_clips(ctx, track, from_bar, bars):
+    """Move every Arrangement clip starting at or after `from_bar` by `bars` (negative =
+    earlier), keeping clip envelopes, mutes and warping. Two phases through a scratch area
+    past the song end, so a moved clip never lands on one that has not moved yet. Clear the
+    destination first when moving earlier: what lies there is overwritten by Live."""
+    t = _track(ctx, track)
+    bpb = _beats_per_bar(ctx)
+    a = _t(ctx, bar=from_bar)
+    d = float(bars) * bpb
+    clips = sorted((c for c in t.arrangement_clips if c.start_time >= a - 1e-6),
+                   key=lambda c: c.start_time)
+    if not clips:
+        return {"track": t.name, "moved": 0}
+    end = max(c.end_time for c in t.arrangement_clips)
+    scratch = (int(end / bpb) + 64) * bpb - clips[0].start_time    # well past the song
+    staged = []
+    for c in clips:
+        target = c.start_time + d
+        at = c.start_time + scratch
+        t.duplicate_clip_to_arrangement(c, at)
+        # Find the copy by position: comparing Live's clip objects with `in` picked wrong
+        # clips and left 1-bar strays of other clips around the song.
+        new = [x for x in t.arrangement_clips if abs(x.start_time - at) < 1e-4]
+        t.delete_clip(c)
+        if new:
+            staged.append((new[0], target))
+    moved = 0
+    for c, target in staged:
+        t.duplicate_clip_to_arrangement(c, target)
+        t.delete_clip(c)
+        moved += 1
+    return {"track": t.name, "moved": moved, "shift_beats": d}
 
 
 @command
@@ -1169,6 +1218,14 @@ def browse(ctx, query, roots=None, limit=30, depth=5):
     return hits
 
 
+def _unfold_groups(t):
+    g = getattr(t, "group_track", None)
+    while g is not None:
+        if getattr(g, "fold_state", 0):
+            g.fold_state = 0
+        g = getattr(g, "group_track", None)
+
+
 @command
 def load_device(ctx, track, path=None, query=None, roots=None):
     """Load a browser item onto a track. Give the exact `path` from `browse`,
@@ -1180,7 +1237,10 @@ def load_device(ctx, track, path=None, query=None, roots=None):
             raise ValueError("nothing in browser matches %r" % query)
         path = found[0]
     item = _resolve_path(ctx, path.split("/"))
+    _unfold_groups(t)       # Live refuses to select a track inside a folded group
     ctx.song.view.selected_track = t
+    if ctx.song.view.selected_track != t:
+        raise RuntimeError("could not select %s to load onto it" % t.name)
     n = len(t.devices)
     ctx.app.browser.load_item(item)
     # Live finishes a load over the next ticks and applies the device's default preset
@@ -1215,6 +1275,59 @@ def set_param(ctx, track, device, param, value=None, display=None, db=None, item
     else:
         p.value = max(p.min, min(p.max, float(value)))
     return dict(_param_info(p), before=before)
+
+
+# Device state that is not a parameter (Wavetable's tables, voicing). Category before index.
+_DEVICE_PROPS = ("oscillator_1_wavetable_category", "oscillator_1_wavetable_index",
+                 "oscillator_2_wavetable_category", "oscillator_2_wavetable_index",
+                 "oscillator_1_effect_mode", "oscillator_2_effect_mode", "filter_routing",
+                 "mono_poly", "poly_voices", "unison_mode", "unison_voice_count")
+
+
+@command
+def copy_device(ctx, src_track, src_device, track, device):
+    """Copy every parameter (by name) and Wavetable's table/voice settings from one device
+    to another of the same class, e.g. to clone a frozen track's synth patch."""
+    s = _device(_track(ctx, src_track), src_device)
+    d = _device(_track(ctx, track), device)
+    if s.class_name != d.class_name:
+        raise ValueError("%s is %s, %s is %s" % (s.name, s.class_name, d.name, d.class_name))
+    props = []
+    for a in _DEVICE_PROPS:
+        if hasattr(s, a) and hasattr(d, a):
+            try:
+                setattr(d, a, getattr(s, a))
+                props.append(a)
+            except Exception:
+                pass
+    by_name = {p.name: p for p in d.parameters}
+    copied, skipped = 0, []
+    for p in s.parameters:
+        q = by_name.get(p.name)
+        if q is None or not q.is_enabled:
+            skipped.append(p.name)
+            continue
+        q.value = max(q.min, min(q.max, p.value))
+        copied += 1
+    return {"from": s.name, "to": d.name, "params": copied, "props": props,
+            "skipped": skipped[:20]}
+
+
+_SETTABLE_PROPS = {"global_mode", "edit_mode", "oversample"}   # EQ Eight: 0 Stereo, 1 L/R, 2 M/S
+
+
+@command
+def set_device_prop(ctx, track, device, prop, value):
+    """Set a device property that is not a parameter, from a short whitelist (EQ Eight's
+    global_mode for Mid/Side, edit_mode to edit channel B, oversample)."""
+    if prop not in _SETTABLE_PROPS:
+        raise ValueError("prop must be one of %s" % sorted(_SETTABLE_PROPS))
+    d = _device(_track(ctx, track), device)
+    if not hasattr(d, prop):
+        raise ValueError("%s has no %s" % (d.name, prop))
+    before = getattr(d, prop)
+    setattr(d, prop, type(before)(value) if not isinstance(before, bool) else bool(value))
+    return {"device": d.name, "prop": prop, "value": getattr(d, prop), "before": before}
 
 
 @command
@@ -1635,12 +1748,24 @@ def set_warp_markers(ctx, track, clip, markers=None, beats=None):
     c = _clip(_track(ctx, track), clip)
     if not c.is_audio_clip:
         raise ValueError("warp markers belong to audio clips")
-    c.warping = True
-    length_s = c.sample_length / float(c.sample_rate or 1)
     if beats is not None:
-        markers = [[0.0, 0.0], [float(beats), length_s]]
+        markers = [[0.0, 0.0], [float(beats), _sample_seconds(c)]]
     if not markers:
         raise ValueError("give markers or beats")
+    _replace_warp_markers(c, markers)
+    return _warp_info(c)
+
+
+def _sample_seconds(c):
+    return c.sample_length / float(c.sample_rate or 1)
+
+
+def _pin_warp(c, beats):
+    _replace_warp_markers(c, [[0.0, 0.0], [beats, _sample_seconds(c)]])
+
+
+def _replace_warp_markers(c, markers):
+    c.warping = True
     for m in list(c.warp_markers):
         if m.beat_time > 1e-6:
             try:
@@ -1652,7 +1777,6 @@ def set_warp_markers(ctx, track, clip, markers=None, beats=None):
         if beat <= 1e-6:
             continue
         c.add_warp_marker(Live.Clip.WarpMarker(float(sec), float(beat)))   # (sample_time, beat_time)
-    return _warp_info(c)
 
 
 @command

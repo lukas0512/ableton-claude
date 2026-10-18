@@ -220,10 +220,13 @@ def structure_summary(segs, n_bars):
 
 
 def _file_id(path):
-    h = hashlib.sha1()
+    # Mix revisions commonly share an unchanged intro. Hashing only the first MiB
+    # made later arrangement/drop edits reuse the old analysis and learned profile.
+    h = hashlib.sha256()
     with open(path, "rb") as f:
-        h.update(f.read(1 << 20))
-    return h.hexdigest()[:12]
+        for block in iter(lambda: f.read(1 << 20), b""):
+            h.update(block)
+    return h.hexdigest()[:20]
 
 
 def key_fields(mono, sr, bpm):
@@ -333,6 +336,8 @@ def build_profile(folder, genre, cache=None, log=print, on_track=None):
             % (r["file"][:60], r["bpm"], r["key"], r["loudness"]["integrated_lufs"],
                r["structure"]["bars"], r["structure"]["intro_bars"],
                r["structure"].get("main_break_bars")))
+    if not tracks:
+        raise ValueError("no reference could be analysed in %s" % folder)
     keys = {}
     for t in tracks:
         keys[t["key"]] = keys.get(t["key"], 0) + 1
@@ -400,8 +405,11 @@ def compare_to_profile(path, profile, sections=None, tempo=None):
 
 
 def save_profile(profile, path):
-    with open(path, "w") as f:
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
         json.dump(profile, f, indent=1)
+    os.replace(tmp, path)
 
 
 def slug(genre):

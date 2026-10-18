@@ -344,6 +344,7 @@ def measure_folder(folder, cache_path=None, exts=(".wav", ".aif", ".aiff", ".fla
         if "error" not in r:
             rows.append(dict(r, file=p, name=os.path.basename(p)))
     if cache_path and dirty:
+        os.makedirs(os.path.dirname(os.path.abspath(cache_path)), exist_ok=True)
         tmp = cache_path + ".tmp"
         with open(tmp, "w") as f:
             json.dump(cache, f)

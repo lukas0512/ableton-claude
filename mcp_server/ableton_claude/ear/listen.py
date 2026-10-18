@@ -10,9 +10,10 @@ import re
 import numpy as np
 
 from .. import references as R
-from . import EAR_VERSION, arrangement, bass, drums, grid, harmony, midi, stems
+from ..storage import DATA_DIR, serialized_analysis
+from . import EAR_VERSION, arrangement, bass, drums, grid, harmony, midi, perception, stems
 
-CACHE_DIR = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "knowledge", "ear"))
+CACHE_DIR = os.path.join(DATA_DIR, "knowledge", "ear")
 GM = {"kick": 36, "clap": 39, "hats": 42, "open": 46}
 
 
@@ -22,12 +23,15 @@ def _dir(fid):
     return d
 
 
+@serialized_analysis
 def listen(path, bpm_hint=None, use_cache=True, log=None):
+    if bpm_hint is not None and (not np.isfinite(bpm_hint) or not 20 <= bpm_hint <= 400):
+        raise ValueError("bpm_hint must be finite and between 20 and 400")
     fid = R._file_id(path)
     rep_path = os.path.join(CACHE_DIR, fid, "report.json")
     if use_cache and os.path.exists(rep_path):
         rep = json.load(open(rep_path))
-        if rep.get("ear_version") == EAR_VERSION:
+        if rep.get("ear_version") == EAR_VERSION and rep.get("bpm_hint") == bpm_hint:
             return rep
     say = log or (lambda *a: None)
     x, sr = R.load_audio(path)
@@ -46,11 +50,15 @@ def listen(path, bpm_hint=None, use_cache=True, log=None):
     say("arrangement")
     arr = arrangement.analyze(x, sr, st, g, d)
     mix = stem_mix(st, sr, g, arr)
-    rep = {"ear_version": EAR_VERSION, "file": os.path.basename(path), "id": fid,
+    rep = {"ear_version": EAR_VERSION, "bpm_hint": bpm_hint, "file": os.path.basename(path), "id": fid,
            "duration_s": round(len(x) / sr, 1), "grid": g, "key": h["key"],
            "arrangement": {k: v for k, v in arr.items() if k != "stem_levels_db"},
            "drums": _drums_summary(d, arr, g), "bass": _bass_summary(b), "harmony": h, "mix": mix}
+    rep["reliability"] = reliability(rep)
+    say("section perception (bass character and break/drop contrast)")
+    rep["perception"] = perception.analyze(x, sr, st, g, arr, b["notes"])
     rep["summary"] = summarize(rep)
+    rep["summary"].extend(rep["reliability"]["warnings"])
     out = _dir(fid)
     midi.write(os.path.join(out, "heard.mid"), _midi_parts(d, b, h, g), g["bpm"])
     with open(rep_path, "w") as f:
@@ -65,8 +73,10 @@ def _main_bars(arr):
     secs = [s for s in arr["sections"] if s["label"] in ("drop", "groove")]
     if not secs:
         secs = arr["sections"]
+    if not secs:
+        return []
     top = max(len(s["elements"]) for s in secs)
-    return [b for s in secs if len(s["elements"]) == top for b in range(s["start_bar"] - 1, s["end_bar"])]
+    return sorted({b for s in secs if len(s["elements"]) == top for b in range(s["start_bar"] - 1, s["end_bar"])})
 
 
 def _drums_summary(d, arr, g):
@@ -101,23 +111,49 @@ def stem_mix(st, sr, g, arr):
     bars = _main_bars(arr)
     if not bars:
         return {}
-    a = int(grid.bar_start(g, bars[0]) * sr)
-    b = int(grid.bar_start(g, bars[-1] + 1) * sr)
     out = {}
     for k, s in st.items():
-        seg = s[a:b]
-        mid = seg.mean(axis=1)
-        side = (seg[:, 0] - seg[:, 1]) / 2
-        lv = 20 * np.log10(np.sqrt(np.mean(mid ** 2)) + 1e-9)
-        wd = 10 * np.log10((np.mean(side ** 2) + 1e-12) / (np.mean(mid ** 2) + 1e-12))
-        spec = np.abs(np.fft.rfft(mid[: sr * 8] * np.hanning(min(len(mid), sr * 8))))
-        f = np.fft.rfftfreq(min(len(mid), sr * 8), 1.0 / sr)
-        cen = float((f * spec).sum() / (spec.sum() + 1e-12))
+        mid_power, side_power, count, weighted_hz, magnitude = 0., 0., 0, 0., 0.
+        for bar in bars:
+            a = max(0, int(grid.bar_start(g, bar) * sr))
+            b = min(len(s), int(grid.bar_start(g, bar + 1) * sr))
+            seg = s[a:b]
+            if not len(seg):
+                continue
+            mid = seg.mean(axis=1) if seg.ndim == 2 else seg
+            side = (seg[:, 0] - seg[:, 1]) / 2 if seg.ndim == 2 and seg.shape[1] == 2 else np.zeros_like(mid)
+            mid_power += float(np.dot(mid, mid))
+            side_power += float(np.dot(side, side))
+            count += len(mid)
+            spec = np.abs(np.fft.rfft(mid * np.hanning(len(mid))))
+            f = np.fft.rfftfreq(len(mid), 1.0 / sr)
+            weighted_hz += float((f * spec).sum())
+            magnitude += float(spec.sum())
+        if not count:
+            continue
+        lv = 20 * np.log10(np.sqrt(mid_power / count) + 1e-9)
+        wd = 10 * np.log10((side_power / count + 1e-12) / (mid_power / count + 1e-12))
+        cen = weighted_hz / (magnitude + 1e-12)
         out[k] = {"level_db": round(float(lv), 1), "width_db": round(float(wd), 1), "centroid_hz": round(cen)}
     ref = out.get("drums", {}).get("level_db", 0.0)
     for k in out:
         out[k]["vs_drums_db"] = round(out[k]["level_db"] - ref, 1)
     return out
+
+
+def reliability(rep):
+    """Expose evidence limits; key_confidence is a correlation margin, not a probability."""
+    warnings = ["Separated stems can contain bleed; inferred notes/chords need audition."]
+    fit_ms = rep["grid"].get("fit_ms")
+    if fit_ms is None or not np.isfinite(fit_ms) or fit_ms > 25:
+        warnings.append("Beat-grid fit is uncertain: verify downbeat and half/double tempo before warping.")
+    margin = rep["harmony"].get("key_confidence")
+    key_usable = bool(rep.get("key")) and margin is not None and np.isfinite(margin) and margin >= 0.05
+    if not key_usable:
+        warnings.append("Key is ambiguous: verify against the isolated bass/hook before transposing or reharmonising.")
+    return {"key_usable_for_transpose": bool(key_usable), "key_margin": margin,
+            "key_margin_kind": "top-two key correlation difference; heuristic threshold 0.05",
+            "grid_fit_ms": fit_ms, "warnings": warnings}
 
 
 def _midi_parts(d, b, h, g):

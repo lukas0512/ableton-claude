@@ -31,8 +31,9 @@ Rules that cost real time to learn:
 - Measure elements, not just the master: `timbre_report.py` / `analyze_timbre` found the
   "thin, ticky" first mix came from one added sample (808 maracas, 2 ms at 10 kHz) and a
   sine-like bass, which master EQ could never fix. Choose samples with `find_samples`.
-- The drop must be louder than the bars before it and bring the kick back; check
-  `drop_jump_lu` against the references, not the section averages.
+- Evaluate drop release through pulse/low-end return, transient contrast, timbre and
+  expectation as well as loudness. Equal-LUFS drops can work. Use `production_review`
+  for all detected drops and `analyze_tension` for the main break; audition in context.
 - Live starts playback at its start marker (`Song.start_time`), not the playhead: a
   click in the arrangement once turned a 97-145 render into 125-145. `_goto` moves both
   and a render refuses playback that starts anywhere else; render_and_analyze checks the

@@ -21,6 +21,16 @@ DEEP_HOUSE = {
     "rim":        "...g..x....g.x..",
 }
 
+# Starting points, not claims about current releases. Reference templates take priority.
+TECH_HOUSE = {
+    "kick":       "X...X...X...X...",
+    "clap":       "....X.......X...",
+    "closed_hat": "x.g.xgx.x.g.xgxg",
+    "open_hat":   "..x...x...x...x.",
+    "shaker":     ".g.x.g.x.g.x.g.x",
+    "rim":        "...g..x....g..x.",
+}
+
 _VEL = {"X": 115, "x": 95, "g": 55}
 
 
@@ -55,7 +65,15 @@ def steps_to_notes(pattern, pitch, bars=1, swing=54.0, humanize=0.0, seed=0,
 
 def pattern(style="deep_house", bars=1, swing=54.0, humanize=0.004, seed=0, parts=None):
     """Full kit pattern. Returns {part: notes}."""
-    table = {"deep_house": DEEP_HOUSE}[style]
+    if not isinstance(bars, int) or not 1 <= bars <= 128:
+        raise ValueError("bars must be an integer from 1 to 128")
+    if not 50 <= swing <= 75:
+        raise ValueError("swing must be from 50 to 75 percent")
+    tables = {"deep_house": DEEP_HOUSE, "tech_house": TECH_HOUSE}
+    style = style.strip().lower().replace(" ", "_")
+    if style not in tables:
+        raise ValueError("style must be deep_house or tech_house")
+    table = tables[style]
     out = {}
     for k, (name, steps) in enumerate(table.items()):
         if parts and name not in parts:

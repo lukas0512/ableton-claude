@@ -15,6 +15,7 @@ import os
 import numpy as np
 
 from . import listen as L
+from . import EAR_VERSION, perception
 
 ROLES = ("kick", "clap", "hats")
 
@@ -23,7 +24,7 @@ def load_reports(ids=None):
     out = []
     for p in sorted(glob.glob(os.path.join(L.CACHE_DIR, "*", "report.json"))):
         r = json.load(open(p))
-        if ids is None or r["id"] in ids:
+        if r.get("ear_version") == EAR_VERSION and (ids is None or r["id"] in ids):
             out.append(r)
     return out
 
@@ -125,6 +126,7 @@ def principles(reports):
         P["mix"][stem + "_vs_drums_db"] = _stats([r["mix"].get(stem, {}).get("vs_drums_db") for r in reports])
         P["mix"][stem + "_width_db"] = _stats([r["mix"].get(stem, {}).get("width_db") for r in reports])
     P["why"] = explain(P)
+    P["perception"] = perception.profile(reports)
     return P
 
 
@@ -219,8 +221,9 @@ def compare(rep, P):
         elif v > s["p75"]:
             out.append("%s %.1f%s is above the references (%.1f-%.1f%s): %s" % (name, v, unit, s["p25"], s["p75"], unit, advice_high))
     b = rep["bass"]
-    chk("Bass notes with the kick", 100 * (b.get("with_kick_share") or 0), _scale(P["bass"].get("with_kick_share")), "%",
-        "fine: the bass already avoids the kick.", "move bass notes off the kick or sidechain harder.")
+    overlap = b.get("with_kick_share")
+    chk("Bass notes with the kick", 100 * overlap if overlap is not None else None, _scale(P["bass"].get("with_kick_share")), "%",
+        "check whether this separation supports the intended pocket.", "audition tail overlap and timing; change notes, sound/decay or level before considering sidechain.")
     chk("Bass notes per bar", b.get("notes_per_bar"), P["bass"].get("notes_per_bar"), "",
         "a busier line adds drive.", "fewer notes give the kick room.")
     chk("Hat swing", rep["drums"]["hats"].get("swing_pct"), P.get("hat_swing_pct"), "%",

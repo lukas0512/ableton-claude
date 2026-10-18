@@ -1,6 +1,6 @@
 [project]
 name = "ableton-claude"
-version = "0.1.0"
+version = "1.0.0"
 description = "MCP server that drives Ableton Live through the ClaudeBridge Remote Script"
 requires-python = ">=3.10"
 dependencies = [
@@ -9,6 +9,9 @@ dependencies = [
     "scipy>=1.11",
     "soundfile>=0.12",
     "pyloudnorm>=0.1.1",
+    "imageio-ffmpeg==0.6.0",
+    "httpx>=0.28,<1",
+    "PyJWT[crypto]>=2.10,<3",
 ]
 
 [project.scripts]
@@ -16,6 +19,7 @@ ableton-claude-mcp = "ableton_claude.server:main"
 
 [dependency-groups]
 dev = ["pytest>=8"]
+build = ["pyinstaller==6.22.0"]
 ear = [
     "beat-this",
     "demucs>=4.0.1",

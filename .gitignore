@@ -9,3 +9,7 @@ knowledge/samples_cache.json.*
 knowledge/ear/
 knowledge/samples_index.json
 knowledge/samples_index.json.*
+build/
+dist/
+*.spec
+.DS_Store

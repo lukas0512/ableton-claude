@@ -34,7 +34,15 @@ def call(cmd, args=None, timeout=70.0):
         raise BridgeOffline(
             "ClaudeBridge is not reachable on %s:%d (%s). Is Live open with ClaudeBridge "
             "selected as a Control Surface?" % (HOST, PORT, e)) from e
-    msg = json.loads(buf.split(b"\n", 1)[0].decode("utf-8"))
+    if b'\n' not in buf:
+        raise BridgeOffline('ClaudeBridge closed the connection before completing its response. '
+                            'Check Live before retrying; the command may already have run.')
+    try:
+        msg = json.loads(buf.split(b"\n", 1)[0].decode("utf-8"))
+    except (ValueError, UnicodeError) as e:
+        raise BridgeError('ClaudeBridge returned an invalid response. Check Live before retrying.') from e
+    if not isinstance(msg, dict) or msg.get('id') != req['id'] or not isinstance(msg.get('ok'), bool):
+        raise BridgeError('ClaudeBridge returned an unexpected response. Check Live before retrying.')
     if not msg.get("ok"):
         raise BridgeError(msg.get("error", "unknown error") +
                           ("\n" + msg["trace"] if msg.get("trace") else ""))

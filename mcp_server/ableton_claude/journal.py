@@ -8,9 +8,10 @@ here (deletes, range edits): those need Live's undo or the user's saved copy.
 import json
 import os
 import time
+from .storage import DATA_DIR
 
 PATH = os.environ.get("ABLETON_CLAUDE_JOURNAL",
-                      os.path.expanduser("~/.ableton-claude/journal.jsonl"))
+                      os.path.join(DATA_DIR, "journal.jsonl"))
 
 READS = {"ping", "get_song", "get_track", "get_device", "get_notes", "browse", "grooves",
          "warp_markers", "track_routing", "device_inputs", "record_status", "api_probe",
