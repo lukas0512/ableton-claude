@@ -203,8 +203,25 @@ def install_bridge(library):
             "installed": str(target), "backup": saved, "activated": activated}
 
 
+CLAUDE_CONFIG = Path.home() / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json"
+
+
+def claude_status(path=None, apps=None):
+    """Whether Claude Desktop is installed and points at this backend."""
+    path = Path(path or CLAUDE_CONFIG)
+    apps = apps if apps is not None else [Path("/Applications/Claude.app"), Path.home() / "Applications" / "Claude.app"]
+    configured = False
+    try:
+        with path.open(encoding="utf-8") as f:
+            entry = json.load(f).get("mcpServers", {}).get("ableton-claude")
+        configured = isinstance(entry, dict) and entry.get("command") == backend_command()["command"]
+    except (OSError, ValueError, AttributeError):
+        pass
+    return {"installed": any(Path(a).is_dir() for a in apps), "configured": configured}
+
+
 def configure_claude(path=None):
-    path = Path(path or Path.home() / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json")
+    path = Path(path or CLAUDE_CONFIG)
     config = {}
     if path.exists():
         with path.open(encoding="utf-8") as f:
@@ -216,6 +233,20 @@ def configure_claude(path=None):
     write_json(path, config)
     return {"message": "Conector configurado. Encerre e reabra o Claude Desktop para carregar as ferramentas.",
             "config": str(path), "backup": saved}
+
+
+def index_samples(folders):
+    """Index the user's sample folders so the AI's library_search/find_samples see them."""
+    from . import library
+    roots = [str(Path(f).expanduser()) for f in folders if Path(f).expanduser().is_dir()]
+    if not roots:
+        raise ValueError("Escolha uma pasta de samples existente.")
+    idx = library.build_index(roots)
+    if not idx["n"]:
+        raise ValueError("Nenhum arquivo de áudio encontrado nessas pastas.")
+    update_settings({"sample_folders": roots, "sample_count": idx["n"]})
+    return {"message": "%d samples indexados. No Claude, peça por exemplo: \"procure um hat crocante nos meus samples\"." % idx["n"],
+            "n": idx["n"], "roots": roots}
 
 
 def bridge_status():
@@ -242,7 +273,7 @@ def dispatch(method, params):
                 "job": genres.status(params["folder"]) if params.get("folder") else None,
                 "user_library": settings.get("user_library", detect_library()),
                 "last_folder": settings.get("genre_source", ""),
-                "settings": settings, "connection": mcp_connection().status(), "chat": producer_agent().status(),
+                "settings": settings, "claude": claude_status(), "connection": mcp_connection().status(), "chat": producer_agent().status(),
                 "auth": chatgpt_auth().status(), "production": production_session().status(), "production_projects": production_session().projects(),
                 "mcp": {"mcpServers": {"ableton-claude": backend_command()}},
                 "codex": '[mcp_servers.ableton-claude]\ncommand = ' + json.dumps(backend_command()["command"]) + '\nargs = ["--mcp"]\n'}
@@ -295,7 +326,7 @@ def dispatch(method, params):
     if method == "preview_genres":
         return preview_genres(params["folder"])
     if method == "save_settings":
-        allowed = {"onboarding_step", "onboarding_complete", "active_genre", "provider", "model"}
+        allowed = {"onboarding_step", "onboarding_complete", "active_genre", "provider", "model", "assistant"}
         return {"settings": update_settings({k: v for k, v in params.items() if k in allowed})}
     if method == "api_models":
         from .desktop_agent import available_models
@@ -349,6 +380,8 @@ def dispatch(method, params):
         return install_bridge(params["library"])
     if method == "configure_claude":
         return configure_claude()
+    if method == "index_samples":
+        return index_samples(params["folders"])
     raise ValueError("Unknown method: %s" % method)
 
 

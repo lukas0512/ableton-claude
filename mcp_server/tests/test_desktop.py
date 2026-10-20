@@ -178,3 +178,30 @@ def test_saved_project_restoration_requires_confirmation_and_missing_track_prese
 def test_development_resources_resolve_the_checkout_bridge():
     from ableton_claude.desktop import resources
     assert (resources() / 'remote_script' / 'ClaudeBridge' / 'handlers.py').is_file()
+
+
+def test_claude_status_reads_installed_app_and_this_backend(desktop_data, tmp_path, monkeypatch):
+    config = tmp_path / "claude.json"
+    app = tmp_path / "Claude.app"
+    monkeypatch.setattr(desktop, "backend_command", lambda: {"command": "/backend", "args": ["--mcp"]})
+    assert desktop.claude_status(config, apps=[app]) == {"installed": False, "configured": False}
+    app.mkdir()
+    desktop.configure_claude(config)
+    assert desktop.claude_status(config, apps=[app]) == {"installed": True, "configured": True}
+    monkeypatch.setattr(desktop, "backend_command", lambda: {"command": "/other", "args": ["--mcp"]})
+    assert desktop.claude_status(config, apps=[app])["configured"] is False
+
+
+def test_index_samples_saves_folders_and_count(desktop_data, tmp_path, monkeypatch):
+    from ableton_claude import library
+    folder = tmp_path / "Samples"
+    folder.mkdir()
+    monkeypatch.setattr(library, "build_index", lambda roots: {"n": 3, "roots": roots})
+    result = desktop.index_samples([str(folder), str(tmp_path / "missing")])
+    assert result["n"] == 3 and result["roots"] == [str(folder)]
+    assert desktop.load_settings()["sample_count"] == 3
+    monkeypatch.setattr(library, "build_index", lambda roots: {"n": 0, "roots": roots})
+    with pytest.raises(ValueError):
+        desktop.index_samples([str(folder)])
+    with pytest.raises(ValueError):
+        desktop.index_samples([str(tmp_path / "missing")])

@@ -19,6 +19,7 @@ final class AppModel: ObservableObject {
     @Published var onboardingComplete = false
     @Published var route = "studio"
     @Published var activeGenre = ""
+    @Published var assistant = ""
     let provider = "chatgpt"
     @Published var modelID = ""
     @Published var showPlanWelcome = false
@@ -69,13 +70,23 @@ final class AppModel: ObservableObject {
     var accountEmail: String { (auth["account"] as? [String: Any])?["email"] as? String ?? "" }
     var modelAvailable: Bool { models.contains(where: { $0["id"] == modelID }) }
     var canChat: Bool { hasProduction && connected && ready && mcpReady && accountConnected && modelAvailable && !awaitingLogin && !chatRunning && !busy && proposals.isEmpty && !productionNeedsResume }
+    var claude: [String: Any] { snapshot["claude"] as? [String: Any] ?? [:] }
+    var claudeInstalled: Bool { claude["installed"] as? Bool ?? false }
+    var claudeConfigured: Bool { claude["configured"] as? Bool ?? false }
+    var settings: [String: Any] { snapshot["settings"] as? [String: Any] ?? [:] }
+    var sampleCount: Int { settings["sample_count"] as? Int ?? 0 }
+    var sampleFolders: [String] { settings["sample_folders"] as? [String] ?? [] }
+    var chatgptReady: Bool { accountConnected && modelAvailable }
+    var aiReady: Bool { assistant == "claude" ? claudeConfigured : assistant == "chatgpt" && chatgptReady }
+    static let lastStep = 5
     var dataDirectory: String { snapshot["data_dir"] as? String ?? NSHomeDirectory() + "/Music/Ableton Claude" }
     var canContinue: Bool {
         switch step {
         case 1: return connected && mcpReady
-        case 2: return !genres.isEmpty && !training && !busy
-        case 3: return accountConnected && modelAvailable && !busy
-        case 4: return connected && mcpReady && !genres.isEmpty && accountConnected && modelAvailable && !busy
+        case 2: return !busy
+        case 3: return aiReady && !busy
+        case 4: return !training && !busy
+        case 5: return connected && mcpReady && aiReady && !busy
         default: return loaded
         }
     }
@@ -176,9 +187,10 @@ final class AppModel: ObservableObject {
                 if self.selectedFolder.isEmpty { self.selectedFolder = result["last_folder"] as? String ?? "" }
                 if !self.loaded {
                     let settings = result["settings"] as? [String: Any] ?? [:]
-                    self.step = min(4, max(0, settings["onboarding_step"] as? Int ?? 0))
+                    self.step = min(AppModel.lastStep, max(0, settings["onboarding_step"] as? Int ?? 0))
                     self.onboardingComplete = settings["onboarding_complete"] as? Bool ?? false
                     self.activeGenre = settings["active_genre"] as? String ?? ""
+                    self.assistant = settings["assistant"] as? String ?? ""
                     self.modelID = settings["model"] as? String ?? ""
                     self.loaded = true
                 }
@@ -213,10 +225,10 @@ final class AppModel: ObservableObject {
         }
     }
     func advance() {
-        if step < 4 { step += 1; savePreferences(["onboarding_step": step]) }
+        if step < AppModel.lastStep { step += 1; savePreferences(["onboarding_step": step]) }
         else {
             onboardingComplete = true; route = "studio"
-            savePreferences(["onboarding_complete": true, "onboarding_step": 4,
+            savePreferences(["onboarding_complete": true, "onboarding_step": AppModel.lastStep, "assistant": assistant,
                              "provider": provider, "model": modelID, "active_genre": activeGenre])
         }
         error = ""; message = ""
@@ -263,6 +275,31 @@ final class AppModel: ObservableObject {
         }
     }
     func installBridge() { perform("install_bridge", params: ["library": userLibrary]) }
+    func chooseAssistant(_ name: String) { assistant = name; savePreferences(["assistant": name]); error = "" }
+    func configureClaude() { perform("configure_claude") { _ in self.refresh() } }
+    func openClaude() { restartClaude(quitFirst: false) }
+    func restartClaude() { restartClaude(quitFirst: true) }
+    private func restartClaude(quitFirst: Bool) {
+        let running = quitFirst ? NSRunningApplication.runningApplications(withBundleIdentifier: "com.anthropic.claudefordesktop") : []
+        running.forEach { $0.terminate() }
+        let paths = ["/Applications/Claude.app", NSHomeDirectory() + "/Applications/Claude.app"]
+        guard let path = paths.first(where: { FileManager.default.fileExists(atPath: $0) }) else {
+            NSWorkspace.shared.open(URL(string: "https://claude.ai/download")!); return
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + (running.isEmpty ? 0 : 2.5)) {
+            NSWorkspace.shared.openApplication(at: URL(fileURLWithPath: path), configuration: NSWorkspace.OpenConfiguration())
+        }
+        message = running.isEmpty ? "Abrindo o Claude Desktop…" : "Reabrindo o Claude Desktop para carregar as ferramentas…"
+    }
+    func chooseSamples() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true; panel.canChooseFiles = false; panel.allowsMultipleSelection = true
+        panel.prompt = "Indexar samples"
+        panel.message = "Escolha as pastas com seus samples e loops. O Claude passa a encontrá-los por papel, tom e BPM."
+        if panel.runModal() == .OK, !panel.urls.isEmpty {
+            perform("index_samples", params: ["folders": panel.urls.map(\.path)], timeout: 600) { _ in self.refresh() }
+        }
+    }
     func openLive() {
         let apps = (try? FileManager.default.contentsOfDirectory(atPath: "/Applications")) ?? []
         if let name = apps.sorted().last(where: { $0.hasPrefix("Ableton Live") && $0.hasSuffix(".app") }) {

@@ -50,7 +50,7 @@ struct Panel<Content: View>: View {
 struct ContentView: View {
     @ObservedObject var model: AppModel
     @State private var showGuide = false
-    private let stepNames = ["Boas-vindas", "Conectar ao Live", "Aprender seu som", "Conectar sua IA", "Tudo pronto"]
+    private let stepNames = ["Boas-vindas", "Conectar ao Live", "Seus samples", "Escolher sua IA", "Ensinar seu som", "Tudo pronto"]
     var body: some View {
         HStack(spacing: 0) {
             sidebar.frame(width: 220)
@@ -71,8 +71,9 @@ struct ContentView: View {
                     }
                     if model.route == "settings" {
                         ScrollView { VStack(alignment: .leading, spacing: 24) {
-                            title("Conexão e assistente", subtitle: "Seu app conversa diretamente com a IA e mantém a conexão local com o Ableton.")
-                            AccountView(model: model)
+                            title("Conexão e assistente", subtitle: "Escolha a IA que conversa com seu projeto e mantenha a conexão local com o Ableton.")
+                            AssistantView(model: model)
+                            SamplesView(model: model)
                             LiveSetupView(model: model)
                         }.padding(32) }
                     }
@@ -152,7 +153,7 @@ struct ContentView: View {
                 }
                 Button("Meus dados", action: model.revealData).buttonStyle(.link).padding(.top, 5)
             }.font(.system(size: 11)).foregroundStyle(.secondary)
-            Text("1.0 · CANDIDATA").font(.system(size: 9, weight: .medium)).tracking(1.4).foregroundStyle(.tertiary)
+            Text("VERSÃO " + (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev")).font(.system(size: 9, weight: .medium)).tracking(1.4).foregroundStyle(.tertiary)
         }.padding(22).frame(maxHeight: .infinity).background(Color.white.opacity(0.015))
     }
     private func nav(_ label: String, symbol: String, route: String) -> some View {
@@ -168,7 +169,7 @@ struct ContentView: View {
             HStack {
                 Text("CONFIGURAÇÃO GUIADA").font(.system(size: 10, weight: .semibold)).tracking(2).foregroundStyle(.secondary)
                 Spacer()
-                Text("\(model.step + 1) de 5").font(.caption).foregroundStyle(.secondary)
+                Text("\(model.step + 1) de \(stepNames.count)").font(.caption).foregroundStyle(.secondary)
             }.padding(.horizontal, 36).padding(.top, 34)
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
@@ -178,11 +179,14 @@ struct ContentView: View {
                         title("Vamos conectar ao Ableton", subtitle: "O app prepara o MCP automaticamente. A ponte do Live só precisa ser ativada uma vez.")
                         LiveSetupView(model: model)
                     case 2:
-                        title("Ensine o seu som", subtitle: "As referências mostram ao produtor o groove, os timbres e a estrutura que você procura.")
-                        LearningView(model: model)
+                        title("Mostre seus samples", subtitle: "Indexe as pastas com seus loops e one-shots. A IA passa a escolher sons seus por papel, tom e BPM. Opcional: dá para fazer depois.")
+                        SamplesView(model: model)
                     case 3:
-                        title("Seu produtor, dentro do app", subtitle: "Conecte sua conta ChatGPT para usar seu plano nas respostas. Você acompanha todo o trabalho nesta interface.")
-                        AccountView(model: model)
+                        title("Escolha sua IA", subtitle: "Use o Claude Desktop que você já tem, ou converse com o ChatGPT dentro deste app.")
+                        AssistantView(model: model)
+                    case 4:
+                        title("Ensine o seu som", subtitle: "Opcional. As referências mostram ao produtor o groove, os timbres e a estrutura que você procura. O primeiro aprendizado baixa os modelos de áudio.")
+                        LearningView(model: model)
                     default: completion
                     }
                 }.frame(maxWidth: 820, alignment: .leading).padding(36).frame(maxWidth: .infinity, alignment: .leading)
@@ -192,10 +196,16 @@ struct ContentView: View {
                 if model.step > 0 { Button("Voltar", action: model.back).buttonStyle(.plain).foregroundStyle(.secondary) }
                 Spacer()
                 if model.busy { ProgressView().controlSize(.small) }
-                Button(model.step == 0 ? "Configurar meu estúdio" : model.step == 4 ? "Entrar no estúdio" : "Continuar", action: model.advance)
+                Button(continueLabel, action: model.advance)
                     .buttonStyle(.borderedProminent).controlSize(.large).disabled(!model.canContinue)
             }.padding(.horizontal, 36).padding(.vertical, 22)
         }
+    }
+    private var continueLabel: String {
+        if model.step == 0 { return "Configurar meu estúdio" }
+        if model.step == AppModel.lastStep { return model.assistant == "claude" ? "Concluir" : "Entrar no estúdio" }
+        if (model.step == 2 && model.sampleCount == 0) || (model.step == 4 && model.genres.isEmpty) { return "Pular por agora" }
+        return "Continuar"
     }
     private var welcome: some View {
         VStack(alignment: .leading, spacing: 26) {
@@ -203,11 +213,11 @@ struct ContentView: View {
             Text("Seu novo parceiro\nde estúdio.").font(.system(size: 44, weight: .semibold)).tracking(-1.5)
             Text("Descreva o que você quer produzir. O app aprende com suas referências, entende o projeto no Ableton e transforma suas ideias em propostas que você pode ouvir e refinar.").font(.system(size: 16)).foregroundStyle(.secondary).lineSpacing(5)
             HStack(spacing: 14) {
-                mini("Conecte", text: "Verificação automática\ndo Live e das ferramentas.", icon: "link")
-                mini("Ensine", text: "Escolha faixas que\nrepresentam o seu som.", icon: "waveform")
-                mini("Produza", text: "Prompts, propostas e\nresultados em um só lugar.", icon: "sparkles")
+                mini("Conecte", text: "Ableton, seus samples\ne o Claude em minutos.", icon: "link")
+                mini("Ensine", text: "Faixas de referência\nmostram o seu som.", icon: "waveform")
+                mini("Produza", text: "Converse com a IA, ouça\no resultado no Live.", icon: "sparkles")
             }.padding(.top, 8)
-            Label("O aprendizado musical fica no seu Mac. A conversa usa o provedor de IA que você escolher.", systemImage: "externaldrive").font(.caption).foregroundStyle(.secondary)
+            Label("Leva uns 5 minutos. Tenha o Ableton Live aberto. Seus samples e o aprendizado ficam no seu Mac.", systemImage: "clock").font(.caption).foregroundStyle(.secondary)
         }
     }
     private func mini(_ title: String, text: String, icon: String) -> some View {
@@ -216,15 +226,20 @@ struct ContentView: View {
     private var completion: some View {
         VStack(alignment: .leading, spacing: 24) {
             Image(systemName: "checkmark.circle.fill").font(.system(size: 52)).foregroundStyle(StudioStyle.accent)
-            title("Seu estúdio está pronto", subtitle: "Agora você pode produzir sem sair do app.")
+            title("Seu estúdio está pronto", subtitle: model.assistant == "claude" ? "Agora é só conversar com o Claude. Deixe este app aberto: ele mantém a ponte com o Live." : "Agora você pode produzir sem sair do app.")
             Panel {
                 Label("Ableton e ferramentas locais conectados", systemImage: "checkmark")
-                Label("\(model.genres.count) perfis musicais aprendidos", systemImage: "checkmark")
-                Label("Assistente: \(model.modelID)", systemImage: "checkmark")
+                Label(model.sampleCount > 0 ? "\(model.sampleCount) samples indexados" : "Samples: indexe depois em Conexão e IA", systemImage: model.sampleCount > 0 ? "checkmark" : "circle.dashed")
+                Label(model.genres.isEmpty ? "Nenhum gênero aprendido ainda (opcional)" : "\(model.genres.count) perfis musicais aprendidos", systemImage: model.genres.isEmpty ? "circle.dashed" : "checkmark")
+                Label(model.assistant == "claude" ? "Assistente: Claude Desktop" : "Assistente: \(model.modelID)", systemImage: "checkmark")
             }
-            Panel {
+            if model.assistant == "claude" {
+                ClaudeFirstPrompts()
+            } else {
+                Panel {
                 Text("Seu primeiro ciclo").font(.headline)
                 Text("1. Abra uma cópia do projeto no Ableton.\n2. Selecione o gênero de referência.\n3. Comece uma ideia de 4, 8 ou 16 compassos.\n4. Construa o loop, revise a proposta, aplique e ouça.\n5. Aprove o loop; desenvolva e aprove o groove.\n6. Abra o arranjo a partir do material aprovado.\n7. Compare um render e refine a próxima versão.").lineSpacing(9).foregroundStyle(.secondary)
+                }
             }
         }
     }
@@ -439,7 +454,7 @@ struct AccountView: View {
                     .font(.caption).foregroundStyle(.secondary).lineSpacing(4)
             }
             DisclosureGroup("Posso usar minha assinatura Claude?") {
-                Text("A Anthropic não disponibiliza login de assinatura Claude para apps de terceiros sem autorização específica. Este app usa o caminho oficial da OpenAI para consumir seu plano ChatGPT.").font(.caption).foregroundStyle(.secondary).padding(.top, 8)
+                Text("Sim, pelo Claude Desktop: escolha Claude Desktop acima. O app registra as ferramentas no Claude Desktop e a conversa acontece lá, no seu plano Claude. O chat dentro deste app usa o login oficial da OpenAI.").font(.caption).foregroundStyle(.secondary).padding(.top, 8)
                 Link("Regras oficiais da Anthropic", destination: URL(string: "https://code.claude.com/docs/en/agent-sdk/overview")!).font(.caption)
             }.font(.callout)
         }
@@ -466,6 +481,13 @@ struct StudioView: View {
                     }
                     Spacer()
                     Button("Nova conversa", action: model.resetChat).font(.caption).disabled(model.chatRunning || model.busy)
+                }
+                if model.assistant == "claude" && !model.accountConnected {
+                    Panel {
+                        Label("Você está usando o Claude Desktop", systemImage: "bubble.left.and.text.bubble.right").font(.headline)
+                        Text("Converse com o Claude: ele usa as ferramentas deste app para ler e mudar seu projeto no Live. Deixe este app aberto. O chat abaixo é para o ChatGPT (opcional, em Conexão e IA).").font(.callout).foregroundStyle(.secondary)
+                        Button("Abrir o Claude Desktop", action: model.openClaude)
+                    }
                 }
                 productionPanel
                 chatPanel
@@ -801,5 +823,96 @@ struct AbletonClaudeApp: App {
         WindowGroup { ContentView(model: model).onAppear { delegate.model = model } }
             .defaultSize(width: 1210, height: 840)
             .commands { CommandGroup(replacing: .newItem) {} }
+    }
+}
+
+struct SamplesView: View {
+    @ObservedObject var model: AppModel
+    var body: some View {
+        Panel {
+            HStack {
+                Image(systemName: model.sampleCount > 0 ? "checkmark.circle.fill" : "folder.badge.plus").font(.system(size: 24)).foregroundStyle(model.sampleCount > 0 ? Color.green : StudioStyle.accent)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(model.sampleCount > 0 ? "\(model.sampleCount) samples indexados" : "Suas pastas de samples").font(.headline)
+                    Text(model.sampleFolders.isEmpty ? "Escolha uma ou mais pastas: packs, Splice, sua coleção. Os arquivos não são copiados nem enviados." : model.sampleFolders.map { ($0 as NSString).lastPathComponent }.joined(separator: " · ")).font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button(model.sampleCount > 0 ? "Trocar pastas…" : "Escolher pastas…", action: model.chooseSamples).buttonStyle(.borderedProminent).disabled(model.busy || !model.ready)
+            }
+            if model.busy { HStack { ProgressView().controlSize(.small); Text("Lendo nomes e cabeçalhos dos arquivos…").font(.caption).foregroundStyle(.secondary) } }
+            Text("A indexação lê só nomes e cabeçalhos (rápido). O tom e o BPM vêm do nome do arquivo quando existem. Indexar de novo substitui as pastas anteriores.").font(.caption).foregroundStyle(.secondary)
+        }
+    }
+}
+
+struct ClaudeFirstPrompts: View {
+    var body: some View {
+        Panel {
+            Text("Primeiras mensagens para o Claude").font(.headline)
+            Text("Abra um set vazio ou uma cópia do seu projeto no Live e experimente:").font(.callout).foregroundStyle(.secondary)
+            ForEach(["Veja o status do meu projeto no Ableton e me diga o que tem nele.",
+                     "Procure nos meus samples um kick e um hat que combinem com house a 124 BPM.",
+                     "Monte um loop de 8 compassos com meus samples e um baixo em Lá menor.",
+                     "Renderize os compassos 1 a 9 e me diga o que melhorar na mix."], id: \.self) { prompt in
+                HStack {
+                    Text("“\(prompt)”").font(.callout).textSelection(.enabled)
+                    Spacer()
+                    Button { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(prompt, forType: .string) } label: { Image(systemName: "doc.on.doc") }.buttonStyle(.plain).help("Copiar")
+                }
+            }
+            Text("O Claude pede permissão na primeira vez que usa cada ferramenta. Salve no Live com ⌘S: a IA não salva por você.").font(.caption).foregroundStyle(.secondary)
+        }
+    }
+}
+
+struct AssistantView: View {
+    @ObservedObject var model: AppModel
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            HStack(spacing: 14) {
+                choice("claude", title: "Claude Desktop", text: "Use seu plano Claude. Você conversa no app do Claude; este app faz a ponte com o Live.", icon: "bubble.left.and.text.bubble.right")
+                choice("chatgpt", title: "ChatGPT no app", text: "Entre com sua conta ChatGPT e converse dentro deste app.", icon: "sparkles")
+            }
+            if model.assistant == "claude" {
+                Panel {
+                    step(1, done: model.claudeInstalled, title: model.claudeInstalled ? "Claude Desktop instalado" : "Instale o Claude Desktop") {
+                        if !model.claudeInstalled { Link("Baixar em claude.ai/download", destination: URL(string: "https://claude.ai/download")!).font(.callout) }
+                    }
+                    step(2, done: model.claudeConfigured, title: model.claudeConfigured ? "Ferramentas registradas no Claude" : "Registre as ferramentas no Claude") {
+                        Button(model.claudeConfigured ? "Registrar de novo" : "Conectar ao Claude Desktop", action: model.configureClaude)
+                            .buttonStyle(.borderedProminent).disabled(model.busy || !model.ready)
+                    }
+                    step(3, done: false, title: "Reabra o Claude para carregar as ferramentas") {
+                        Button("Reabrir o Claude Desktop", action: model.restartClaude).disabled(!model.claudeConfigured)
+                    }
+                    Text("A configuração existente do Claude é preservada, com backup. As ferramentas aparecem como ableton-claude no menu de conectores do chat.").font(.caption).foregroundStyle(.secondary)
+                }
+            } else if model.assistant == "chatgpt" {
+                AccountView(model: model)
+            }
+        }
+    }
+    private func choice(_ name: String, title: String, text: String, icon: String) -> some View {
+        Button { model.chooseAssistant(name) } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                Image(systemName: icon).font(.system(size: 20)).foregroundStyle(StudioStyle.accent)
+                Text(title).font(.headline)
+                Text(text).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }.padding(16).frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
+                .background(model.assistant == name ? StudioStyle.accent.opacity(0.13) : Color.white.opacity(0.03), in: RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(model.assistant == name ? StudioStyle.accent : StudioStyle.line, lineWidth: 1))
+        }.buttonStyle(.plain)
+    }
+    private func step<Action: View>(_ n: Int, done: Bool, title: String, @ViewBuilder action: () -> Action) -> some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle().fill(done ? Color.green.opacity(0.18) : Color.white.opacity(0.05)).frame(width: 26, height: 26)
+                if done { Image(systemName: "checkmark").font(.system(size: 11, weight: .bold)).foregroundStyle(.green) }
+                else { Text(String(n)).font(.system(size: 12, weight: .semibold)) }
+            }
+            Text(title).font(.callout)
+            Spacer()
+            action()
+        }
     }
 }

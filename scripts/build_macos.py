@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BUILD = ROOT / "build" / "macos"
 DIST = ROOT / "dist"
 APP_NAME = "Ableton Claude"
-VERSION = "1.0.0"
+VERSION = "1.2.0"
 
 
 def run(args, **kwargs):
@@ -117,9 +117,13 @@ def main():
     (image / "Comece aqui.txt").write_text(
         "ABLETON CLAUDE\n\n1. Arraste Ableton Claude para Aplicativos.\n"
         "2. Abra o app em Aplicativos e siga o onboarding guiado.\n"
-        "3. Conecte ao Live, escolha referências para aprender seu som e conecte sua conta ChatGPT pelo login oficial.\n"
-        "4. Envie prompts e acompanhe propostas e resultados dentro do próprio app.\n"
-        "O app mantém sua conexão MCP; Claude Desktop e ChatGPT não são necessários.\n\n"
+        "   Na primeira vez o macOS bloqueia (build não notarizado): Ajustes do Sistema →\n"
+        "   Privacidade e Segurança → Abrir Mesmo Assim.\n"
+        "3. Abra o Ableton Live, clique em Preparar ponte e selecione ClaudeBridge em\n"
+        "   Settings → Link, Tempo & MIDI → Control Surface (Input/Output: None).\n"
+        "4. Clique em Conectar ao Claude Desktop e em Escolher pasta de samples.\n"
+        "5. Encerre (Cmd+Q) e reabra o Claude Desktop: as ferramentas ableton-claude aparecem.\n"
+        "   Trabalhe numa cópia do seu projeto; o Live não tem API de salvar, salve com Cmd+S.\n\n"
         "O primeiro treino baixa os modelos de áudio. Internet é necessária para esses downloads.\n"
         "Dados por usuário: ~/Music/Ableton Claude/\n"
         "Este build local usa assinatura ad hoc e ainda não foi notarizado pela Apple.\n"
