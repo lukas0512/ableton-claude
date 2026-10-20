@@ -5,7 +5,10 @@ Start with README.md (pieces, tools, Live API limits) and the MCP server instruc
 
 Lessons for whichever AI drives the connector live in
 `mcp_server/ableton_claude/briefs/lessons.md` (served by `producer_brief`): add new production
-lessons there, not only here. The method is `briefs/producer.md`.
+lessons there, not only here. The method is `briefs/producer.md`. The producer's own feedback,
+distilled into rules with the numbers that passed, is `briefs/taste.md` (also served by
+`producer_brief`): when he gives new feedback on a track, fold it in there. Run the
+`quality_gate` tool before handing any version over: it catches the mistakes that reached him.
 
 Rules that cost real time to learn:
 

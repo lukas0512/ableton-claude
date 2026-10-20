@@ -501,7 +501,9 @@ def get_track(ctx, track, clips=True, max_clips=200, markers=False):
          "devices": [{"i": i, "name": dv.name, "class": dv.class_name,
                       "on": dv.parameters[0].value > 0 if len(dv.parameters) else None}
                      for i, dv in enumerate(t.devices)]}
-    if clips and hasattr(t, "arrangement_clips"):
+    # group tracks raise RuntimeError (not AttributeError) on arrangement_clips
+    if clips and not getattr(t, "is_foldable", False) and t != ctx.song.master_track \
+            and t not in ctx.song.return_tracks:
         cl = _arr_clips(t)
         d["n_clips"] = len(cl)
         d["clips"] = [dict(_clip_info(c, markers), i=i) for i, c in enumerate(cl[:max_clips])]
@@ -725,6 +727,17 @@ def _note_specs(notes):
     return tuple(specs)
 
 
+def _envelope_check(c, envelopes):
+    """Live 12.4 drops a Session clip's envelopes when it copies the clip into the
+    Arrangement: say so instead of returning a clip that silently does nothing."""
+    if envelopes and not getattr(c, "has_envelopes", True):
+        return {"envelopes_lost": True,
+                "warning": "Live dropped the clip envelopes on the copy to the Arrangement; "
+                           "use velocity, a separate track with fixed settings, or clips "
+                           "per stage instead"}
+    return {}
+
+
 @command
 def create_midi_clip(ctx, track, length, notes=None, name=None, beat=None, bar=None,
                      loop=False, envelopes=None):
@@ -760,7 +773,7 @@ def create_midi_clip(ctx, track, length, notes=None, name=None, beat=None, bar=N
     if c is None:
         raise RuntimeError("clip not created")
     return dict(_clip_info(c), method=method, n_notes=len(notes or []),
-                n_envelopes=len(envelopes or []))
+                n_envelopes=len(envelopes or []), **_envelope_check(c, envelopes))
 
 
 @command
@@ -812,7 +825,8 @@ def create_audio_clip(ctx, track, path, beat=None, bar=None, name=None, warp=Non
         method = "native"
     if c is None:
         raise RuntimeError("audio clip not created")
-    return dict(_clip_info(c), method=method, n_envelopes=len(envelopes or []))
+    return dict(_clip_info(c), method=method, n_envelopes=len(envelopes or []),
+                **_envelope_check(c, envelopes))
 
 
 def _set_clip_gain_db(c, db):
@@ -1313,13 +1327,15 @@ def copy_device(ctx, src_track, src_device, track, device):
             "skipped": skipped[:20]}
 
 
-_SETTABLE_PROPS = {"global_mode", "edit_mode", "oversample"}   # EQ Eight: 0 Stereo, 1 L/R, 2 M/S
+# EQ Eight: global_mode 0 Stereo, 1 L/R, 2 M/S. Simpler: playback_mode 0 Classic, 1 One-Shot.
+_SETTABLE_PROPS = {"global_mode", "edit_mode", "oversample", "playback_mode"}
 
 
 @command
 def set_device_prop(ctx, track, device, prop, value):
     """Set a device property that is not a parameter, from a short whitelist (EQ Eight's
-    global_mode for Mid/Side, edit_mode to edit channel B, oversample)."""
+    global_mode for Mid/Side, edit_mode to edit channel B, oversample; Simpler's
+    playback_mode for one-shot drums)."""
     if prop not in _SETTABLE_PROPS:
         raise ValueError("prop must be one of %s" % sorted(_SETTABLE_PROPS))
     d = _device(_track(ctx, track), device)
@@ -1703,7 +1719,13 @@ def apply_groove(ctx, track, groove=None, start_bar=None, end_bar=None):
             continue
         if g is None:
             if getattr(c, "has_groove", False):
-                del c.groove          # Live refuses None; the property supports delete
+                try:
+                    del c.groove      # Live refuses None; older versions support delete
+                except AttributeError:
+                    # Live 12.4 has no deleter and still refuses None: no API clears it
+                    raise ValueError("this Live version cannot clear a clip's groove "
+                                     "through the API; neutralise it instead with "
+                                     "set_groove(name, timing=0, random=0, velocity=0)")
         else:
             c.groove = g
         done += 1
@@ -1727,6 +1749,28 @@ def transport_state(ctx):
             v = getattr(s, k)
             out[k] = v if isinstance(v, (bool, int, float, str)) or v is None else str(v)
     return out
+
+
+@command
+def drum_pads(ctx, track):
+    """The notes of the track's Drum Rack pads that hold a sound (a note elsewhere is
+    silent: the 909 ride and tom once played pitch 60, an empty pad, for twenty versions)."""
+    t = _track(ctx, track)
+    for d in t.devices:
+        if getattr(d, "can_have_drum_pads", False):
+            return {"device": d.name,
+                    "pads": sorted(p.note for p in d.drum_pads if len(p.chains))}
+    return {"device": None, "pads": []}
+
+
+@command
+def re_enable_automation(ctx):
+    """Live's Re-Enable Automation: setting a mixer value that a clip envelope drives
+    (set_track volume on a clip with a volume ramp) overrides that envelope until this."""
+    s = ctx.song
+    if getattr(s, "re_enable_automation_enabled", False):
+        s.re_enable_automation()
+    return {"re_enable_automation_enabled": bool(getattr(s, "re_enable_automation_enabled", False))}
 
 
 def _warp_info(c):

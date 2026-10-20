@@ -150,9 +150,10 @@ def _brief(name: str) -> str:
 @mcp.tool()
 def producer_brief() -> str:
     """The working brief for every production or mix task: how to inspect, diagnose,
-    prioritize, change and verify a project, and the lessons learned on real tracks.
+    prioritize, change and verify a project, the producer's quality bar (his feedback,
+    distilled: briefs/taste.md) and the lessons learned on real tracks.
     Read it before changing anything."""
-    return _brief("producer") + "\n\n" + _brief("lessons")
+    return _brief("producer") + "\n\n" + _brief("taste") + "\n\n" + _brief("lessons")
 
 
 @mcp.prompt(name="produce", description="Take the open Live project to a club-ready release, by the producer brief.")
@@ -215,6 +216,17 @@ def ableton_batch(commands: list[dict]) -> list:
             if rid is not None:
                 r["change_id"] = rid
     return out
+
+
+@mcp.tool()
+def quality_gate() -> dict:
+    """Static checks of the open set before a version goes to the producer (no render, no
+    change): render/measurement tracks left in the set, clip automation overridden by a
+    fader move, hot Simplers, notes on empty Drum Rack pads, drum parts in different swing
+    pockets, voices in different spaces, an unsafe master, fewer than two drops. Each was
+    a real mistake (briefs/taste.md). Fix every "error" before you hand a version over."""
+    from . import quality_gate as gate
+    return gate.run(client.call)
 
 
 @mcp.tool()

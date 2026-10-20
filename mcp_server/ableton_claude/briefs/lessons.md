@@ -380,3 +380,120 @@ loops). Start a new track's drums from it; what makes it work:
   ceiling while the off-beat bass passed, so the bass read louder than the kick. Set the
   balance with no limiter first (kick peak >= 5 dB over the off-beat, body ~5-8 dB over the
   bass), then add drive. One bass layer: a sine sub under an FM bass beat against a 53 Hz kick.
+
+## Traps found arranging "Nobody"-style from a reference (2026-10-19, Live 12.4.2)
+
+- Live 12.4 drops a Session clip's envelopes when it copies the clip into the Arrangement:
+  a filter sweep and a kick volume ramp built with `create_*_clip(envelopes=...)` played
+  flat (`has_envelopes` False). The bridge now returns `envelopes_lost`. Shape tension
+  without envelopes: velocity ramps on a dedicated track (Simpler Vol<Vel 100 %), a track
+  with fixed filter settings per stage, or separate clips per stage.
+- A low-pass at 320 Hz does not "filter" a bass: its body (~100 Hz) passes and the break
+  read as full. The references' break bass has no low end (-35 dB in the bass band): use a
+  high-pass (~280 Hz) and bring the full bass and sub back on the drop.
+- A Simpler in One-Shot mode ignored `S Length` and `Fade Out` for shortening a kick
+  (decay unchanged at 174 ms to -20 dB). Classic mode, sustain 0 dB, release 60 ms, and
+  the note length (a 16th) cuts the tail cleanly while keeping the body.
+- Live auto-assigns its default groove ("Swing 16ths 66") to every new MIDI clip; with the
+  swing baked into the notes this doubles the swing as soon as Global Amount is raised.
+  Live 12.4 cannot clear a clip's groove through the API: set the pool groove's timing,
+  random and velocity to 0.
+- With the limiter working, a section without a loud kick plays louder (less gain
+  reduction): 141-148 with a thin kick read 0.7 LU over the groove and hid the drop. The
+  drop came back by holding the low end back (high-passed bass) until it.
+- A render froze Live on "Buffering samples… 0 %" (main thread blocked, bridge and
+  accessibility silent, 0 % CPU) with 1.4 GB free on the system disk: the recording stopped at
+  786 KB. The Desktop and Documents folders sync with iCloud ("Optimize Mac Storage"), which
+  evicts project samples and old renders when the disk fills, so Live waits on files that
+  cannot download. Before a long render check `df -h /` (keep 10 GB+ free) and that no sample
+  in the set is `dataless` (`ls -lO`).
+
+## Traps found building a rap-vocal house remix (2026-10-20, Live 12.4.6)
+
+- A sample loaded from the browser onto a MIDI track lands in a Simpler at -12 dB Volume, and
+  the Let The Rhythm kit's faders assume that. Setting the one-shots' Simpler to 0 dB put the
+  kick 12 dB over its fader plan: the first render read sub 52 % (refs 32 %), the rap 24 dB
+  and the keys 38 dB under the drums. Leave drum Simplers at -12 dB; balance with faders.
+- Live's default Compressor here has its sidechain EQ on (high-pass 80 Hz): a kick
+  sidechain then hears only the click. Turn `S/C EQ On` off for kick ducking. Give
+  `set_param` displays with their unit ("0.50 ms", "70.0 ms"): a bare "0.5" set 500 ms.
+- An arrangement audio clip keeps its file's length; `length` on `create_audio_clip` only
+  moves the loop end. Loop a 2-bar loop with `fill_range` starting one cycle AFTER the source:
+  a fill that starts on the source clip duplicates onto it, replaces it, and fails on the
+  dead clip handle.
+- Rap phrases for a remix: two-stem htdemucs vocals, mono centre, HP 90 Hz, cut bar-aligned
+  at the source tempo and warped Complex Pro to the house tempo. A rap's hook is the vocal
+  block that repeats: bar-level self-similarity of the vocal stem (24 log bands x 16 slices
+  per bar, 4-bar windows) found City 2 City's hook at bars 20-27 = 40-47 = 56-63 and Murder's
+  at 41-48 = intro. For a rap protagonist, ~8 dB under the drums (stem RMS) read clear.
+- List parameters take `item=`, never `display=`: `display="High Pass 48dB"` on EQ Eight's
+  filter type set "Low Pass 48dB" at 34 Hz on the LOW END bus, and the render lost kick,
+  bass and sub (sub 1.2 % of the drop). Read the returned display after every list set.
+- Markers do not resize an arrangement clip: a 2-bar loop created unwarped kept its
+  10.9-beat file length after `end_marker=8`. `trim_clip` the last clip of every range.
+- Harmony for a rap remix comes best from the originals themselves: the producer heard a
+  generic House Stab as "timbre estranho, toca muitas vezes, não combina com o vocal". The
+  originals' htdemucs 'other' stems loop every 2 bars (self-similarity 0.51 at lag 2):
+  a 2-bar loop from the least-vocal bars, warped per 16th, carries the record's own timbre.
+- Set levels from the kick down, measured: render each element soloed over the same 8 drop
+  bars with the master limiter off (the sum stays linear) and compare integrated LUFS with
+  the soloed kick. The producer heard the riffs "louder than drums and bass" at riff -10,
+  vocal -11, clap -13 LU against the kick, and the sub at -25 LU ("falta sub, é club"):
+  aim bass -3, sub -6, clap -9, lead riff/vocal -12, a back synth -18, FX -14.
+- Returns: full mix minus the mix with one return muted (limiter off) is that return.
+  Both reverbs added ~-14 LU vs the kick with 75-78 % of it at 250 Hz-2 kHz: "something
+  with a lot of reverb in the background, strange". Keep each ~-20 LU, high-passed at
+  350-500 Hz. A return without a user name is renamed after its chain ("A-Reverb | EQ
+  Eight") once a 2nd device lands: address returns by index (`return:0`).
+- Rap stems from demucs carry the DJ's scratches with the voice: a hook that repeats the
+  intro bar for bar is usually the scratched part. Use the rap verses as the vocal and
+  the scratch as a rare FX at bar changes; repeated chops "perdem a graça".
+- Rap syllables sit 30 ms off the grid at house tempo; flows are 16th-based (not
+  triplets) when onsets cluster at 0/¼/½/¾ of the beat. Warp markers on the syllables,
+  moved 60 % onto their 16th (+ the kit's swing), halved the deviation (31 -> 14 ms).
+- An original's own bass riff (the ear's transcription) beat a generic tresillo: "esse
+  baixo combinou muito". Its holes are where the other loops speak: duck the loops with a
+  compressor keyed by the bass instead of gating them ("não devia ter encurtado os loops").
+- Live strips trailing spaces from track names: a measurement render named "lvl LOOP CITY - "
+  became "lvl LOOP CITY -", the cleanup matched nothing, and two soloed loop renders kept
+  playing in the drop at 0 dB for four versions (the producer heard "riffs louder than the
+  drums", "scratch stealing the drop", phasing). Strip names before matching, and list the
+  set's tracks after every measurement pass.
+- Neutralising the pool groove (to avoid double swing on notes with swing baked in) also
+  removes its velocity accents: the Let The Rhythm hats went "muito retos". Bake the kit's
+  measured accent map into the velocities (on-beat 16ths ~-11 dB under the off-beat 8ths)
+  and set the Simpler's Vol < Vel to 100 % so velocity is level.
+- The producer's club form, asked for explicitly ("não é um pop"): intro A drums (16, DJ),
+  intro B layers one by one (16), groove (16), break 1 (8) + build 1 (8) with a 2-beat
+  breath, DROP 1 (32, its lead layer entering in the 2nd 8), main break (16) + a bigger
+  build (16), DROP 2 (32, everything from bar 1: strongest), outro A (16) + drums-only
+  outro B (16). 192 bars at 125 BPM.
+- `set_cue` beyond the song's current length fails ("Cannot set the Songtime behind the
+  Songlength"): rebuild clips first, place locators last.
+- Transposing a riff an octave down can push its lowest note under a bus high-pass (a B0
+  turn note sat at 31 Hz under the LOW END's 36 Hz cut for nine versions): clamp the
+  register after any transposition.
+- One pocket: every 16th part must swing the same amount. Hats at +15.7 ms against congas,
+  toms and bass at +10.8 ms and a shaker at -10.4 ms (an offset applied twice) read as
+  "a bateria tá desconexa, os hats perdidos". Measure each part's off-16th offset.
+- A kick-keyed bus compressor with its threshold under the kick's post-fader level (-28 dB
+  against a -16 LUFS kick) took ~12 dB off the harmony bus: the riffs fell to -22 LU under
+  the kick and the track "desconexa". Re-measure soloed after any bus dynamics.
+- Drum Rack parts keep their pad pitch: forcing single-pitch parts to 60 (right for
+  Simplers) left the 909 ride and tom on an empty pad for twenty versions.
+- Chop a vocal for repetition from its detected syllable onset, unwarped, attack on the
+  grid; grid slices of a warped phrase cut words and were heard as "mal warpada, feia".
+- Setting a fader (`set_track volume_db`) on a track whose clips carry volume envelopes
+  turns Live's "Re-Enable Automation" on and silently disables those ramps (the builds'
+  rising levels). Call `re_enable_automation` after any such fader move.
+- Gain staging before faders: a Simpler at 0 dB on a normalised sample (velocity 118) plus a
+  Saturator's +5 dB drive ran the bass chain over 0 dBFS behind a -19 dB fader; the
+  producer saw it clip ("esses erros não podem acontecer"). Keep sources ~-6 dBFS into
+  their effects (Simpler -12 dB default), drive saturators from there, then set the fader.
+- When clearing a bar range, a clip that starts in the next section's half-beat pre-roll
+  belongs to that section: a pre-drop cleanup deleted both drops' hook vocals.
+- A pre-drop the producer can call characteristic: the whole track stops for one bar and
+  the title line stands alone a cappella, its last word thrown into the delay, a reversed
+  crash, then the drop (plus a DJ rewind before the main drop).
+- `render_wait` times out at the MCP client (~60 s) on renders longer than that: poll
+  `record_status`, then analyse the WAV with `scripts/validate_render.py`.
