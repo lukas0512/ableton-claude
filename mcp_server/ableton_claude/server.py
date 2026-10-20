@@ -1,6 +1,7 @@
 """MCP server exposing Ableton Live (via ClaudeBridge) and audio analysis to Claude."""
 import os
 import time
+from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
@@ -124,6 +125,13 @@ A good track, step by step:
     feel becomes a Groove Pool file with extract_groove.
 10. Re-render and compare again. Measurements catch technical problems; they do not
     judge groove or taste: say so, and ask the user to listen.
+
+A remix from an original's stems (demucs 'vocals' / 'other'): remix_plan finds the hooks;
+rap_phrase cuts each phrase and places it warped syllable by syllable into the set's swing;
+onset_chop makes chops that start on a real attack; stem_loop takes the originals' own
+instruments as 2-bar loops and place_loop lays them out per section with a filter
+envelope; breakbeat_loop puts a drum break into the same pocket. Then solo_levels sets
+every fader against the kick (the kick always loudest) and lists who masks whom.
 """
 
 def _instructions():
@@ -713,6 +721,255 @@ def remix_plan(path: str, genre: str = "tech house", target_bpm: float | None = 
         tempo_basis = "explicit target_bpm"
     out = remix.plan(EL.listen(path, bpm_hint=source_bpm), genre, target_bpm, target_tonic)
     out["target"]["tempo_basis"] = tempo_basis
+    return out
+
+
+# ------------------------------------------------------------ remixing from stems
+
+def _source(stem, out_dir, source_bpm, source_downbeat, source_mix, source_beats):
+    """(bpm, downbeat s, detected beats, out_dir) of an original: given, or heard on its mix."""
+    from . import stem_remix as sr
+    out_dir = out_dir or sr.default_out_dir(stem)
+    if source_bpm and source_downbeat is not None:
+        return source_bpm, source_downbeat, source_beats, out_dir
+    if not source_mix:
+        raise ValueError("give source_bpm and source_downbeat, or source_mix (the original "
+                         "full mix) to detect its beats")
+    g = sr.source_grid(source_mix, bpm_hint=source_bpm, cache_dir=out_dir)
+    return source_bpm or g["bpm"], g["downbeat"] if source_downbeat is None else source_downbeat, \
+        source_beats or g["beats"], out_dir
+
+
+def _pocket(swing_ms):
+    """(tempo, swing ms): the set's tempo and, unless given, the set's measured pocket."""
+    from . import stem_remix as sr
+    tempo = client.call("get_song")["tempo"]
+    return tempo, (sr.set_pocket_ms(client.call) if swing_ms is None else swing_ms)
+
+
+@mcp.tool()
+def rap_phrase(stem: str, source_bar: int, bars: int, source_bpm: float | None = None,
+               source_downbeat: float | None = None, source_mix: str | None = None,
+               source_beats: list[float] | None = None, name: str | None = None,
+               out_dir: str | None = None, track: str | int | None = None,
+               bar: float | None = None, swing_ms: float | None = None,
+               quantize: float = 0.6, warp_mode: str = "complex_pro") -> dict:
+    """Cut a rap/vocal phrase from a vocal stem and (with `track` and `bar`) place it in
+    the set warped onto the track's grid syllable by syllable.
+
+    The phrase is `bars` bars from source bar `source_bar` (bar 1 starts at
+    `source_downbeat` s) plus half a beat of pre-roll for the pickup. Every source 16th
+    gets a warp marker; where a syllable starts within 0.35 of a 16th of one, the marker
+    sits on the syllable and moves it `quantize` (0.6) of the way onto the 16th, the
+    off-beat 16ths `swing_ms` late (default: the set's own pocket, measured from its MIDI
+    parts). A straight rap over swung hats reads early; a hard quantize sounds robotic.
+    Source grid: give source_bpm + source_downbeat (and source_beats, the original's
+    detected beats, to follow its drift), or source_mix = the original full mix to detect
+    them (Beat This, cached). The take is mono centre, HP 90 Hz, gated between words.
+    The clip starts half a beat before `bar` (Complex Pro keeps the voice's pitch).
+    Audition the bar offsets: a hook found by ear can be one bar off."""
+    from . import stem_remix as sr
+    bpm, down, beats, out_dir = _source(stem, out_dir, source_bpm, source_downbeat, source_mix,
+                                        source_beats)
+    tempo, swing = _pocket(swing_ms)
+    name = name or "%s %d-%d" % (Path(stem).parent.name[:24], source_bar, source_bar + bars - 1)
+    m = sr.cut_phrase(stem, Path(out_dir) / ("%s.wav" % name), bpm, down, source_bar, bars,
+                      sr.swing_beats(swing, tempo), beats, quantize)
+    m.update(name=name, swing_ms=swing, tempo=tempo, source_bpm=bpm)
+    m["meta"] = sr.save_meta(out_dir, name, m)
+    if track is not None and bar is not None:
+        at = (bar - 1) * 4 - m["preroll"]
+        m["placed"] = sr.place_warped(_journaled, track, m["path"], at, m["clip_beats"],
+                                      m["markers"], name="%s (src bar %d)" % (name, source_bar),
+                                      warp_mode=warp_mode)
+    m["n_markers"] = len(m.pop("markers"))
+    return m
+
+
+@mcp.tool()
+def onset_chop(stem: str, source_bar: int, source_beat: float = 0.0,
+               source_bpm: float | None = None, source_downbeat: float | None = None,
+               source_mix: str | None = None, source_beats: list[float] | None = None,
+               lengths: dict | None = None, label: str = "chop", out_dir: str | None = None,
+               track: str | int | None = None, at_beats: list[float] | None = None,
+               length: str | None = None) -> dict:
+    """Vocal chops that start at a real syllable attack, unwarped (the voice keeps its own
+    speed). The strongest onset within -150/+300 ms of source bar `source_bar` beat
+    `source_beat` starts the chop (4 ms before it); `lengths` = {name: seconds}, default
+    long 0.9 s and short 0.4 s. A chop sliced on the grid from a warped phrase cut the
+    syllables in half: this one does not. With `track` and `at_beats` (song beats,
+    0-based) each chop of `length` (default the first) is placed so its attack lands on
+    the beat. Returns the files and the attack's offset from the source grid."""
+    from . import stem_remix as sr
+    bpm, down, beats, out_dir = _source(stem, out_dir, source_bpm, source_downbeat, source_mix,
+                                        source_beats)
+    files, lead = sr.onset_chops(stem, out_dir, bpm, down, source_bar, beats, source_beat,
+                                 lengths, label=label)
+    out = {"files": files, "attack_vs_grid_s": round(lead, 4)}
+    if track is not None and at_beats:
+        tempo = client.call("get_song")["tempo"]
+        path = files[length or next(iter(files))]
+        early = sr.CHOP_LEAD_S * tempo / 60
+        out["placed"] = []
+        for b in at_beats:
+            at = round(b - early, 4)
+            _journaled("create_audio_clip", {"track": track, "path": path, "beat": at,
+                                             "warp": False, "name": Path(path).stem})
+            out["placed"].append(at)
+    return out
+
+
+@mcp.tool()
+def stem_loop(other_stem: str, vocal_stem: str | None = None, bars: int = 2,
+              source_bar: int | None = None, source_bpm: float | None = None,
+              source_downbeat: float | None = None, source_mix: str | None = None,
+              source_beats: list[float] | None = None, name: str | None = None,
+              out_dir: str | None = None, swing_ms: float | None = None,
+              first_bar: int = 1, last_bar: int | None = None) -> dict:
+    """A loop from the original's own instruments (the demucs 'other' stem): harmony and
+    timbre that fit the vocal, where new keys "didn't fit the vocal or the song".
+    Without `source_bar` it picks the `bars`-bar window (bars first_bar..last_bar) with
+    the least vocal bleed (vocal_stem level against the window) that is most typical of
+    the song (band profile nearest the median window: not a fill or a break), and returns
+    the top candidates to audition. The loop is cut on the source downbeats with a warp
+    marker on every 16th, the off-beats `swing_ms` late (default: the set's pocket).
+    Lay it out with place_loop(track, loop=<this result>, ...). Measure its tuning against
+    the kit before layering (pack and stem loops can sit cents off)."""
+    from . import stem_remix as sr
+    bpm, down, beats, out_dir = _source(other_stem, out_dir, source_bpm, source_downbeat,
+                                        source_mix, source_beats)
+    x, rate = sr.read_stereo(other_stem)
+    cands = []
+    if source_bar is None:
+        voc = sr.read_stereo(vocal_stem)[0] if vocal_stem else None
+        cands = sr.loop_candidates(x, rate, bpm, down, bars, voc, beats, first_bar, last_bar)
+        if not cands:
+            return {"error": "no window with sound in bars %s-%s" % (first_bar, last_bar)}
+        source_bar = cands[0]["bar"]
+    tempo, swing = _pocket(swing_ms)
+    name = name or "%s loop src %d-%d" % (Path(other_stem).parent.name[:24], source_bar,
+                                          source_bar + bars - 1)
+    m = sr.cut_loop(x, rate, Path(out_dir) / ("%s.wav" % name), bpm, down, source_bar, bars,
+                    sr.swing_beats(swing, tempo), beats)
+    m.update(name=name, swing_ms=swing, candidates=cands[:5])
+    m["meta"] = sr.save_meta(out_dir, name, m)
+    return m
+
+
+@mcp.tool()
+def breakbeat_loop(path: str, loop_bpm: float | None = None, swing_ms: float | None = None,
+                   quantize: float = 0.7, out_dir: str | None = None) -> dict:
+    """A drum break (a sampled loop) warped into the track's pocket: its own 16th grid at
+    `loop_bpm` (default: read from the file name, e.g. "_120_"), each hit within 0.4 of a
+    16th moved `quantize` (0.7) of the way onto the 16th, the off-beats `swing_ms` late
+    (default: the set's pocket). A break in its own swing pulls against the kit.
+    Lay it out with place_loop(track, loop=<this result>, ...); high-pass it (~120 Hz) so
+    the low end stays the kick's, and EQ it toward the kit (box and fizz down)."""
+    from . import stem_remix as sr
+    loop_bpm = loop_bpm or sr.loop_bpm_from_name(path)
+    if not loop_bpm:
+        return {"error": "give loop_bpm (none in the file name)"}
+    tempo, swing = _pocket(swing_ms)
+    x, rate = sr.read_stereo(path)
+    markers, beats = sr.break_loop(x, rate, loop_bpm, sr.swing_beats(swing, tempo), quantize)
+    m = {"path": str(path), "beats": beats, "markers": markers, "loop_bpm": loop_bpm,
+         "swing_ms": swing, "name": Path(path).stem}
+    m["meta"] = sr.save_meta(out_dir or sr.default_out_dir(path), Path(path).stem, m)
+    return m
+
+
+@mcp.tool()
+def place_loop(track: str | int, loop: dict, start_bar: int, end_bar: int,
+               play_bars: str = "all", filter_from_hz: float | None = None,
+               filter_to_hz: float | None = None, filter_open_beats: float | None = None,
+               ramp_db: list[float] | None = None, end_gap_beats: float = 0.0,
+               out_dir: str | None = None, warp_mode: str = "complex_pro") -> dict:
+    """Lay a warped loop (from stem_loop or breakbeat_loop: {path, beats, markers}) over
+    bars [start_bar, end_bar) as ONE clip: the loop tiled at source time into a section
+    file, so there are no loop seams and one envelope runs across the section.
+    play_bars: "all", "odd" (1st, 3rd.. bar of the section) or "even" (2nd, 4th..: a loop
+    that answers in the 2nd bar of each pair); silent bars get 5 ms fades.
+    filter_from_hz/filter_to_hz: an Auto Filter Frequency envelope across the section
+    (loaded on the track if missing), reaching filter_to_hz at filter_open_beats if given.
+    ramp_db: [from, to] clip volume (dB fader values) for a build. end_gap_beats leaves
+    the section's last beats empty (a breath before a drop)."""
+    from . import stem_remix as sr
+    bars = end_bar - start_bar
+    if bars <= 0:
+        return {"error": "end_bar must be after start_bar"}
+    gate = {"all": None, "odd": lambda k: k % 2 == 0, "even": lambda k: k % 2 == 1}[play_bars]
+    out_dir = out_dir or sr.default_out_dir(loop["path"])
+    path, mk = sr.section_file(loop, bars, Path(out_dir) / (
+        "%s %d-%d%s.wav" % (Path(loop["path"]).stem[:40], start_bar, end_bar - 1,
+                            "" if play_bars == "all" else " " + play_bars)), gate)
+    beats = bars * 4 - end_gap_beats
+    envs = []
+    if filter_from_hz:
+        sr.ensure_auto_filter(_journaled, track)
+        envs.append(sr.filter_envelope(filter_from_hz, filter_to_hz or filter_from_hz, beats,
+                                       filter_open_beats))
+    if ramp_db:
+        envs.append({"param": "volume", "unit": "db", "points": [[0, ramp_db[0]], [beats, ramp_db[1]]]})
+    return sr.place_warped(_journaled, track, path, (start_bar - 1) * 4, beats, mk, envs,
+                           warp_mode=warp_mode)
+
+
+_SOLO = {}
+
+
+@mcp.tool()
+def solo_levels(tracks: list[str], start_bar: int, end_bar: int, kick: str = "KICK",
+                spectra: bool = True, mask_db: float = 6.0) -> dict:
+    """Measure every element on its own: each of `tracks` (and `kick`) soloed over bars
+    [start_bar, end_bar) with the master limiter off, rendered, its integrated LUFS
+    against the soloed kick (vs_kick_lu) and its 1/3-octave spectrum; then a masking
+    report: per band, the loudest element and every other within `mask_db` dB of it.
+    Set faders from vs_kick_lu (the kick always loudest; From The Streets: bass -3, clap
+    -9, snare -15, hats -16..-17, music loops -12..-18, vocal -12 LU). Sparse parts read
+    low in integrated LUFS: judge them by ear too.
+    Runs in the background, in real time (~(bars x 4 x 60 / tempo + 6) s per element;
+    measure 8 bars of a drop): poll solo_levels_status, do not touch Live meanwhile.
+    Render tracks are deleted (names matched stripped: Live drops trailing spaces) and
+    solos and the limiter are restored even on failure."""
+    from . import solo_pass
+    if _SOLO.get("state") == "running":
+        return {"state": "running", "log": _SOLO["log"][-5:]}
+    if client.call("record_status").get("state") in ("recording", "finalizing"):
+        return {"error": "a render is running: measure after it"}
+    tempo = client.call("get_song")["tempo"]
+    n = len(set(tracks) | {kick})
+    job = {"state": "running", "log": [], "started": time.time(),
+           "expected_s": solo_pass.expected_seconds(n, start_bar, end_bar, tempo)}
+    _SOLO.clear()
+    _SOLO.update(job)
+
+    def work():
+        try:
+            _SOLO["result"] = solo_pass.run(client.call, tracks, start_bar, end_bar, kick=kick,
+                                            spectra=spectra, mask_db=mask_db,
+                                            log=_SOLO["log"].append)
+            _SOLO["state"] = "done"
+        except Exception as e:
+            _SOLO["state"], _SOLO["error"] = "failed", "%s: %s" % (type(e).__name__, e)
+
+    import threading
+    threading.Thread(target=work, name="solo_levels", daemon=True).start()
+    return {"state": "running", "expected_s": job["expected_s"],
+            "next": "call solo_levels_status() until it is done"}
+
+
+@mcp.tool()
+def solo_levels_status(wait_s: float = 50) -> dict:
+    """Progress or result of the running solo_levels pass (waits up to wait_s for it)."""
+    deadline = time.time() + wait_s
+    while _SOLO.get("state") == "running" and time.time() < deadline:
+        time.sleep(1.0)
+    if not _SOLO:
+        return {"error": "no solo_levels pass in this session"}
+    out = {k: _SOLO[k] for k in ("state", "error", "result") if k in _SOLO}
+    if _SOLO.get("state") == "running":
+        out.update(log=_SOLO["log"][-5:], elapsed_s=round(time.time() - _SOLO["started"]),
+                   expected_s=_SOLO["expected_s"])
     return out
 
 

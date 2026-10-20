@@ -497,3 +497,7 @@ loops). Start a new track's drums from it; what makes it work:
   crash, then the drop (plus a DJ rewind before the main drop).
 - `render_wait` times out at the MCP client (~60 s) on renders longer than that: poll
   `record_status`, then analyse the WAV with `scripts/validate_render.py`.
+- The remix's methods are tools now: `rap_phrase` (syllable-quantized warp into the set's
+  pocket), `onset_chop`, `stem_loop` + `place_loop` (the originals' own instruments),
+  `breakbeat_loop`, and `solo_levels` (levels vs the kick, masking). Start the next vocal
+  remix from them, not from a one-off script.

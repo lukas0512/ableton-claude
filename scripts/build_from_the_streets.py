@@ -18,7 +18,7 @@ import soundfile as sf
 from scipy import ndimage, signal
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "mcp_server"))
-from ableton_claude import client, server  # noqa: E402
+from ableton_claude import client, server, stem_remix  # noqa: E402
 from ableton_claude.music import kits  # noqa: E402
 
 BPM = 122.0
@@ -124,78 +124,30 @@ def beat(bar):
 
 
 # ---------------------------------------------------------------- phrases (offline)
-def _hp(x, hz, sr):
-    return signal.sosfiltfilt(signal.butter(2, hz, "highpass", fs=sr, output="sos"), x, axis=0)
+# The methods live in the package now (ableton_claude/stem_remix.py, the rap_phrase,
+# onset_chop, stem_loop, breakbeat_loop and place_loop tools); these wrappers keep this
+# script's stages working with its own constants.
+_hp = stem_remix.highpass
+_edge = stem_remix.edge
+syllable_onsets = stem_remix.syllable_onsets
 
-
-def _edge(x, sr, a=.006, r=.030):
-    x = x.copy()
-    na, nr = int(a * sr), int(r * sr)
-    x[:na] *= np.linspace(0, 1, na)[:, None]
-    x[-nr:] *= np.linspace(1, 0, nr)[:, None]
-    return x
-
-
-PREROLL = 0.5                  # beats of source before each phrase's downbeat
+PREROLL = stem_remix.PREROLL   # beats of source before each phrase's downbeat
 BEATS_FILE = OUT / "source-beats.json"   # Beat This beats of the original mixes
+QUANTIZE = stem_remix.QUANTIZE  # how far each syllable moves toward its 16th (1 = hard)
 
 
 def source_sixteenths(src, bar, bars):
-    """Source times (s) of every 16th of `bars` bars from `bar`, plus the end: the
-    originals' detected beats (nearest within 40 ms of the straight grid, else the grid),
-    16ths interpolated between them. The originals are straight (swing 50-52 %)."""
+    """Source times (s) of every 16th of `bars` bars from `bar`, plus the end, on the
+    originals' detected beats (stem_remix.source_sixteenths)."""
     s = SOURCES[src]
-    period = 60.0 / s["bpm"]
-    detected = np.array(json.loads(BEATS_FILE.read_text())[src]["beats"])
-    beats = []
-    for k in range(bars * 4 + 1):
-        t = s["downbeat"] + ((bar - 1) * 4 + k) * period
-        near = detected[np.argmin(np.abs(detected - t))]
-        beats.append(near if abs(near - t) < .04 else t)
-    out = []
-    for b0, b1 in zip(beats, beats[1:]):
-        out += [b0 + (b1 - b0) * q / 4 for q in range(4)]
-    return out + [beats[-1]]
-
-
-QUANTIZE = 0.6      # how far each syllable moves toward its 16th (1 = hard quantize)
-
-
-def syllable_onsets(x, sr, a, b):
-    """Syllable onsets (s) in [a, b): spectral flux 150 Hz-8 kHz of the vocal stem."""
-    seg = x[int(a * sr): int(b * sr)]
-    f, t, Z = signal.stft(seg, sr, nperseg=1024, noverlap=768)
-    M = np.log1p(np.abs(Z) * 50)[(f > 150) & (f < 8000)]
-    flux = np.convolve(np.maximum(np.diff(M, axis=1), 0).sum(0), np.hanning(5) / 2.5, "same")
-    pk, _ = signal.find_peaks(flux, height=np.median(flux) + 1.2 * np.std(flux),
-                              distance=int(.07 * sr / 256))
-    return a + t[1:][pk]
+    detected = json.loads(BEATS_FILE.read_text())[src]["beats"]
+    return stem_remix.source_sixteenths(s["bpm"], s["downbeat"], bar, bars, detected)
 
 
 def quantized_markers(sixteenths, file_start, onsets):
-    """Grid markers on every 16th, but where a syllable starts within 0.35 of a 16th of
-    one, the marker sits on the syllable and moves it QUANTIZE of the way onto that 16th
-    (+ the kit's swing). Murder's hook ran +25 ms late with half its syllables more than
-    a quarter-16th off; the flows are 16th-based (not triplets), so this tightens them."""
-    six = np.asarray(sixteenths)
-    targets = {}
-    for o in onsets:
-        k = int(np.argmin(np.abs(six - o)))
-        if k == 0 or k == len(six) - 1:
-            continue
-        step = (six[min(k + 1, len(six) - 1)] - six[max(k - 1, 0)]) / 2
-        dev = (o - six[k]) / step                          # in 16ths
-        if abs(dev) < .35 and k not in targets:
-            targets[k] = (o, dev)
-    m = [[0.0, 0.0]]
-    for k, t in enumerate(six):
-        beat_k = PREROLL + k / 4 + (SWING_S if k % 2 else 0.0)
-        if k in targets:
-            o, dev = targets[k]
-            m.append([beat_k + (1 - QUANTIZE) * dev / 4, o - file_start])
-        else:
-            m.append([beat_k, t - file_start])
-    return m
+    """Syllables moved QUANTIZE of the way onto the swung 16th (stem_remix.onset_markers).
+    Murder's hook ran +25 ms late with half its syllables more than a quarter-16th off."""
+    return stem_remix.onset_markers(sixteenths, file_start, onsets, SWING_S, QUANTIZE, PREROLL)
 
 
 def warp_markers(sixteenths, file_start):
@@ -440,9 +392,7 @@ BREAK_BASS = [  # bar, note, octave, pattern [(beat, dur, vel)]: i - iv - VI - V
 ]
 
 
-def _raw_hz(hz):
-    """Auto Filter Frequency: raw 0.3918 at 300 Hz, +0.1003 per octave (read from Live)."""
-    return round(0.3918 + 0.1003 * np.log2(hz / 300.0), 4)
+_raw_hz = stem_remix.filter_raw   # Auto Filter Frequency as a raw envelope value
 
 
 def v3_prepare():
@@ -715,23 +665,7 @@ ATMOS_RANGES = [(33, 41), (57, 81), (81, 97), (113, 129)]
 def _section_file(name, m, bars, gate=None):
     """The 2-bar loop tiled over `bars` bars at source time, bars where gate(bar) is False
     silenced with 5 ms fades; returns (path, markers) for one clip per section."""
-    x, sr = sf.read(m["path"], dtype="float32")
-    L = len(x) / sr
-    tiles, mk = [], [[0.0, 0.0]]
-    for j in range(bars // 2):
-        t = x.copy()
-        for half in (0, 1):
-            if gate and not gate(2 * j + half):
-                a, b = int(half * len(t) / 2), int((half + 1) * len(t) / 2)
-                f = int(.005 * sr)
-                t[a:a + f] *= np.linspace(1, 0, f)[:, None]
-                t[a + f:b - f] = 0
-                t[b - f:b] *= np.linspace(0, 1, f)[:, None] if half == 0 else 0
-        tiles.append(t)
-        mk += [[b + 8 * j, s + j * L] for b, s in m["markers"][1:]]
-    path = OUT / f"{name}.wav"
-    sf.write(path, np.concatenate(tiles), sr, subtype="PCM_24")
-    return str(path), mk
+    return stem_remix.section_file(dict(m, beats=m.get("beats", 8)), bars, OUT / f"{name}.wav", gate)
 
 
 def _place_section(track, path, mk, bar, beats, f0=None, f1=None):
@@ -2242,24 +2176,10 @@ def v21_pocket():
 # 40), unwarped (the voice's own speed), and its attack sits on the grid; the last bar's
 # beat repeats rise a semitone each.
 def _onset_chops(src_bar=40):
-    x, sr = sf.read(SOURCES["CITY"]["stem"], dtype="float32")
-    mono = x.mean(axis=1)
-    six = source_sixteenths("CITY", src_bar, 1)
-    ons = syllable_onsets(mono, sr, six[0] - .15, six[0] + .30)
-    if len(ons):
-        seg = lambda o: np.abs(mono[int(o * sr): int((o + .08) * sr)]).mean()
-        o = max(ons, key=seg)
-    else:
-        o = six[0]
-    hp = _hp(np.repeat(mono[:, None], 2, axis=1), 90, sr).astype(np.float32)
-    out = {}
-    for name, length in (("long", .90), ("short", .40)):
-        take = _edge(hp[int((o - .004) * sr): int((o + length) * sr)].copy(), sr, .003, .04)
-        take *= .5 / max(float(np.abs(take).max()), 1e-6)
-        path = OUT / f"Hook B chop - {name} (onset-aligned, src {src_bar}).wav"
-        sf.write(path, take, sr, subtype="PCM_24")
-        out[name] = str(path)
-    return out, o - six[0]
+    s = SOURCES["CITY"]
+    detected = json.loads(BEATS_FILE.read_text())["CITY"]["beats"]
+    return stem_remix.onset_chops(s["stem"], OUT, s["bpm"], s["downbeat"], src_bar, detected,
+                                  label="Hook B chop")
 
 
 def v21_build_vocal(src_bar=40):
@@ -2434,22 +2354,7 @@ BREAKBEAT_PLAN = [  # (a, b, Hz from, Hz to, volume ramp)
 
 
 def _break_markers(x, sr, bpm=120.0, q=.7):
-    six = np.arange(0, 8 * 4 + 1) * 60 / bpm / 4          # 2 bars of 16ths, the file's grid
-    ons = syllable_onsets(x.mean(axis=1), sr, 0, len(x) / sr)
-    targets = {}
-    for o in ons:
-        k = int(np.argmin(np.abs(six - o)))
-        if 0 < k < len(six) - 1 and abs(o - six[k]) < .4 * (six[1] - six[0]) and k not in targets:
-            targets[k] = o
-    mk = [[0.0, 0.0]]
-    for k, t in enumerate(six[1:], start=1):
-        b = k / 4 + (SWING_S if k % 2 else 0)
-        if k in targets:
-            dev = (targets[k] - t) / (six[1] - six[0]) / 4
-            mk.append([b + (1 - q) * dev, targets[k]])
-        else:
-            mk.append([b, min(t, len(x) / sr - .001)])
-    return mk
+    return stem_remix.break_loop(x, sr, bpm, SWING_S, q)[0]
 
 
 def v23_breakbeat():

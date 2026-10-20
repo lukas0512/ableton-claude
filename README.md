@@ -250,6 +250,12 @@ After editing `handlers.py`: `scripts/install_remote_script.sh`, then the `reloa
 | `analyze_timbre`, `find_samples`, `groove_loop` | Kick, bass, hats, clap and breakdown against the genre; rank a folder's one-shots by that timbre; place a one-shot on the references' per-16th feel as a loop. |
 | `study_references`, `study_status`, `reference_study` | Study ~5 references chosen for this track (paths, a folder, or the set's REF tracks): measured and heard in the background, saved as a profile under the study's name (usable as `genre` everywhere) with a brief of what they share, where they disagree and a section plan. Audio stays where it is (`~/Music/Ableton Claude/References/<name>/` holds links and is also a drop-in inbox). |
 | `validate_against_genre`, `analyze_tension` | Every measure at once; break depth, build and drop against the references. |
+| `quality_gate` | Static checks of the open set before a version goes to the producer: leftover render tracks, overridden clip automation, hot Simplers, notes on empty pads, parts in different swing pockets, voices in different spaces, an unsafe master, fewer than two drops. |
+| `remix_plan` | Analyze an original for a remix: grid/key reliability, hook candidates, tempo ratio, safe transpose. |
+| `rap_phrase` | Cut a phrase from a vocal stem and place it warped syllable by syllable: a marker on every source 16th, syllables moved 60 % onto the 16th plus the set's swing, half a beat of pre-roll. |
+| `onset_chop` | Vocal chops that start at a real syllable attack, unwarped, placed so the attack lands on the beat. |
+| `stem_loop`, `breakbeat_loop`, `place_loop` | A 2-bar loop from the original's 'other' stem (least vocal bleed, most typical window) or a drum break, warped per 16th into the set's pocket; laid out as one clip per section (tiled, odd/even bars, Auto Filter and volume envelopes). |
+| `solo_levels`, `solo_levels_status` | In the background, each element soloed over the same bars, limiter off: integrated LUFS against the kick, 1/3-octave spectra and a masking report (elements within 6 dB of each band's loudest). Restores solos and the limiter, deletes its render tracks. |
 
 ## The ear
 
@@ -291,7 +297,10 @@ The implementation and research limits are documented in
 original, suggests activity regions to audition for a hook, preserves source bar/time
 offsets and proposes tempo/transpose preparation. It withholds transpose on ambiguous
 key evidence. It prepares a workflow; it does not export stems or create a completed
-remix. The ear's separated stems remain in memory.
+remix. The ear's separated stems remain in memory. The remix itself is built from the
+demucs stems with `rap_phrase`, `onset_chop`, `stem_loop`/`breakbeat_loop` + `place_loop`,
+then balanced with `solo_levels` (the methods of "From The Streets",
+`scripts/build_from_the_streets.py`).
 
 Ear v3 reports grid/key reliability (the key margin is a heuristic, not a probability),
 invalidates caches when the supplied tempo hint changes and measures stem balance only
