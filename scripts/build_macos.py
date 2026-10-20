@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BUILD = ROOT / "build" / "macos"
 DIST = ROOT / "dist"
 APP_NAME = "Ableton Claude"
-VERSION = "1.2.0"
+VERSION = "1.2.1"
 
 
 def run(args, **kwargs):
@@ -119,8 +119,9 @@ def main():
         "2. Abra o app em Aplicativos e siga o onboarding guiado.\n"
         "   Na primeira vez o macOS bloqueia (build não notarizado): Ajustes do Sistema →\n"
         "   Privacidade e Segurança → Abrir Mesmo Assim.\n"
-        "3. Abra o Ableton Live, clique em Preparar ponte e selecione ClaudeBridge em\n"
-        "   Settings → Link, Tempo & MIDI → Control Surface (Input/Output: None).\n"
+        "3. Clique em Preparar ponte. Depois feche (Cmd+Q) e reabra o Ableton Live: ele só\n"
+        "   encontra a ponte ao abrir. Selecione ClaudeBridge em Settings → Link, Tempo &\n"
+        "   MIDI → Control Surface (Input/Output: None).\n"
         "4. Clique em Conectar ao Claude Desktop e em Escolher pasta de samples.\n"
         "5. Encerre (Cmd+Q) e reabra o Claude Desktop: as ferramentas ableton-claude aparecem.\n"
         "   Trabalhe numa cópia do seu projeto; o Live não tem API de salvar, salve com Cmd+S.\n\n"

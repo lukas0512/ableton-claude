@@ -37,8 +37,8 @@ Native app chat ──MCP──▶ mcp_server (Python) ──TCP 9878──▶ C
 
 ### macOS app and installer
 
-Build the installer with `python3 scripts/build_macos.py --dmg` (current version **1.2.0**), then
-open `dist/Ableton-Claude-1.2.0-arm64.dmg` (or the `.pkg`) to install in **Applications**.
+Build the installer with `python3 scripts/build_macos.py --dmg` (current version **1.2.1**), then
+open `dist/Ableton-Claude-1.2.1-arm64.dmg` (or the `.pkg`) to install in **Applications**.
 The build is ad-hoc signed, not notarized: on first launch macOS blocks it; allow it in
 **System Settings → Privacy & Security → Open Anyway**.
 An optional `.dmg` supports dragging **Ableton Claude** into Applications. This local build targets
@@ -62,7 +62,8 @@ required; samples and genre learning can be skipped and done later.
 
 1. **Welcome:** explains how references, the assistant and Live work together.
 2. **Connect Live:** detects the User Library, installs ClaudeBridge with a backup,
-   and verifies Live and the internal MCP connection. On first installation, select
+   and verifies Live and the internal MCP connection. On first installation, quit and
+   reopen Live (it scans Remote Scripts only at launch), then select
    ClaudeBridge in **Live Settings → Link, Tempo & MIDI → Control Surface**, with
    Input/Output None. Existing active bridges reload without restarting Live. The app
    owns its MCP connection and reconnects automatically.

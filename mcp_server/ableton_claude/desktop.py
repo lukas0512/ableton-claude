@@ -199,7 +199,7 @@ def install_bridge(library):
     except client.BridgeError:
         pass
     return {"message": ("Ponte atualizada e conexão recarregada. Você pode continuar." if activated else
-                        "Ponte instalada. Selecione ClaudeBridge uma vez em Settings → Link, Tempo & MIDI → Control Surface. Input e Output: None. O app detecta a conexão automaticamente."),
+                        "Ponte instalada em " + str(target) + ". Feche o Live (Cmd+Q) e abra de novo: o Live só lê Remote Scripts novos ao abrir. Depois selecione ClaudeBridge em Settings → Link, Tempo & MIDI → Control Surface. Input e Output: None."),
             "installed": str(target), "backup": saved, "activated": activated}
 
 

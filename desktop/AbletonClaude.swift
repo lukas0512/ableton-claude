@@ -291,12 +291,12 @@ struct LiveSetupView: View {
             if !model.connected {
                 Panel {
                     Text("Ative a ponte uma vez").font(.headline)
-                    Text("1. Abra o Ableton Live.\n2. Clique em Preparar ponte abaixo.\n3. No Live, abra Settings → Link, Tempo & MIDI.\n4. Selecione ClaudeBridge em Control Surface.\n5. Deixe Input e Output em None.").font(.callout).lineSpacing(8)
+                    Text("1. Clique em Preparar ponte abaixo.\n2. Feche o Ableton Live se ele estiver aberto (Cmd+Q) e abra de novo. O Live só encontra a ponte ao abrir.\n3. No Live, abra Settings → Link, Tempo & MIDI.\n4. Em Control Surface, escolha ClaudeBridge (é esse o nome na lista).\n5. Deixe Input e Output em None.").font(.callout).lineSpacing(8)
                     HStack {
-                        Button("Abrir Ableton", action: model.openLive)
                         Button("Preparar ponte", action: model.installBridge).buttonStyle(.borderedProminent).disabled(model.busy || !model.ready)
+                        Button("Abrir Ableton", action: model.openLive)
                     }
-                    Text("Esta tela muda automaticamente quando o Live responder.").font(.caption).foregroundStyle(.secondary)
+                    Text("Esta tela muda automaticamente quando o Live responder. Se ClaudeBridge não aparecer na lista, confira em Biblioteca do Ableton (abaixo) se a User Library é a mesma de Live → Settings → Library, instale de novo e reabra o Live.").font(.caption).foregroundStyle(.secondary)
                 }
             } else {
                 Label("Tudo conectado. Você pode continuar para o aprendizado.", systemImage: "checkmark").foregroundStyle(.green).font(.callout)
