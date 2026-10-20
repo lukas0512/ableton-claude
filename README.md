@@ -37,7 +37,10 @@ Native app chat ──MCP──▶ mcp_server (Python) ──TCP 9878──▶ C
 
 ### macOS app and installer
 
-Open `dist/Ableton-Claude-1.0.0-arm64.pkg` to install the **v1 testing candidate** in **Applications**.
+Build the installer with `python3 scripts/build_macos.py --dmg` (current version **1.2.0**), then
+open `dist/Ableton-Claude-1.2.0-arm64.dmg` (or the `.pkg`) to install in **Applications**.
+The build is ad-hoc signed, not notarized: on first launch macOS blocks it; allow it in
+**System Settings → Privacy & Security → Open Anyway**.
 An optional `.dmg` supports dragging **Ableton Claude** into Applications. This local build targets
 **Apple Silicon and macOS 26+**. Python, MCP, FFmpeg and the audio dependencies are
 included; end users do not need a terminal or another AI app.
@@ -54,7 +57,8 @@ another copy of the installer. Packaging requires at least 3 GiB of free tempora
 larger optional builds or dependency downloads may require more. Old release archives
 are retained unless deliberately cleaned, so avoid accumulating unnecessary versions.
 
-The app guides you through five steps:
+The app guides you through six steps. Only connecting Live and choosing an assistant are
+required; samples and genre learning can be skipped and done later.
 
 1. **Welcome:** explains how references, the assistant and Live work together.
 2. **Connect Live:** detects the User Library, installs ClaudeBridge with a backup,
@@ -62,12 +66,23 @@ The app guides you through five steps:
    ClaudeBridge in **Live Settings → Link, Tempo & MIDI → Control Surface**, with
    Input/Output None. Existing active bridges reload without restarting Live. The app
    owns its MCP connection and reconnects automatically.
-3. **Learn your sound:** name a genre and select audio tracks; the app organizes the
+3. **Your samples (optional):** pick one or more sample folders (packs, Splice, your
+   collection). The app indexes names and headers only (role, loop/one-shot, key and BPM
+   from file names) into `samples_index.json`, so `library_search` / `find_samples` use
+   the user's own sounds. Files are not copied or uploaded.
+4. **Choose your AI:** **Claude Desktop** or **ChatGPT in the app**.
+   - *Claude Desktop:* the app checks Claude is installed (or links to claude.ai/download),
+     registers the `ableton-claude` connector in `claude_desktop_config.json` (other
+     connectors preserved, backup made) and reopens Claude to load the tools. The
+     conversation then happens in Claude Desktop, on the user's Claude plan; Claude starts
+     the connector itself (`--mcp`), so this app does not need to stay open. The final step lists first prompts to copy.
+   - *ChatGPT:* see the account flow below.
+5. **Learn your sound (optional):** name a genre and select audio tracks; the app organizes the
    references. Alternatively, import a parent folder with one subfolder per genre.
    Follow analysis and listening progress, then review any failures. Keep the app open
    during learning. The first training downloads audio models into
    `~/Music/Ableton Claude/Models/torch/`; later runs reuse cached analysis.
-4. **Connect your ChatGPT account:** click **Continuar com ChatGPT**, sign in using
+   **ChatGPT account:** click **Continuar com ChatGPT**, sign in using
    the official OpenAI browser flow and authorize eligible ChatGPT plan usage for this
    app. Return to the app and choose an account-provided model. No API key is required.
    The app uses its own OAuth registration, PKCE and verified OpenID identity; it never
@@ -75,7 +90,7 @@ The app guides you through five steps:
    stored under `Authentication/` with owner-only permissions. Saved registrations can
    be selected or signed out in settings. Usage shares the account's eligible plan or
    credits and limits; **Gerenciar uso** opens ChatGPT's usage settings.
-5. **Enter the studio:** send prompts inside Ableton Claude. The assistant reads the
+6. **Enter the studio:** with ChatGPT, send prompts inside Ableton Claude. The assistant reads the
    project through MCP, shows its activity and presents changes for review. Apply or
    discard proposals in the app. The project panel shows tracks, transport and rendering;
    compare a render with your trained genre and discuss the measured result.
@@ -126,7 +141,7 @@ Work on a copy of your Live project. Chat and proposals belong to the current ap
 session; profiles, musical milestones and setup are persisted. Use **Meu som** to add genres and
 **Conexão e IA** to update access. The built-in guide explains the production cycle.
 Project information, text and tool measurements go to OpenAI;
-reference analysis runs locally. No Claude Desktop or ChatGPT application is required.
+reference analysis runs locally. With Claude Desktop, the conversation goes to Anthropic instead.
 
 Proposal review shows the affected track, position, parameter values and MIDI note
 count, with full tool arguments available for inspection. The producer is instructed

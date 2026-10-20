@@ -226,7 +226,7 @@ struct ContentView: View {
     private var completion: some View {
         VStack(alignment: .leading, spacing: 24) {
             Image(systemName: "checkmark.circle.fill").font(.system(size: 52)).foregroundStyle(StudioStyle.accent)
-            title("Seu estúdio está pronto", subtitle: model.assistant == "claude" ? "Agora é só conversar com o Claude. Deixe este app aberto: ele mantém a ponte com o Live." : "Agora você pode produzir sem sair do app.")
+            title("Seu estúdio está pronto", subtitle: model.assistant == "claude" ? "Agora é só conversar com o Claude, com o Live aberto. O Claude inicia as ferramentas sozinho: este app não precisa ficar aberto." : "Agora você pode produzir sem sair do app.")
             Panel {
                 Label("Ableton e ferramentas locais conectados", systemImage: "checkmark")
                 Label(model.sampleCount > 0 ? "\(model.sampleCount) samples indexados" : "Samples: indexe depois em Conexão e IA", systemImage: model.sampleCount > 0 ? "checkmark" : "circle.dashed")
@@ -485,7 +485,7 @@ struct StudioView: View {
                 if model.assistant == "claude" && !model.accountConnected {
                     Panel {
                         Label("Você está usando o Claude Desktop", systemImage: "bubble.left.and.text.bubble.right").font(.headline)
-                        Text("Converse com o Claude: ele usa as ferramentas deste app para ler e mudar seu projeto no Live. Deixe este app aberto. O chat abaixo é para o ChatGPT (opcional, em Conexão e IA).").font(.callout).foregroundStyle(.secondary)
+                        Text("Converse com o Claude: ele usa as ferramentas deste app para ler e mudar seu projeto no Live. O chat abaixo é para o ChatGPT (opcional, em Conexão e IA).").font(.callout).foregroundStyle(.secondary)
                         Button("Abrir o Claude Desktop", action: model.openClaude)
                     }
                 }
