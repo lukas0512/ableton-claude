@@ -243,7 +243,7 @@ def pista_bass():
 def _cut_loop(name, bar):
     x, fs = sf.read(str(STEM / "other.wav"), dtype="float32")
     g = sr.source_grid(str(MIX), 86.0)
-    m = sr.cut_loop(x, fs, str(LOOPS / f"{name} (125).wav"), g["bpm"], g["downbeat"], bar, 2,
+    m = sr.cut_loop(x, fs, str(LOOPS / f"{name} (pocket {POCKET:.3f}).wav"), g["bpm"], g["downbeat"], bar, 2,
                     POCKET)
     return m
 
@@ -409,6 +409,394 @@ def pista():
     print("pista done")
 
 
+# ---------------------------------------------------------------- dub (his own style)
+# The producer's target style is TRACKS 2027/Dub House Streets (study 'dub_house_streets'):
+# 128.5 BPM, swing 57 %, bass 93 % off the beat (9 % with the kick), sub 35 % / low 52 %,
+# high-mid 3.2 % / high 2.7 %, -8.5 LUFS. He chose: bass off the kick, 128 + 57 %, body
+# and brightness (not the one-big-break form).
+DUB_BPM = 128.0
+DUB_SWING = (57 - 50) / 100 * .5               # 0.035 beat: off-beat 16ths late
+OLD_SWING = POCKET                               # FTS's 10.8 ms at 125
+
+
+def dub_riff(bars, e=64, vel=None):
+    """Murder's riff off the kick (.x-x..x-.x-x..x-): E E | G | G A|D | D#, all on the
+    'e' / '&' / 'a' 16ths, short, so kick and bass take turns."""
+    out = []
+    for b in range(bars):
+        turn = e + 5 if b % 2 == 0 else e - 2
+        for k, (p, step, n16, v) in enumerate(((e, 1, 1, 104), (e, 3, 2, 118), (e + 3, 6, 2, 116),
+                                               (e + 3, 9, 1, 100), (turn, 11, 2, 112),
+                                               (e - 1, 14, 2, 114))):
+            t = step / 4 + (DUB_SWING if step % 2 else 0)
+            out.append([p, b * 4 + t, n16 / 4 * .9, vel(b, k) if vel else v])
+    return out
+
+
+def dub_bass():
+    for track, e in (("BASS", 64), ("BASS - teaser (HP)", 76)):
+        for c in _clips(track):
+            bars = int(round((c["end"] - c["start"]) / 4))
+            ramp = None
+            if "teaser" in track:
+                ramp = lambda b, k, n=bars: int(70 + 20 * (b * 6 + k) / max(1, n * 6 - 1))
+            C("add_notes", track=track, clip={"at": c["start"]}, notes=dub_riff(bars, e, ramp),
+              replace=True)
+            C("set_clip", track=track, clip={"at": c["start"]}, name="Murder riff bass (off the kick)")
+
+
+def dub_swing():
+    """Every MIDI part's swung off-beat 16ths from FTS's pocket to 57 %; parts with their
+    own offsets (the shaker's early 8ths, straight notes) keep them."""
+    song = client.call("get_song")
+    for t in song["tracks"]:
+        if t.get("kind") != "midi" or t["name"].startswith("BASS"):
+            continue
+        for c in _clips(t["i"]):
+            notes = client.call("get_notes", {"track": t["i"], "clip": {"at": c["start"]}})
+            moved, out = 0, []
+            for p, st, d, v in notes:
+                off = st * 4 - np.floor(st * 4)              # in 16ths
+                odd = int(np.floor(st * 4)) % 2 == 1
+                if odd and abs(off * .25 - OLD_SWING) < .008:
+                    st = st - OLD_SWING + DUB_SWING
+                    moved += 1
+                out.append([p, round(st, 4), d, v])
+            if moved:
+                C("add_notes", track=t["i"], clip={"at": c["start"]}, notes=out, replace=True)
+
+
+def dub_tempo():
+    """128 BPM and the 57 % pocket for everything warped to the old one: Murder's loops and
+    vocal phrases are re-cut on the new pocket and placed again."""
+    global POCKET
+    C("set_tempo", bpm=DUB_BPM)
+    POCKET = DUB_SWING
+    g = sr.source_grid(str(MIX), 86.0)
+    meta = json.loads((VOX_DIR / "phrases.json").read_text())
+    for name, m in meta.items():
+        b, n = m["source_bar"], m["beats"] // 4
+        path = m["path"].replace(" [57].wav", ".wav").replace(".wav", " [57].wav")
+        meta[name] = sr.cut_phrase(str(STEM / "vocals.wav"), path, g["bpm"], g["downbeat"],
+                                   b, n, DUB_SWING)
+    (VOX_DIR / "phrases.json").write_text(json.dumps(meta))
+    _clear("LOOP MURDER - riff bed")
+    pista_loops()
+    pista_vocals_dub()
+
+
+def pista_vocals_dub():
+    tracks = {"VOX CITY - calls": "VOX MURDER - theme calls", "VOX CITY - hooks": "VOX MURDER - hooks",
+              "VOX CITY - radio": "VOX MURDER - radio", "VOX - throws": "VOX - throws"}
+    for old, new in tracks.items():
+        _clear(new)
+        for bar, name, radio, gain in VOCALS[old]:
+            _put(new, name, bar, bool(radio), gain)
+
+
+def dub_mix():
+    """Body over sub in the bass, brightness in the drums and master, -8.5 LUFS."""
+    C("set_param", track="BASS", device="EQ Eight", param="1 Frequency A", display=55)
+    C("set_param", track="BASS", device="EQ Eight", param="1 Gain A", display=-3)
+    C("set_param", track="BASS", device="Saturator", param="Dry/Wet", display=50)
+    C("set_param", track="DRUMS", device="EQ Eight", param="4 Gain A", display=0)
+    C("set_param", track="DRUMS", device="EQ Eight", param="2 Gain A", display=3)
+    C("set_param", track="master", device="EQ Eight", param="3 Gain A", display=-1)
+    lim = client.call("get_device", {"track": "master", "device": "Limiter"})
+    gain = next(p for p in lim["params"] if p["name"] == "Input Gain")
+    C("set_param", track="master", device="Limiter", param="Input Gain",
+      db=float(gain["display"].split()[0]) + .6)
+
+
+# ---------------------------------------------------------------- dub v3 (his notes)
+# "warps não estão em dia; o groove precisa encaixar e diferenciar da outra track; o fim
+# do build 1 está esquecido; quando sai o riff fica esquisito."
+FX_TRACKS = ("FX - transitions", "FX - glitches", "FX - sub boom", "BREAKBEAT")
+FTS_BPM = 125.0
+
+
+def fix_warps():
+    """One-shots placed unwarped at FTS's 125 BPM drift at 128 (a reversed crash no longer
+    lands on the drop): warp each to its 125-BPM length in beats, start kept."""
+    for tr in FX_TRACKS:
+        for c in _clips(tr):
+            if c.get("warping") or not c.get("file"):
+                continue
+            dur = sf.info(c["file"]).duration
+            beats = dur * FTS_BPM / 60
+            at = c["start"]
+            C("set_warp_markers", track=tr, clip={"at": at}, markers=[[0, 0], [beats, dur - .0005]])
+            C("set_clip", track=tr, clip={"at": at}, warping=True, warp_mode="complex",
+              looping=False, start_marker=0, end_marker=beats)
+
+
+def _bed_hz(bar):
+    """The riff bed's filter over the song: in from the intro, shut in the breaks, opening
+    through the builds, closing out after drop 2 (never a hard cut)."""
+    curve = [(29, 700), (33, 9000), (49, 9000), (49.01, 1400), (57, 1400), (64.5, 14000),
+             (65, 14000), (97, 14000), (113, 900), (120.5, 14000), (153, 14000), (169, 500)]
+    for (a, fa), (b, fb) in zip(curve, curve[1:]):
+        if a <= bar <= b:
+            k = (bar - a) / (b - a) if b > a else 0
+            return fa * (fb / fa) ** k
+    return curve[-1][1] if bar > curve[-1][0] else curve[0][1]
+
+
+BED_V3 = [(29, 64.5), (65, 97), (113, 120.5), (121, 169)]
+
+
+def riff_bed_v3():
+    global POCKET
+    POCKET = DUB_SWING
+    guitar, keys = _cut_loop("Murder guitar riff", 24), _cut_loop("Murder keys+guitar", 41)
+    T = "LOOP MURDER - riff bed"
+    _clear(T)
+    for a, b in BED_V3:
+        at = beat(a)
+        while at < beat(b) - .01:
+            bar = at / 4 + 1
+            m = keys if 65 <= bar < 97 or 121 <= bar < 153 else guitar
+            n = min(m["beats"], beat(b) - at)
+            env = {"param": "Frequency", "device": "Auto Filter", "unit": "raw",
+                   "points": [[0, sr.filter_raw(_bed_hz(bar))],
+                              [n, sr.filter_raw(_bed_hz(bar + n / 4))]]}
+            sr.place_warped(call, T, m["path"], at, n, m["markers"], envelopes=[env],
+                            name=Path(m["path"]).stem)
+            C("set_clip", track=T, clip={"at": at}, detune=LOOP_DETUNE)
+            at += n
+
+
+def build1_end():
+    """Bars 61-64: the theme call repeats faster (bar, bar, half, half, beat x2) over the
+    opening riff, then the 2-beat breath and the a cappella call already at 64."""
+    T = "VOX MURDER - theme calls"
+    m = _phrase("theme call")
+    for bar, beats in ((61, 4), (62, 4), (63, 2), (63.5, 2)):
+        at = beat(bar) - m["preroll"]
+        n = beats + m["preroll"]
+        mk = [[b, t] for b, t in m["markers"] if b <= n] + \
+             [[n, next(t for b, t in m["markers"] if b >= n)]]
+        sr.place_warped(call, T, m["path"], at, n, mk, name="theme call - build 1",
+                        gain_db=-2 + (bar - 61) * 1.5)
+
+
+DUB_HATS = "xgXgxgXxxXX.xgXg"      # the references' typical 16th hats (dub_house_streets)
+DUB_GHOST = "g.x.X.xxggx.X.xg"     # their typical clap/perc layer, here on the snare
+VEL = {"X": 100, "x": 78, "g": 54}
+
+
+def dub_groove():
+    """Its own groove: straight 16th hats with ghosts (velocity by step, the 12th gone),
+    dub ghost snares around the clap in the drops, FTS's congas and 909 tom muted."""
+    for c in _clips("HAT 16ths"):
+        notes = client.call("get_notes", {"track": "HAT 16ths", "clip": {"at": c["start"]}})
+        out = []
+        for p, st, d, v in notes:
+            step = int(round((st - (DUB_SWING if int(st * 4) % 2 else 0)) * 4)) % 16
+            ch = DUB_HATS[step]
+            if ch != ".":
+                out.append([p, st, d, VEL[ch] - (100 - v) * .3])
+        C("add_notes", track="HAT 16ths", clip={"at": c["start"]}, notes=out, replace=True)
+    for c in _clips("SNARE"):
+        bars = int(round((c["end"] - c["start"]) / 4))
+        notes = []
+        for b in range(bars):
+            for step, ch in enumerate(DUB_GHOST):
+                if ch == ".":
+                    continue
+                t = b * 4 + step / 4 + (DUB_SWING if step % 2 else 0)
+                notes.append([60, round(t, 4), .2, {"X": 92, "x": 60, "g": 40}[ch]])
+        C("add_notes", track="SNARE", clip={"at": c["start"]}, notes=notes, replace=True)
+    for tr in ("CONGAS", "TOM 909"):
+        C("set_track", track=tr, mute=True)
+
+
+def dub_v3():
+    fix_warps()
+    riff_bed_v3()
+    build1_end()
+    dub_groove()
+    print("dub v3 done")
+
+
+def _eq(track, band, kind, hz, db=None, q=None):
+    C("set_param", track=track, device="EQ Eight", param=f"{band} Filter On A", value=1)
+    C("set_param", track=track, device="EQ Eight", param=f"{band} Filter Type A", item=kind)
+    C("set_param", track=track, device="EQ Eight", param=f"{band} Frequency A", display=hz)
+    if db is not None:
+        C("set_param", track=track, device="EQ Eight", param=f"{band} Gain A", display=db)
+    if q is not None:
+        C("set_param", track=track, device="EQ Eight", param=f"{band} Q A", display=q)
+
+
+BREAKS = [(49, 57), (97, 113)]
+BREAK_TRACKS = ("VOX MURDER - hooks", "VOX MURDER - Pimp C", "VOX MURDER - radio",
+                "LOOP MURDER - riff bed", "LOOP MURDER - break 2 groove", "BREAKBEAT", "PERC LOOP")
+
+
+def dub_mix2():
+    """validate_against_genre(v2, dub_house_streets): bass 3.3 dB over the kick (refs: kick
+    +6), kick 48 Hz (refs 62), clap backbeat 1 dB (refs 8), low-mid/mid and warmth high,
+    hats dark, breaks 1.6 LU under the drops (refs 4.3)."""
+    for tr in ("KICK", "KICK - build (HP)"):                       # kick up 3 semitones
+        for c in _clips(tr):
+            notes = client.call("get_notes", {"track": tr, "clip": {"at": c["start"]}})
+            C("add_notes", track=tr, clip={"at": c["start"]},
+              notes=[[63 if p == 60 else p, t, d, v] for p, t, d, v in notes], replace=True)
+    C("set_track", track="BASS", volume_db=-17.3)
+    C("set_track", track="CLAP", volume_db=1.3)
+    C("set_track", track="HAT 16ths", volume_db=-21.5)
+    _eq("DRUMS", 4, "Bell", 7000, 1.5)
+    # the riff bed kept FTS's City-synth cuts (2.5k, 3.5k buzz): the guitar needs that air
+    C("set_param", track="LOOP MURDER - riff bed", device="EQ Eight", param="3 Gain A", display=0)
+    C("set_param", track="LOOP MURDER - riff bed", device="EQ Eight", param="7 Gain A", display=0)
+    _eq("LOOP MURDER - riff bed", 5, "Bell", 300, -3, 1.0)
+    C("set_param", track="MUSIC BUS", device="EQ Eight", param="2 Gain A", display=-2)
+    for tr in BREAK_TRACKS:                                        # deeper breaks
+        for c in _clips(tr):
+            bar = c["start"] / 4 + 1
+            if any(a <= bar < b for a, b in BREAKS):
+                C("set_clip", track=tr, clip={"at": c["start"]},
+                  gain_db=round(c.get("gain_db", 0) - 2.5, 2))
+
+
+# ---------------------------------------------------------------- v4 (his notes, live)
+# "o break tá igual da outra; uma swingada diferente; mais chops, call-response pegado no
+# ritmo; um instrumento agudinho estranho (the keys loop: notes up to 33 cents flat, and my
+# +10 cents detuned the in-tune guitar); se o baixo for igual da outra, muda (same
+# BinBassTone timbre: swapped for sketch B's FM bass)."
+V4_SWING = (60 - 50) / 100 * .5                 # 0.05 beat
+
+
+def v4_swing():
+    global DUB_SWING, OLD_SWING, POCKET
+    OLD_SWING, DUB_SWING = DUB_SWING, V4_SWING
+    dub_swing()
+    POCKET = DUB_SWING
+    g = sr.source_grid(str(MIX), 86.0)
+    meta = json.loads((VOX_DIR / "phrases.json").read_text())
+    for name, m in meta.items():
+        path = m["path"].replace(" [57].wav", ".wav").replace(" [60].wav", ".wav") \
+            .replace(".wav", " [60].wav")
+        meta[name] = sr.cut_phrase(str(STEM / "vocals.wav"), path, g["bpm"], g["downbeat"],
+                                   m["source_bar"], m["beats"] // 4, DUB_SWING,
+                                   detected=g["beats"])
+    (VOX_DIR / "phrases.json").write_text(json.dumps(meta))
+    pista_vocals_dub()
+    build1_end()
+
+
+def v4_bass():
+    for tr in ("BASS", "BASS - teaser (HP)"):
+        devs = [d["name"] for d in client.call("get_track", {"track": tr})["devices"]]
+        if devs[0] != "Basic FM House Bass":         # Live swaps the instrument in place
+            C("load_device", track=tr, path="sounds/Bass/Basic FM House Bass.adg")
+        for c in _clips(tr):
+            if "FM" in c.get("name", ""):
+                continue
+            notes = client.call("get_notes", {"track": tr, "clip": {"at": c["start"]}})
+            C("add_notes", track=tr, clip={"at": c["start"]},
+              notes=[[p - 36, t, d, v] for p, t, d, v in notes], replace=True)
+            C("set_clip", track=tr, clip={"at": c["start"]}, name="Murder riff bass (FM)")
+
+
+BED_V4 = [(29, 64.5), (65, 120.5), (121, 169)]
+
+
+def v4_loops():
+    """Guitar only (in tune: detune 0), through break 2 too (FTS's keys loop out), the +12
+    layer muted."""
+    global LOOP_DETUNE, BED_V3
+    LOOP_DETUNE, BED_V3 = 0, BED_V4
+    _clear("LOOP MURDER - break 2 groove")
+    C("set_track", track="LOOP MURDER +12 (drop 2 only)", mute=True)
+    guitar = _cut_loop("Murder guitar riff", 24)
+    T = "LOOP MURDER - riff bed"
+    _clear(T)
+    for a, b in BED_V4:
+        at = beat(a)
+        while at < beat(b) - .01:
+            bar = at / 4 + 1
+            n = min(guitar["beats"], beat(b) - at)
+            env = {"param": "Frequency", "device": "Auto Filter", "unit": "raw",
+                   "points": [[0, sr.filter_raw(_bed_hz_v4(bar))],
+                              [n, sr.filter_raw(_bed_hz_v4(bar + n / 4))]]}
+            sr.place_warped(call, T, guitar["path"], at, n, guitar["markers"], envelopes=[env],
+                            name="Murder guitar riff")
+            at += n
+
+
+def _bed_hz_v4(bar):
+    curve = [(29, 700), (33, 9000), (49, 9000), (49.01, 1400), (57, 1400), (64.5, 14000),
+             (65, 14000), (97, 14000), (97.01, 1800), (105, 1100), (113, 1100),
+             (120.5, 14000), (153, 14000), (169, 500)]
+    for (a, fa), (b, fb) in zip(curve, curve[1:]):
+        if a <= bar <= b:
+            return fa * (fb / fa) ** ((bar - a) / (b - a) if b > a else 0)
+    return curve[-1][1] if bar > curve[-1][0] else curve[0][1]
+
+
+def v4_breaks():
+    """Dub breaks, not FTS's: no breakbeat and no chord bass under them."""
+    C("set_track", track="BASS - break", mute=True)
+    for c in _clips("BREAKBEAT"):
+        if 97 <= c["start"] / 4 + 1 < 113:
+            C("set_clip", track="BREAKBEAT", clip={"at": c["start"]}, muted=True)
+
+
+# call-response chops on the bass's rests (bass: steps 1 3 6 9 11 14): (beat, chop)
+CHOP_A = [(1.75, "short"), (2.5, "word"), (5.5, "short"), (5.75, "short"), (7.0, "word")]
+CHOP_B = [(2.0, "word"), (3.25, "short"), (6.5, "short"), (6.75, "short"), (7.5, "word")]
+CHOP_V4 = [(41, 49), (65, 73), (81, 97), (105, 113), (121, 129), (141, 153), (161, 169)]
+
+
+def _chop_riff(f, pattern, name):
+    x = sf.read(f["word"], dtype="float32")[0]
+    sh, fs = sf.read(f["short"], dtype="float32")
+    beat_s = 60 / DUB_BPM
+    riff = np.zeros((int(8 * beat_s * fs) + 1, x.shape[1]), np.float32)
+    for b, k in pattern:
+        clip = x if k == "word" else sh
+        i = int((b + (DUB_SWING if round(b * 4) % 2 else 0)) * beat_s * fs)
+        riff[i:i + len(clip)] += clip[:len(riff) - i]
+    path = str(FX_DIR / f"{name}.wav")
+    sf.write(path, riff * (.5 / (np.abs(riff).max() + 1e-9)), fs)
+    return path
+
+
+def v4_chops():
+    g = sr.source_grid(str(MIX), 86.0)
+    f, _ = sr.onset_chops(str(STEM / "vocals.wav"), str(FX_DIR), g["bpm"], g["downbeat"], 4,
+                          beat=.75, lengths={"word": .42, "short": .2}, label="Murder chop")
+    a = _chop_riff(f, CHOP_A, "Murder chops A (128, 60 %)")
+    b = _chop_riff(f, CHOP_B, "Murder chops B (128, 60 %)")
+    T = "CHOPS - Murder"
+    _clear(T)
+    for s_, e in CHOP_V4:
+        for k, bar in enumerate(range(s_, e, 2)):
+            C("create_audio_clip", track=T, path=a if k % 2 == 0 else b, beat=beat(bar),
+              warp=True, beats=8, length=8, name="Murder chops " + "AB"[k % 2])
+    C("set_track", track=T, volume_db=-12)
+
+
+def v4():
+    v4_bass()
+    v4_swing()
+    v4_loops()
+    v4_breaks()
+    v4_chops()
+    print("v4 done")
+
+
+def dub():
+    dub_bass()
+    dub_swing()
+    dub_tempo()
+    dub_mix()
+    print("dub done")
+
+
 if __name__ == "__main__":
     {"sketch": sketch, "pista": pista, "pista_loops": pista_loops, "pista_vocals": pista_vocals,
-     "pista_fx": pista_fx, "pista_cues": pista_cues}[sys.argv[1]]()
+     "pista_fx": pista_fx, "pista_cues": pista_cues, "dub": dub, "dub_mix": dub_mix,
+     "dub_v3": dub_v3, "dub_mix2": dub_mix2, "v4": v4}[sys.argv[1]]()
