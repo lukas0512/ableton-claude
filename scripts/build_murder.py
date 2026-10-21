@@ -965,6 +965,16 @@ def v8b_breaks():
                   gain_db=round(c.get("gain_db", 0) - 1.5, 2))
 
 
+def v8c_mono():
+    """validate(v8b): low end width -24 dB (refs -43): master Utility Bass Mono 120 Hz,
+    before the limiter."""
+    C("load_device", track="master", query="Utility", roots=["audio_effects"])
+    devs = [d["name"] for d in client.call("get_track", {"track": "master"})["devices"]]
+    if devs.index("Utility") > devs.index("Limiter"):
+        C("move_device", track="master", device=devs.index("Utility"), position=devs.index("Limiter"))
+    C("set_param", track="master", device="Utility", param="Bass Mono", value=1)
+
+
 def dub():
     dub_bass()
     dub_swing()
