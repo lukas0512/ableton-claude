@@ -2,6 +2,9 @@
 
 Run: python3 scripts/build_macos.py
 Requires Xcode Command Line Tools and uv on the build machine only.
+Intel Macs (macOS 13+): python3 scripts/build_macos.py --arch x86_64 --dmg. On Apple Silicon this
+needs Rosetta (softwareupdate --install-rosetta); it freezes a Python 3.12 / torch 2.2.2 backend from
+desktop/intel/requirements.txt, since PyTorch publishes no newer Intel Mac builds.
 Optional: --sign-identity 'Developer ID Application: …' --installer-identity 'Developer ID Installer: …'
 This script never modifies /Applications or a user's Ableton/AI configuration.
 """
@@ -19,6 +22,12 @@ BUILD = ROOT / "build" / "macos"
 DIST = ROOT / "dist"
 APP_NAME = "Ableton Claude"
 VERSION = "1.2.1"
+INTEL_REQUIREMENTS = ROOT / "desktop" / "intel" / "requirements.txt"
+# Compiled packages must come as wheels built for macOS 13 or older (see the requirements header).
+INTEL_BINARY_ONLY = ("numpy,scipy,torch,torchaudio,cryptography,soundfile,lameenc,pydantic-core,cffi,"
+                     "pyyaml,rpds-py,jiter,charset-normalizer,markupsafe,pyinstaller")
+# Swift deployment target and the app's minimum macOS, per architecture.
+TARGETS = {"arm64": ("14.0", "26.0"), "x86_64": ("13.0", "13.0")}
 
 
 def run(args, **kwargs):
@@ -33,9 +42,19 @@ def main():
     parser.add_argument("--dmg", action="store_true", help="also generate a drag-to-install image (without duplicating the .pkg inside)")
     parser.add_argument("--keep-build", action="store_true", help="retain staging files for debugging or --skip-backend; otherwise remove after success")
     parser.add_argument("--skip-backend", action="store_true", help="reuse the previously frozen backend")
+    parser.add_argument("--arch", choices=sorted(TARGETS), default=platform.machine(),
+                        help="x86_64 builds the Intel installer (macOS 13+)")
     options = parser.parse_args()
     if sys.platform != "darwin":
         raise SystemExit("Build this installer on macOS.")
+    global BUILD
+    arch = options.arch
+    if arch != "arm64":
+        BUILD = ROOT / "build" / ("macos-" + arch)
+    swift_target, min_macos = TARGETS[arch]
+    prefix = ["arch", "-" + arch] if arch != platform.machine() else []
+    if prefix and subprocess.run(prefix + ["/usr/bin/python3", "-c", ""], capture_output=True).returncode:
+        raise SystemExit("Building for %s on this Mac needs Rosetta: softwareupdate --install-rosetta" % arch)
     BUILD.mkdir(parents=True, exist_ok=True)
     DIST.mkdir(exist_ok=True)
     if shutil.disk_usage(ROOT).free < 3 * 1024 ** 3:
@@ -43,9 +62,18 @@ def main():
     if options.skip_backend and not (BUILD / "frozen" / "ableton-claude-backend").is_dir():
         raise SystemExit("No frozen backend to reuse. Build without --skip-backend, or retain a previous build with --keep-build.")
     python = ROOT / "mcp_server" / ".venv" / "bin" / "python"
+    if arch == "x86_64":
+        python = BUILD / "venv" / "bin" / "python"
     if not options.skip_backend:
-        run(["uv", "sync", "--directory", ROOT / "mcp_server", "--frozen", "--group", "build"])
-        run([python, "-m", "PyInstaller", "--noconfirm", "--clean", "--onedir",
+        if arch == "x86_64":
+            if not python.exists():
+                run(["uv", "venv", "--python", "cpython-3.12-macos-x86_64-none", BUILD / "venv"])
+            run(["uv", "pip", "install", "--python", python, "-r", INTEL_REQUIREMENTS,
+                 "--only-binary", INTEL_BINARY_ONLY, "--python-platform", "x86_64-apple-darwin"],
+                env=dict(os.environ, MACOSX_DEPLOYMENT_TARGET=min_macos))
+        else:
+            run(["uv", "sync", "--directory", ROOT / "mcp_server", "--frozen", "--group", "build"])
+        run(prefix + [python, "-m", "PyInstaller", "--noconfirm", "--clean", "--onedir",
              "--name", "ableton-claude-backend", "--distpath", BUILD / "frozen",
              "--workpath", BUILD / "pyinstaller", "--specpath", BUILD,
              "--paths", ROOT / "mcp_server", "--hidden-import", "ableton_claude.server",
@@ -67,7 +95,7 @@ def main():
     shutil.copytree(BUILD / "frozen" / "ableton-claude-backend", resources / "backend", symlinks=True)
     shutil.copytree(ROOT / "remote_script" / "ClaudeBridge", resources / "ClaudeBridge",
                     ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
-    run(["xcrun", "swiftc", "-O", "-parse-as-library", "-target", platform.machine() + "-apple-macosx14.0",
+    run(["xcrun", "swiftc", "-O", "-parse-as-library", "-target", arch + "-apple-macosx" + swift_target,
          ROOT / "desktop" / "AppModel.swift", ROOT / "desktop" / "AbletonClaude.swift", "-o", macos / "AbletonClaude"])
     run(["xcrun", "swift", ROOT / "desktop" / "MakeIcon.swift", BUILD / "AppIcon.iconset"])
     run(["iconutil", "-c", "icns", BUILD / "AppIcon.iconset", "-o", resources / "AppIcon.icns"])
@@ -75,7 +103,7 @@ def main():
             "CFBundleIdentifier": "studio.abletonclaude.desktop", "CFBundleExecutable": "AbletonClaude",
             "CFBundleIconFile": "AppIcon",
             "CFBundlePackageType": "APPL", "CFBundleShortVersionString": VERSION,
-            "CFBundleVersion": "100", "LSMinimumSystemVersion": "26.0",
+            "CFBundleVersion": "100", "LSMinimumSystemVersion": min_macos,
             "NSHighResolutionCapable": True,
             "NSHumanReadableCopyright": "Ableton Claude contributors",
             "NSAppleMusicUsageDescription": "Selecionar referências de áudio para treinar seus gêneros.",
@@ -87,9 +115,9 @@ def main():
     run(["codesign", "--force", "--deep", "--sign", identity, app])
     run(["codesign", "--verify", "--deep", "--strict", app])
     test_data = BUILD / "self-test-data"
-    run([resources / "backend" / "ableton-claude-backend", "--self-test"],
+    run(prefix + [resources / "backend" / "ableton-claude-backend", "--self-test"],
         env=dict(os.environ, ABLETON_CLAUDE_DATA=str(test_data)))
-    pkg = DIST / ("Ableton-Claude-" + VERSION + "-" + platform.machine() + ".pkg")
+    pkg = DIST / ("Ableton-Claude-" + VERSION + "-" + arch + ".pkg")
     component_plist = BUILD / "components.plist"
     run(["pkgbuild", "--analyze", "--root", app.parent, component_plist])
     with component_plist.open("rb") as f:
@@ -128,8 +156,8 @@ def main():
         "O primeiro treino baixa os modelos de áudio. Internet é necessária para esses downloads.\n"
         "Dados por usuário: ~/Music/Ableton Claude/\n"
         "Este build local usa assinatura ad hoc e ainda não foi notarizado pela Apple.\n"
-        "Compatibilidade deste build: macOS 26+, " + platform.machine() + ".\n", encoding="utf-8")
-    dmg = DIST / ("Ableton-Claude-" + VERSION + "-" + platform.machine() + ".dmg")
+        "Compatibilidade deste build: macOS " + min_macos.split(".")[0] + "+, " + ("Intel" if arch == "x86_64" else "Apple Silicon") + ".\n", encoding="utf-8")
+    dmg = DIST / ("Ableton-Claude-" + VERSION + "-" + arch + ".dmg")
     if dmg.exists():
         dmg.unlink()
     run(["hdiutil", "create", "-volname", APP_NAME, "-srcfolder", image, "-format", "UDZO", dmg])

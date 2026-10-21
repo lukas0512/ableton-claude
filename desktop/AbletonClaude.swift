@@ -417,7 +417,7 @@ struct AccountView: View {
                 if !model.models.isEmpty {
                     Picker("Modelo", selection: $model.modelID) {
                         ForEach(model.models, id: \.self) { item in Text(item["name"] ?? item["id"] ?? "").tag(item["id"] ?? "") }
-                    }.onChange(of: model.modelID) { _, _ in model.savePreferences(["provider": model.provider, "model": model.modelID]) }
+                    }.onChanged(model.modelID) { model.savePreferences(["provider": model.provider, "model": model.modelID]) }
                         .disabled(model.busy || model.chatRunning || !model.proposals.isEmpty)
                 }
                 if !model.proposals.isEmpty {
@@ -477,7 +477,7 @@ struct StudioView: View {
                         Text("DIREÇÃO MUSICAL").font(.system(size: 9, weight: .semibold)).tracking(1.5).foregroundStyle(.secondary)
                         Picker("Gênero", selection: $model.activeGenre) {
                             ForEach(Array(model.genres.enumerated()), id: \.offset) { _, item in Text(item["genre"] as? String ?? "").tag(item["genre"] as? String ?? "") }
-                        }.labelsHidden().frame(maxWidth: 240).onChange(of: model.activeGenre) { _, _ in model.savePreferences(["active_genre": model.activeGenre]) }
+                        }.labelsHidden().frame(maxWidth: 240).onChanged(model.activeGenre) { model.savePreferences(["active_genre": model.activeGenre]) }
                     }
                     Spacer()
                     Button("Nova conversa", action: model.resetChat).font(.caption).disabled(model.chatRunning || model.busy)
@@ -651,8 +651,8 @@ struct StudioView: View {
                         if !model.proposals.isEmpty { proposal }
                         Color.clear.frame(height: 1).id("bottom")
                     }.padding(.horizontal, 3)
-                }.onChange(of: model.chatMessages.count) { _, _ in withAnimation { reader.scrollTo("bottom", anchor: .bottom) } }
-                    .onChange(of: model.proposals.count) { _, _ in withAnimation { reader.scrollTo("bottom", anchor: .bottom) } }
+                }.onChanged(model.chatMessages.count) { withAnimation { reader.scrollTo("bottom", anchor: .bottom) } }
+                    .onChanged(model.proposals.count) { withAnimation { reader.scrollTo("bottom", anchor: .bottom) } }
             }
             if let events = model.chat["events"] as? [String], !events.isEmpty {
                 DisclosureGroup("Atividade da sessão") { ForEach(Array(events.enumerated()), id: \.offset) { _, event in Text(event).font(.caption).foregroundStyle(.secondary) } }.font(.caption).foregroundStyle(.secondary)
@@ -914,5 +914,13 @@ struct AssistantView: View {
             Spacer()
             action()
         }
+    }
+}
+
+extension View {
+    /// onChange that also builds for macOS 13 (Intel Ventura); the two-argument form is macOS 14+.
+    @ViewBuilder func onChanged<V: Equatable>(_ value: V, _ action: @escaping () -> Void) -> some View {
+        if #available(macOS 14.0, *) { onChange(of: value) { action() } }
+        else { onChange(of: value) { _ in action() } }
     }
 }

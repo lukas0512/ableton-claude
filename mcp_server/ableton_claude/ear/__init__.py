@@ -9,3 +9,17 @@ and, over a folder of references, the principles a genre follows.
 Heavy models (Demucs, Beat This) are imported lazily, so the MCP server starts fast.
 """
 EAR_VERSION = 3
+
+
+def torch_device():
+    """Apple GPU on Apple Silicon, CPU elsewhere. Intel Macs with AMD GPUs also report MPS,
+    but their torch (2.2.2, the last Intel build) lacks MPS FFT and fails in the
+    spectrogram. ABLETON_CLAUDE_DEVICE=cpu|mps overrides."""
+    import os, platform
+    import torch
+    forced = os.environ.get("ABLETON_CLAUDE_DEVICE")
+    if forced in ("cpu", "mps"):
+        return forced
+    if platform.machine() == "arm64" and torch.backends.mps.is_available():
+        return "mps"
+    return "cpu"

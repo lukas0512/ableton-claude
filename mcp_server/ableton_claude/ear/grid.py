@@ -14,9 +14,9 @@ _A2B = None
 def _tracker():
     global _A2B
     if _A2B is None:
-        import torch
         from beat_this.inference import Audio2Beats
-        dev = "mps" if torch.backends.mps.is_available() else "cpu"
+        from . import torch_device
+        dev = torch_device()
         _A2B = Audio2Beats(checkpoint_path="final0", device=dev, dbn=False)
     return _A2B
 

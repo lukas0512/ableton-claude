@@ -20,8 +20,8 @@ def _model():
 
 
 def _device():
-    import torch
-    return "mps" if torch.backends.mps.is_available() else "cpu"
+    from . import torch_device
+    return torch_device()
 
 
 def separate(x, sr, device=None):

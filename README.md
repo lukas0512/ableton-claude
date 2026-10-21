@@ -45,6 +45,14 @@ An optional `.dmg` supports dragging **Ableton Claude** into Applications. This 
 **Apple Silicon and macOS 26+**. Python, MCP, FFmpeg and the audio dependencies are
 included; end users do not need a terminal or another AI app.
 
+**Intel Macs (macOS 13 Ventura or newer):** `python3 scripts/build_macos.py --arch x86_64 --dmg`
+builds `Ableton-Claude-<version>-x86_64.dmg`. PyTorch's last Intel Mac build is 2.2.2, so this
+backend is frozen from `desktop/intel/requirements.txt` (Python 3.12, numpy 1.x, demucs 4.0.1)
+in its own venv under `build/macos-x86_64/`. On Apple Silicon the build needs Rosetta
+(`softwareupdate --install-rosetta`); on an Intel Mac it runs natively. The ear runs on the CPU
+there (`ear.torch_device`): Intel Macs with AMD GPUs report MPS, but torch 2.2.2 has no MPS FFT.
+The full test suite and a full `listen` on a 35-bar demo give identical results on both sets.
+
 The installed app currently occupies about 661 MiB; PyTorch accounts for about
 460 MiB and supports local musical analysis. The compressed `.pkg` is about 214 MiB
 and can be removed after installation. Learned profiles, reference links and downloaded
