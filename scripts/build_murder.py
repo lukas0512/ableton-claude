@@ -891,6 +891,60 @@ def v7_mix():
     _eq("BASS", 3, "Bell", 900, 3, 1.0)
 
 
+# ---------------------------------------------------------------- v8: every element in place
+# He: "uma mix bem mais top nos detalhes, cada elemento equalizadinho e bem macio encaixado
+# no seu lugar". From the solo pass (solo_pass.run, drop 1 bars 81-88 and 73-80, 1/3-octave
+# spectra + masking) on v7.
+def _bands(track):
+    p = client.call("get_device", {"track": track, "device": "EQ Eight"})["params"]
+    d = {q["name"]: q["display"] for q in p}
+    return {k: (d[f"{k} Filter On A"], d[f"{k} Filter Type A"], d[f"{k} Gain A"]) for k in range(1, 9)}
+
+
+def _free(track, used):
+    for k, (on, kind, gain) in _bands(track).items():
+        if k not in used and (on == "Off" or (kind == "Bell" and gain.startswith("0.00"))):
+            used.add(k)
+            return k
+    raise RuntimeError("no free EQ band on " + track)
+
+
+def _hp(track, hz, used):
+    b = _bands(track)
+    k = 1 if b[1][1].startswith("High Pass") or b[1][0] == "Off" else _free(track, used)
+    used.add(k)
+    _eq(track, k, "High Pass 12dB", hz)
+
+
+V8 = {  # track: (fader dB change, high-pass Hz or None, [(kind, Hz, dB, Q)])
+    "KICK": (0, None, [("Bell", 180, -3, 1.2), ("Bell", 3200, 2, .8)]),
+    "KICK - build (HP)": (0, None, [("Bell", 180, -3, 1.2)]),
+    "BASS": (0, None, [("Bell", 350, -2.5, 1.2)]),
+    "CLAP": (-3, 180, [("Bell", 4500, -2, 1.5)]),
+    "SNARE": (-2, 200, [("Bell", 160, -4, 2), ("High Shelf", 7000, -2, None)]),
+    "HAT OFF - persona": (-4, 400, []),
+    "HAT OFF - imite": (-4, 400, []),
+    "HAT OFF - shaker shot": (-2, 400, []),
+    "HAT 16ths": (0, 500, []),
+    "PERC LOOP": (0, 300, []),
+    "LOOP MURDER - riff bed": (0, 150, [("Bell", 2500, -3, 3), ("Bell", 500, -2, 1.5)]),
+    "CHOPS - Murder": (0, 250, [("Bell", 3150, -2.5, 2.5)]),
+    "VOX MURDER - hooks": (-1.5, None, [("Bell", 500, -2, 1.5)]),
+}
+
+
+def v8_mix():
+    for tr, (fader, hp, bells) in V8.items():
+        used = set()
+        if hp:
+            _hp(tr, hp, used)
+        for kind, hz, db, q in bells:
+            _eq(tr, _free(tr, used), kind, hz, db, q)
+        if fader:
+            v = client.call("get_track", {"track": tr})["vol_db"]
+            C("set_track", track=tr, volume_db=round(v + fader, 2))
+
+
 def dub():
     dub_bass()
     dub_swing()
@@ -903,4 +957,4 @@ if __name__ == "__main__":
     {"sketch": sketch, "pista": pista, "pista_loops": pista_loops, "pista_vocals": pista_vocals,
      "pista_fx": pista_fx, "pista_cues": pista_cues, "dub": dub, "dub_mix": dub_mix,
      "dub_v3": dub_v3, "dub_mix2": dub_mix2, "v4": v4, "v5_mix": v5_mix, "v6_bass_back": v6_bass_back,
-     "v7_vocals": v7_vocals, "v7_mix": v7_mix}[sys.argv[1]]()
+     "v7_vocals": v7_vocals, "v7_mix": v7_mix, "v8_mix": v8_mix}[sys.argv[1]]()
