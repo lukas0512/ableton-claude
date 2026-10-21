@@ -975,6 +975,67 @@ def v8c_mono():
     C("set_param", track="master", device="Utility", param="Bass Mono", value=1)
 
 
+# ---------------------------------------------------------------- v9: UKG snare + keys stabs
+# He: "um snare fazendo um groove meio UK garage ... e às vezes um synthzinho, pianos, keys,
+# stab pra marcar, fazer um bounce, sem repetitivo, espaçado, não tocando sempre".
+UKG = [[(4, 100), (7, 52), (10, 70), (12, 100), (15, 78)],          # 2-step snare, 2 bars
+       [(2, 48), (4, 100), (9, 72), (12, 100), (14, 50), (15, 80)]]
+SNARE_V9 = [(33, 49, .85), (65, 97, 1.0), (121, 153, 1.0)]
+
+
+def _ukg_notes(bars, scale):
+    out = []
+    for b in range(bars):
+        for step, v in UKG[b % 2]:
+            t = b * 4 + step / 4 + (V4_SWING if step % 2 else 0)
+            out.append([60, round(t, 4), .2, int(v * scale)])
+    return out
+
+
+def v9_snare():
+    _clear("SNARE")
+    for a, b, scale in SNARE_V9:
+        C("create_midi_clip", track="SNARE", bar=a, length=(b - a) * 4,
+          notes=_ukg_notes(b - a, scale), name="UKG 2-step snare")
+
+
+# rootless voicings, locked to the bass riff (its turn: A on bars from an odd bar, D after)
+EM9, AM9, D69 = [55, 59, 62, 66], [59, 60, 64, 67], [57, 59, 62, 66]
+PHRASE = {"A": [(0, 3, EM9, .2), (0, 6, EM9, .35), (1, 11, D69, .45)],
+          "B": [(0, 6, EM9, .3), (0, 11, AM9, .25), (1, 3, EM9, .2), (1, 9, EM9, .2)]}
+KEYS_AT = [(35, "A"), (43, "A"),                                   # groove: 2 of every 8
+           (67, "A"), (71, "B"), (79, "B"), (83, "A"), (87, "B"), (91, "A"), (95, "B"),
+           (99, "A"), (103, "A"), (107, "B"),                      # break 2, under Pimp C
+           (123, "A"), (127, "B"), (135, "B"), (143, "A"), (147, "B"), (151, "A"),
+           (155, "A"), (163, "A")]
+
+
+def v9_keys():
+    T = "KEYS - wurli stabs"
+    if not any(t["name"] == T for t in client.call("get_song")["tracks"]):
+        C("create_track", kind="midi", name=T)
+        C("load_device", track=T, path="sounds/Piano & Keys/Wurli Short Piano.adv")
+        C("set_track_output", track=T, dest="MUSIC BUS")
+        C("set_track", track=T, volume_db=-14, pan=-.15)
+        C("set_send", track=T, send=1, db=-16)          # B-Delay
+        C("load_device", track=T, query="EQ Eight", roots=["audio_effects"])
+        _eq(T, 1, "High Pass 12dB", 180)
+    _clear(T)
+    for bar, ph in KEYS_AT:
+        notes = []
+        for b, step, chord, dur in PHRASE[ph]:
+            t = b * 4 + step / 4 + (V4_SWING if step % 2 else 0)
+            vel = 96 if dur > .3 else 84
+            notes += [[p, round(t, 4), dur, vel - 4 * i] for i, p in enumerate(chord)]
+        C("create_midi_clip", track=T, bar=bar, length=8, notes=notes, name="stab " + ph)
+
+
+def v9():
+    v9_snare()
+    v9_keys()
+    print("v9 done")
+
+
 def dub():
     dub_bass()
     dub_swing()
@@ -987,4 +1048,5 @@ if __name__ == "__main__":
     {"sketch": sketch, "pista": pista, "pista_loops": pista_loops, "pista_vocals": pista_vocals,
      "pista_fx": pista_fx, "pista_cues": pista_cues, "dub": dub, "dub_mix": dub_mix,
      "dub_v3": dub_v3, "dub_mix2": dub_mix2, "v4": v4, "v5_mix": v5_mix, "v6_bass_back": v6_bass_back,
-     "v7_vocals": v7_vocals, "v7_mix": v7_mix, "v8_mix": v8_mix, "v8b_mix": v8b_mix, "v8b_breaks": v8b_breaks}[sys.argv[1]]()
+     "v7_vocals": v7_vocals, "v7_mix": v7_mix, "v8_mix": v8_mix, "v8b_mix": v8b_mix, "v8b_breaks": v8b_breaks,
+     "v9": v9, "v9_keys": v9_keys}[sys.argv[1]]()
