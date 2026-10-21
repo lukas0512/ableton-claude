@@ -1096,6 +1096,34 @@ def v11():
     C("set_param", track=T, device="Utility", param="Bass Freq", display=200)
 
 
+# ---------------------------------------------------------------- v12: stab candidates
+# He muted the Wurli stabs ("não gostei muito"): the same phrases on three timbres, each
+# on its own muted track, for him to audition by solo in Live.
+STAB_CANDIDATES = {"STAB - twice for murder": "sounds/Synth Keys/Stab Twice for Murder.adv",
+                   "STAB - dub pluck": "sounds/Guitar & Plucked/Chord Dub Pluck.adg",
+                   "STAB - organ": "sounds/Piano & Keys/Organ Analog.adg"}
+
+
+def v12_stabs():
+    src = "KEYS - wurli stabs"
+    clips = [(c["start"], client.call("get_notes", {"track": src, "clip": {"at": c["start"]}}),
+              c["name"]) for c in _clips(src)]
+    names = [t["name"] for t in client.call("get_song")["tracks"]]
+    for T, preset in STAB_CANDIDATES.items():
+        if T not in names:
+            C("create_track", kind="midi", name=T)
+            C("load_device", track=T, path=preset)
+            C("set_track_output", track=T, dest="MUSIC BUS")
+            C("load_device", track=T, query="EQ Eight", roots=["audio_effects"])
+            _eq(T, 1, "High Pass 12dB", 180)
+        C("set_track", track=T, volume_db=-12, pan=-.3, mute=True)
+        C("set_send", track=T, send=3, db=-20)
+        C("set_send", track=T, send=1, db=-16)
+        _clear(T)
+        for at, notes, name in clips:
+            C("create_midi_clip", track=T, beat=at, length=8, notes=notes, name=name)
+
+
 def dub():
     dub_bass()
     dub_swing()
@@ -1109,4 +1137,4 @@ if __name__ == "__main__":
      "pista_fx": pista_fx, "pista_cues": pista_cues, "dub": dub, "dub_mix": dub_mix,
      "dub_v3": dub_v3, "dub_mix2": dub_mix2, "v4": v4, "v5_mix": v5_mix, "v6_bass_back": v6_bass_back,
      "v7_vocals": v7_vocals, "v7_mix": v7_mix, "v8_mix": v8_mix, "v8b_mix": v8b_mix, "v8b_breaks": v8b_breaks,
-     "v9": v9, "v9_keys": v9_keys, "v10_mix": v10_mix, "v11": v11}[sys.argv[1]]()
+     "v9": v9, "v9_keys": v9_keys, "v10_mix": v10_mix, "v11": v11, "v12_stabs": v12_stabs}[sys.argv[1]]()
