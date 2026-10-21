@@ -826,7 +826,7 @@ def v6_bass_back():
             C("add_notes", track=tr, clip={"at": c["start"]},
               notes=[[p + 36, t, d, v] for p, t, d, v in notes], replace=True)
             C("set_clip", track=tr, clip={"at": c["start"]}, name="Murder riff bass (off the kick)")
-    C("set_track", track="BASS", volume_db=-17.3)
+    C("set_track", track="BASS", volume_db=-21.3)   # v6 validate: kick only 1 dB over the bass (refs 6)
 
 
 def dub():
