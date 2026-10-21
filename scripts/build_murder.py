@@ -1036,6 +1036,30 @@ def v9():
     print("v9 done")
 
 
+def v10_mix():
+    """He: "encurta o reverb do clap, baixa o baixo, faz a mix direito, melhora o stab, a
+    presença". Solo pass bars 83-90: keys -19 LU and dull (nothing above 3 kHz) under a
+    riff 15-25 dB louder at 160-630 Hz; bass -4.7, clap -5.8 LU; clap tail ~445 ms (D-Room
+    800 ms at -16 dB send + A-Reverb)."""
+    C("set_send", track="CLAP", send=3, db=-24)
+    C("set_send", track="CLAP", send=0, db=-70)
+    C("set_param", track="return:D-Room", device="Reverb", param="Decay Time", display="600 ms")
+    for tr, d in (("BASS", -3), ("CLAP", -2), ("LOOP MURDER - riff bed", -2), ("KEYS - wurli stabs", 4)):
+        v = client.call("get_track", {"track": tr})["vol_db"]
+        C("set_track", track=tr, volume_db=round(v + d, 2))
+    used = set()
+    _eq("LOOP MURDER - riff bed", 4, "Bell", 180, -3, 1.2)       # was a duplicate 630 cut
+    K = "KEYS - wurli stabs"
+    used = {1}
+    _eq(K, _free(K, used), "Bell", 2500, 3, 1.0)
+    _eq(K, _free(K, used), "High Shelf", 6000, 2)
+    _eq(K, _free(K, used), "Bell", 300, -2, 1.2)
+    if not any(d["name"] == "Saturator" for d in client.call("get_track", {"track": K})["devices"]):
+        C("load_device", track=K, query="Saturator", roots=["audio_effects"])
+        C("set_param", track=K, device="Saturator", param="Drive", db=5)
+        C("set_param", track=K, device="Saturator", param="Dry/Wet", display=40)
+
+
 def dub():
     dub_bass()
     dub_swing()
@@ -1049,4 +1073,4 @@ if __name__ == "__main__":
      "pista_fx": pista_fx, "pista_cues": pista_cues, "dub": dub, "dub_mix": dub_mix,
      "dub_v3": dub_v3, "dub_mix2": dub_mix2, "v4": v4, "v5_mix": v5_mix, "v6_bass_back": v6_bass_back,
      "v7_vocals": v7_vocals, "v7_mix": v7_mix, "v8_mix": v8_mix, "v8b_mix": v8b_mix, "v8b_breaks": v8b_breaks,
-     "v9": v9, "v9_keys": v9_keys}[sys.argv[1]]()
+     "v9": v9, "v9_keys": v9_keys, "v10_mix": v10_mix}[sys.argv[1]]()
