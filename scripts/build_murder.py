@@ -1060,6 +1060,42 @@ def v10_mix():
         C("set_param", track=K, device="Saturator", param="Dry/Wet", display=40)
 
 
+# ---------------------------------------------------------------- v11: glued, wide, deep
+# He: "esse fx de breakbeat está conflitando com o groove; as coisas não estão todas
+# coladas; uma mix bem colada; tudo pensado no stereo, no paneamento e na track 3D".
+# v10 validate: width mid -10.3 / high -9.2 dB (refs -6.9 / -6.1): too narrow.
+# Not touched (his own moves after v10): BASS fader, CLAP sends, KEYS mute.
+A, B, C_, D, E = range(5)                    # A-Reverb, B-Delay, C-Atmos, D-Room, E-Plate
+PANS = {"HAT 16ths": .12, "HAT OFF - persona": .3, "HAT OFF - imite": -.3,
+        "HAT OFF - shaker shot": .45, "RIDE 909": .2, "PERC LOOP": -.4,
+        "LOOP MURDER - riff bed": .25, "KEYS - wurli stabs": -.3, "CHOPS - Murder": -.1}
+SENDS = {  # depth: front dry (kick, bass, clap, lead vocal), middle a little room, back atmos
+    "LOOP MURDER - riff bed": {C_: -16, D: -24},
+    "KEYS - wurli stabs": {D: -20, B: -16},
+    "CHOPS - Murder": {D: -24, B: -14},
+    "VOX MURDER - hooks": {D: -28},
+    "VOX MURDER - theme calls": {D: -28},
+    "VOX MURDER - Pimp C": {D: -28},
+    "VOX MURDER - radio": {C_: -16, D: -22},
+}
+
+
+def v11():
+    C("set_track", track="BREAKBEAT", mute=True)
+    for tr, pan in PANS.items():
+        C("set_track", track=tr, pan=pan)
+    for tr, sends in SENDS.items():
+        for k, db in sends.items():
+            C("set_send", track=tr, send=k, db=db)
+    # the riff bed: wider above its low end (Utility width, low end kept mono)
+    T = "LOOP MURDER - riff bed"
+    if not any(d["name"] == "Utility" for d in client.call("get_track", {"track": T})["devices"]):
+        C("load_device", track=T, query="Utility", roots=["audio_effects"])
+    C("set_param", track=T, device="Utility", param="Stereo Width", display=140)
+    C("set_param", track=T, device="Utility", param="Bass Mono", value=1)
+    C("set_param", track=T, device="Utility", param="Bass Freq", display=200)
+
+
 def dub():
     dub_bass()
     dub_swing()
@@ -1073,4 +1109,4 @@ if __name__ == "__main__":
      "pista_fx": pista_fx, "pista_cues": pista_cues, "dub": dub, "dub_mix": dub_mix,
      "dub_v3": dub_v3, "dub_mix2": dub_mix2, "v4": v4, "v5_mix": v5_mix, "v6_bass_back": v6_bass_back,
      "v7_vocals": v7_vocals, "v7_mix": v7_mix, "v8_mix": v8_mix, "v8b_mix": v8b_mix, "v8b_breaks": v8b_breaks,
-     "v9": v9, "v9_keys": v9_keys, "v10_mix": v10_mix}[sys.argv[1]]()
+     "v9": v9, "v9_keys": v9_keys, "v10_mix": v10_mix, "v11": v11}[sys.argv[1]]()
