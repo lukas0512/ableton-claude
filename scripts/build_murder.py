@@ -788,6 +788,47 @@ def v4():
     print("v4 done")
 
 
+def v5_mix():
+    """validate(v4): FM bass 11.3 dB under the kick (refs 6) and sub 26 %, low-mid/mid 9-10 %
+    (refs 2.5-3.9: guitar + chops), clap backbeat 12.3 dB (refs 8), kick 70 Hz (refs 62:
+    +3 st was too much), breaks still 1.5 LU under the drops (refs 4.3)."""
+    C("set_track", track="BASS", volume_db=-12.3)
+    C("set_track", track="LOOP MURDER - riff bed", volume_db=-3)
+    C("set_track", track="CHOPS - Murder", volume_db=-14)
+    C("set_track", track="CLAP", volume_db=-1.7)
+    for tr in ("KICK", "KICK - build (HP)"):
+        for c in _clips(tr):
+            notes = client.call("get_notes", {"track": tr, "clip": {"at": c["start"]}})
+            C("add_notes", track=tr, clip={"at": c["start"]},
+              notes=[[62 if p == 63 else p, t, d, v] for p, t, d, v in notes], replace=True)
+    for tr in BREAK_TRACKS + ("VOX MURDER - theme calls", "CHOPS - Murder"):
+        for c in _clips(tr):
+            bar = c["start"] / 4 + 1
+            if any(a <= bar < b for a, b in BREAKS):
+                C("set_clip", track=tr, clip={"at": c["start"]},
+                  gain_db=round(c.get("gain_db", 0) - 2.5, 2))
+
+
+def v6_bass_back():
+    """He: "o timbre do baixo ficou lixo, o outro era melhor": BinBassTone back (notes +36,
+    the off-kick riff and 60 % swing kept), level as in the v3 check (-17.3 dB)."""
+    for tr in ("BASS", "BASS - teaser (HP)"):
+        if client.call("get_track", {"track": tr})["devices"][0]["name"] == "Basic FM House Bass":
+            C("delete_device", track=tr, device=0)
+            C("load_device", track=tr, path="user_library/Samples/Claude/Nobody Kit/C_BinBassTone_01_SP.wav")
+            devs = [d["name"] for d in client.call("get_track", {"track": tr})["devices"]]
+            k = next(i for i, n in enumerate(devs) if n.startswith("C_BinBassTone"))
+            if k:
+                C("move_device", track=tr, device=k, position=0)
+        C("set_param", track=tr, device=0, param="Volume", db=-12)   # FTS gain staging
+        for c in _clips(tr):
+            notes = client.call("get_notes", {"track": tr, "clip": {"at": c["start"]}})
+            C("add_notes", track=tr, clip={"at": c["start"]},
+              notes=[[p + 36, t, d, v] for p, t, d, v in notes], replace=True)
+            C("set_clip", track=tr, clip={"at": c["start"]}, name="Murder riff bass (off the kick)")
+    C("set_track", track="BASS", volume_db=-17.3)
+
+
 def dub():
     dub_bass()
     dub_swing()
@@ -799,4 +840,4 @@ def dub():
 if __name__ == "__main__":
     {"sketch": sketch, "pista": pista, "pista_loops": pista_loops, "pista_vocals": pista_vocals,
      "pista_fx": pista_fx, "pista_cues": pista_cues, "dub": dub, "dub_mix": dub_mix,
-     "dub_v3": dub_v3, "dub_mix2": dub_mix2, "v4": v4}[sys.argv[1]]()
+     "dub_v3": dub_v3, "dub_mix2": dub_mix2, "v4": v4, "v5_mix": v5_mix, "v6_bass_back": v6_bass_back}[sys.argv[1]]()
