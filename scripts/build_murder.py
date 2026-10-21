@@ -829,6 +829,68 @@ def v6_bass_back():
     C("set_track", track="BASS", volume_db=-21.3)   # v6 validate: kick only 1 dB over the bass (refs 6)
 
 
+# ---------------------------------------------------------------- v7: vocals sit, bass speaks
+# He: "a mix precisa de muita atenção, os vocais não estão encaixando direito, o bass
+# precisa de presença". 15-30 % of the syllables sat ~0.4 of a 16th off the grid (outside
+# onset_markers' 0.35 tolerance, so never moved) and the rest moved only 60 %; v6
+# validation: bass harmonics -22 dB (refs -8.6).
+V7_QUANTIZE, V7_TOL = .85, .5
+PIMP = {"VOX MURDER - Pimp C": [(21, 9, 8, 0), (97, 25, 8, -5)],
+        "VOX MURDER - trades": [(147, 9, 2, 0), (151, 11, 2, 0)]}
+
+
+def _cut_v7(name, src_bar, bars):
+    import functools
+    g = sr.source_grid(str(MIX), 86.0)
+    orig = sr.onset_markers
+    sr.onset_markers = functools.partial(orig, tol=V7_TOL)
+    try:
+        return sr.cut_phrase(str(STEM / "vocals.wav"), str(VOX_DIR / f"Murder {name} (src {src_bar}) [v7].wav"),
+                             g["bpm"], g["downbeat"], src_bar, bars, DUB_SWING,
+                             detected=g["beats"], quantize=V7_QUANTIZE)
+    finally:
+        sr.onset_markers = orig
+
+
+def v7_vocals():
+    global DUB_SWING
+    DUB_SWING = V4_SWING
+    meta = json.loads((VOX_DIR / "phrases.json").read_text())
+    for name, m in meta.items():
+        meta[name] = _cut_v7(name, m["source_bar"], m["beats"] // 4)
+    (VOX_DIR / "phrases.json").write_text(json.dumps(meta))
+    pista_vocals_dub()
+    build1_end()
+    for tr, slots in PIMP.items():
+        _clear(tr)
+        for bar, src, bars, gain in slots:
+            m = _cut_v7(f"pimp src {src} {bars} bars", src, bars)
+            sr.place_warped(call, tr, m["path"], beat(bar) - m["preroll"], m["clip_beats"],
+                            m["markers"], name=f"Murder Pimp C src {src}", gain_db=gain)
+    for tr in ("VOX MURDER - hooks", "VOX MURDER - radio", "VOX MURDER - theme calls"):
+        for c in _clips(tr):                                   # breaks stay deeper
+            if any(a <= c["start"] / 4 + 1 < b for a, b in BREAKS):
+                C("set_clip", track=tr, clip={"at": c["start"]},
+                  gain_db=round(c.get("gain_db", 0) - 5, 2))
+
+
+def v7_mix():
+    _eq("VOX BUS", 1, "High Pass 12dB", 140)
+    _eq("VOX BUS", 5, "Bell", 300, -3, 1.2)
+    _eq("VOX BUS", 3, "Bell", 3000, 2.5, 1.0)
+    _eq("VOX BUS", 4, "High Shelf", 8000, 1.5)
+    # the riff bed ducks under the voice (it ducked under FTS's bass, for the City synth)
+    C("set_device_input", track="LOOP MURDER - riff bed", device="Compressor",
+      source="VOX BUS", channel="Post FX")
+    C("set_param", track="LOOP MURDER - riff bed", device="Compressor", param="Threshold", db=-24)
+    C("set_param", track="LOOP MURDER - riff bed", device="Compressor", param="Ratio", display=3)
+    _eq("LOOP MURDER - riff bed", 6, "Bell", 900, -1.5, 1.0)
+    # bass presence: harmonics a small speaker can hear
+    C("set_param", track="BASS", device="Saturator", param="Drive", db=12)
+    C("set_param", track="BASS", device="Saturator", param="Dry/Wet", display=75)
+    _eq("BASS", 3, "Bell", 900, 3, 1.0)
+
+
 def dub():
     dub_bass()
     dub_swing()
@@ -840,4 +902,5 @@ def dub():
 if __name__ == "__main__":
     {"sketch": sketch, "pista": pista, "pista_loops": pista_loops, "pista_vocals": pista_vocals,
      "pista_fx": pista_fx, "pista_cues": pista_cues, "dub": dub, "dub_mix": dub_mix,
-     "dub_v3": dub_v3, "dub_mix2": dub_mix2, "v4": v4, "v5_mix": v5_mix, "v6_bass_back": v6_bass_back}[sys.argv[1]]()
+     "dub_v3": dub_v3, "dub_mix2": dub_mix2, "v4": v4, "v5_mix": v5_mix, "v6_bass_back": v6_bass_back,
+     "v7_vocals": v7_vocals, "v7_mix": v7_mix}[sys.argv[1]]()
