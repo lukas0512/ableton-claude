@@ -945,6 +945,26 @@ def v8_mix():
             C("set_track", track=tr, volume_db=round(v + fader, 2))
 
 
+def v8b_mix():
+    """validate(v8): too dark (high-mid 2.6, high 2.1 vs 3.2/2.7; warmth 9.2 vs 6.1, low-mid
+    5.3 vs 2.5) and breaks 2.8 LU: v8 cut the off-beat hats and clap too far."""
+    for tr, d in (("HAT OFF - persona", 2), ("HAT OFF - imite", 2), ("HAT OFF - shaker shot", 1),
+                  ("CLAP", 1.5)):
+        v = client.call("get_track", {"track": tr})["vol_db"]
+        C("set_track", track=tr, volume_db=round(v + d, 2))
+    _eq("master", 8, "High Shelf", 8000, 1)
+    _eq("master", 4, "Bell", 250, -1.5, 1.0)      # was FTS's +1.5 @ 350: the warmth
+    v8b_breaks()
+
+
+def v8b_breaks():
+    for tr in BREAK_TRACKS + ("VOX MURDER - theme calls", "CHOPS - Murder"):
+        for c in _clips(tr):
+            if any(a <= c["start"] / 4 + 1 < b for a, b in BREAKS):
+                C("set_clip", track=tr, clip={"at": c["start"]},
+                  gain_db=round(c.get("gain_db", 0) - 1.5, 2))
+
+
 def dub():
     dub_bass()
     dub_swing()
@@ -957,4 +977,4 @@ if __name__ == "__main__":
     {"sketch": sketch, "pista": pista, "pista_loops": pista_loops, "pista_vocals": pista_vocals,
      "pista_fx": pista_fx, "pista_cues": pista_cues, "dub": dub, "dub_mix": dub_mix,
      "dub_v3": dub_v3, "dub_mix2": dub_mix2, "v4": v4, "v5_mix": v5_mix, "v6_bass_back": v6_bass_back,
-     "v7_vocals": v7_vocals, "v7_mix": v7_mix, "v8_mix": v8_mix}[sys.argv[1]]()
+     "v7_vocals": v7_vocals, "v7_mix": v7_mix, "v8_mix": v8_mix, "v8b_mix": v8b_mix, "v8b_breaks": v8b_breaks}[sys.argv[1]]()
