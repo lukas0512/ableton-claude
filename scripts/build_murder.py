@@ -1124,6 +1124,95 @@ def v12_stabs():
             C("create_midi_clip", track=T, beat=at, length=8, notes=notes, name=name)
 
 
+# ---------------------------------------------------------------- v13: pro mix + master pass
+# He (2026-10-22): "mix bem melhor, timbres mais macios, comprimidas, fase, multibanda,
+# conflitos de frequência... master top, profissional, igual o mercado, pra tocar sábado".
+# Measured: master limiter at +16 dB input cut ~11 dB of the kick's peaks (premaster drop
+# -17.1 LUFS, TP -5.6); 30 references (Dub House Streets x2 weight + Sexy Vibes): sub 50 ms
+# range 11 vs 30 dB (the sub never breathes), kick attack/body 4.7 vs 6.0, 31-39 Hz +4-5 dB,
+# 4-5 kHz -2.5, 16 kHz -3, highs too narrow (side/mid -9.5 vs -6.5), 500 Hz +3 / 1 kHz +2,
+# low-mid/mid static, bars 17-48 louder than the drops, ceiling -1 vs refs ~0 dBTP.
+def v13_mix():
+    # 1. the sub breathes with the kick: deeper, faster duck on the bass
+    C("set_param", track="BASS", device="Compressor", param="Threshold", db=-38)
+    C("set_param", track="BASS", device="Compressor", param="Ratio", display=10)
+    C("set_param", track="BASS", device="Compressor", param="Release", display=120)
+    # 2. the deep sub (31-39 Hz) on the low-end bus: a bell, never a HP above E1 (41 Hz)
+    _eq("LOW END", _free("LOW END", set()), "Bell", 35, -3, 1.2)
+    # 4. presence on the drums (4-5 kHz), hats' spikes rounded (soft clip 1-2 dB)
+    _eq("DRUMS", _free("DRUMS", set()), "Bell", 4800, 2, .7)
+    C("set_param", track="DRUMS", device="Limiter", param="Mode", item="Soft Clip")
+    C("set_param", track="DRUMS", device="Limiter", param="Threshold", db=-13)
+    C("set_param", track="DRUMS", device="Limiter", param="Ceiling", db=-13)
+    C("set_param", track="DRUMS", device="Limiter", param="Output", db=1.5)
+    v13_mix_rest()
+
+
+def v13_mix_rest():
+    # 5./6. width of the highs: side-only high shelf on the drums (M/S EQ at the bus end)
+    devs = [d["name"] for d in client.call("get_track", {"track": "DRUMS"})["devices"]]
+    if devs.count("EQ Eight") < 2:
+        C("load_device", track="DRUMS", query="EQ Eight", roots=["audio_effects"])
+    ms = "EQ Eight#1"   # Name#k counts from 0
+    C("set_device_prop", track="DRUMS", device=ms, prop="global_mode", value=2)
+    for k in range(1, 9):
+        C("set_param", track="DRUMS", device=ms, param=f"{k} Filter On A", value=0)
+    C("set_param", track="DRUMS", device=ms, param="1 Filter On B", value=1)
+    C("set_param", track="DRUMS", device=ms, param="1 Filter Type B", item="High Shelf")
+    C("set_param", track="DRUMS", device=ms, param="1 Frequency B", display=3000)
+    C("set_param", track="DRUMS", device=ms, param="1 Gain B", display=2.5)
+    # 7. the music breathes with the kick, the 500 Hz box and 1 kHz bump out
+    C("set_param", track="MUSIC BUS", device="Compressor", param="Threshold", db=-22)
+    C("set_param", track="MUSIC BUS", device="Compressor", param="Ratio", display=3)
+    C("set_param", track="MUSIC BUS", device="Compressor", param="Release", display=160)
+    _eq("MUSIC BUS", _free("MUSIC BUS", set()), "Bell", 500, -2, 1.4)
+    _eq("MUSIC BUS", _free("MUSIC BUS", set()), "Bell", 1000, -1.5, 2)
+    _eq("VOX BUS", _free("VOX BUS", set()), "Bell", 500, -2, 1.4)
+    # arrangement: the drops the loudest; breaks back up 1.5 dB
+    _clear_range_snare_groove()
+    for tr in ("LOOP MURDER - riff bed", "PERC LOOP", "CHOPS - Murder"):
+        for c in _clips(tr):
+            if 17 <= c["start"] / 4 + 1 < 49:
+                C("set_clip", track=tr, clip={"at": c["start"]},
+                  gain_db=round(c.get("gain_db", 0) - 1.5, 2))
+    for tr in BREAK_TRACKS + ("VOX MURDER - theme calls", "CHOPS - Murder"):
+        for c in _clips(tr):
+            if any(a <= c["start"] / 4 + 1 < b for a, b in BREAKS):
+                C("set_clip", track=tr, clip={"at": c["start"]},
+                  gain_db=round(c.get("gain_db", 0) + 1.5, 2))
+
+
+def _clear_range_snare_groove():
+    """The UKG snare only in the drops: the groove keeps its lighter pocket (contrast)."""
+    for c in _clips("SNARE"):
+        if c["start"] / 4 + 1 < 49:
+            C("delete_clip", track="SNARE", clip={"at": c["start"]})
+
+
+def v13_master(limiter_gain=12.5, clip_db=-9.7):
+    """Master: EQ (air shelf +2.5 @12k) -> Saturator -> Glue -> Utility (bass mono 150 Hz)
+    -> soft clip (Limiter in Soft Clip mode, ~3 dB off the kick's peaks) -> Limiter True Peak
+    -0.3 dBTP at ~+11 dB input (it was +16 at -1.0: ~11 dB of limiting)."""
+    _eq("master", 8, "High Shelf", 12000, 2.5)
+    C("set_param", track="master", device="Utility", param="Bass Freq", display=150)
+    devs = [d["name"] for d in client.call("get_track", {"track": "master"})["devices"]]
+    if devs.count("Limiter") < 2:
+        C("load_device", track="master", query="Limiter", roots=["audio_effects"])
+        devs = [d["name"] for d in client.call("get_track", {"track": "master"})["devices"]]
+        C("move_device", track="master", device=len(devs) - 1, position=devs.index("Limiter"))
+    clip, lim = "Limiter#0", "Limiter#1"          # Name#k counts from 0
+    C("set_device_on", track="master", device=clip, on=True)
+    C("set_param", track="master", device=clip, param="Mode", item="Soft Clip")
+    C("set_param", track="master", device=clip, param="Threshold", db=clip_db)
+    C("set_param", track="master", device=clip, param="Ceiling", db=clip_db)
+    C("set_param", track="master", device=clip, param="Output", db=0)
+    C("set_device_on", track="master", device=lim, on=True)
+    C("set_param", track="master", device=lim, param="Mode", item="True Peak")
+    C("set_param", track="master", device=lim, param="Ceiling", db=-0.3)
+    C("set_param", track="master", device=lim, param="Threshold", db=-0.3)
+    C("set_param", track="master", device=lim, param="Input Gain", db=limiter_gain)
+
+
 def dub():
     dub_bass()
     dub_swing()
@@ -1137,4 +1226,5 @@ if __name__ == "__main__":
      "pista_fx": pista_fx, "pista_cues": pista_cues, "dub": dub, "dub_mix": dub_mix,
      "dub_v3": dub_v3, "dub_mix2": dub_mix2, "v4": v4, "v5_mix": v5_mix, "v6_bass_back": v6_bass_back,
      "v7_vocals": v7_vocals, "v7_mix": v7_mix, "v8_mix": v8_mix, "v8b_mix": v8b_mix, "v8b_breaks": v8b_breaks,
-     "v9": v9, "v9_keys": v9_keys, "v10_mix": v10_mix, "v11": v11, "v12_stabs": v12_stabs}[sys.argv[1]]()
+     "v9": v9, "v9_keys": v9_keys, "v10_mix": v10_mix, "v11": v11, "v12_stabs": v12_stabs,
+     "v13_mix": v13_mix, "v13_mix_rest": v13_mix_rest, "v13_master": v13_master}[sys.argv[1]]()
