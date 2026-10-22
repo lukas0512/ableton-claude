@@ -1515,6 +1515,16 @@ def v20_clean_tracks():
     _clone_track("CLAP", SAMPLES["CLAP"], -7.2, {3: -24})
 
 
+def v21_polish():
+    """v20 measured: stab -21 LU under the kick (refs: stabs ~-15 dB under the drums), 60-150 Hz
+    54 % (refs <= 52.5), air 4.3 % (<= 3.9), drop -8.24 LUFS (>= -8.04)."""
+    v = client.call("get_track", {"track": STAB})["vol_db"]
+    C("set_track", track=STAB, volume_db=round(v + 4, 1))
+    _eq("LOW END", _free("LOW END", set()), "Bell", 90, -1, 1.0)
+    C("set_param", track="master", device="EQ Eight", param="8 Gain A", display=0)
+    C("set_param", track="master", device="Limiter#1", param="Input Gain", db=11.3)
+
+
 def dub():
     dub_bass()
     dub_swing()
@@ -1536,4 +1546,5 @@ if __name__ == "__main__":
      "v16_builds": v16_builds,
      "v17_vocals": v17_vocals,
      "v18": v18, "v19_stab": v19_stab,
-     "v20_clean_tracks": v20_clean_tracks}[sys.argv[1]]()
+     "v20_clean_tracks": v20_clean_tracks,
+     "v21_polish": v21_polish}[sys.argv[1]]()
