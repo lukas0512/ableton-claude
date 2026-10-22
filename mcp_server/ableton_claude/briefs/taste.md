@@ -299,3 +299,11 @@ judged against; where the references differ, it is a choice to make with him.
   bass, stabs colouring it, drums never stopping.
 - Full data: the study `dub_house_streets` and the analysis scripts (taste_standard) in the
   session that produced this; re-measure with the same method for a new reference folder.
+
+**What he rejected from that standard in practice (Murder pista v18-v21, 2026-10-22):** the guitar
+riff cut to "colour" spans ("quando o riff da música sai parece que a track morre"), one-bar
+kick-outs and perc rests ("estragou o arranjo"): keep the record's riff continuous under the drop
+and the kick 4x4. And the low end must never vanish: in breaks and builds a low-passed sub plays
+the bass riff ~8 dB under the drop (out only for the 2-beat breath) -- "quando tirar o médio não
+pode ficar sem sub, que faz o movimento e o groove". A re-created Simpler loses its detune: the
+bass carried +14 cents to sit with the record; 0 cents made it "sem peso".
