@@ -1189,7 +1189,7 @@ def _clear_range_snare_groove():
             C("delete_clip", track="SNARE", clip={"at": c["start"]})
 
 
-def v13_master(limiter_gain=12.5, clip_db=-9.7):
+def v13_master(limiter_gain=10.5, clip_db=-7.8):   # v14 premaster: TP -4.2, -16.7 LUFS
     """Master: EQ (air shelf +2.5 @12k) -> Saturator -> Glue -> Utility (bass mono 150 Hz)
     -> soft clip (Limiter in Soft Clip mode, ~3 dB off the kick's peaks) -> Limiter True Peak
     -0.3 dBTP at ~+11 dB input (it was +16 at -1.0: ~11 dB of limiting)."""
