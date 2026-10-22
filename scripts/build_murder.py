@@ -1396,6 +1396,125 @@ def v18():
     print("v18 done")
 
 
+# ---------------------------------------------------------------- v19: the dub chord stab
+# The biggest gap to his references: stabs in ~63 % of bars, ~110 ms, 74 % off the beat,
+# mid register, wide, m9/7sus4 with <= 2 changes per 8 bars, filter sweeps. He rejected the
+# stock presets (Wurli, House Stab, three candidates): this one is designed on Drift.
+STAB = "STAB - dub chord"
+DRIFT = {"Osc 1 Wave": ("item", "Saw"), "Osc 2 Wave": ("item", "Saw"), "Osc 2 Oct": ("value", 0),
+         "Osc 2 Detune": ("value", .08), "Osc 1 Gain": ("db", -6), "Osc 2 Gain": ("db", -9),
+         "LP Type": ("item", "II"), "LP Freq": ("display", "900 Hz"), "LP Res": ("value", .22),
+         "LP Mod Amt 1": ("display", 45), "HP Freq": ("display", "150 Hz"),
+         "Env 1 Attack": ("display", "1.00 ms"), "Env 1 Decay": ("display", "160 ms"),
+         "Env 1 Sustain": ("display", 0), "Env 1 Release": ("display", "90 ms"),
+         "Env 2 Attack": ("display", "1.00 ms"), "Env 2 Decay": ("display", "110 ms"),
+         "Env 2 Sustain": ("display", 0), "Env 2 Release": ("display", "80 ms"),
+         "Spread": ("display", 35), "Drift": ("display", 10), "Volume": ("db", -8)}
+EM9, AM9, B7SUS = [55, 59, 62, 66], [55, 59, 60, 64], [57, 59, 64, 66]
+CELLS = {"A": [(0, 2), (0, 10), (1, 2), (1, 7), (1, 10)],
+         "B": [(0, 6), (0, 14), (1, 3), (1, 10)]}
+STAB_SPANS = [(25, 49), (49, 57), (57, 65), (65, 97), (97, 113), (113, 121), (121, 153),
+              (153, 161)]
+SWEEPS = {49: (600, 1200), 57: (800, 4000), 97: (700, 1500), 113: (900, 5000), 153: (3000, 500)}
+
+
+def _stab_notes(first_bar, bars):
+    notes = []
+    for b in range(bars):
+        bar = first_bar + b
+        k = (bar - 1) % 8                                 # position in the 8-bar phrase
+        chord = AM9 if k in (4, 5) else (B7SUS if k == 7 and (bar - 1) % 16 == 15 else EM9)
+        cell = CELLS["A" if ((bar - 1) // 2) % 2 == 0 else "B"]
+        for bb, step in cell:
+            if bb != b % 2:
+                continue
+            t = b * 4 + step / 4 + (V4_SWING if step % 2 else 0)
+            vel = 100 if step in (2, 10) else 86
+            notes += [[p, round(t, 4), .2, vel - 3 * i] for i, p in enumerate(chord)]
+    return notes
+
+
+def v19_stab():
+    names = [t["name"] for t in client.call("get_song")["tracks"]]
+    if STAB not in names:
+        C("create_track", kind="midi", name=STAB)
+        C("load_device", track=STAB, path="instruments/Drift")
+    for p, (kind, v) in DRIFT.items():
+        C("set_param", track=STAB, device="Drift", param=p, **{kind: v})
+    devs = [d["name"] for d in client.call("get_track", {"track": STAB})["devices"]]
+    if "Auto Filter" not in devs:
+        C("load_device", track=STAB, query="Auto Filter", roots=["audio_effects"])
+    if "EQ Eight" not in devs:
+        C("load_device", track=STAB, query="EQ Eight", roots=["audio_effects"])
+        _eq(STAB, 1, "High Pass 12dB", 200)
+        _eq(STAB, 2, "Bell", 400, -2, 1.2)
+    C("set_track_output", track=STAB, dest="MUSIC BUS")
+    C("set_track", track=STAB, volume_db=-12, pan=0)
+    C("set_send", track=STAB, send=1, db=-18)             # B-Delay: short throws
+    C("set_send", track=STAB, send=3, db=-22)             # D-Room: the drums' room
+    _clear(STAB)
+    for a, b in STAB_SPANS:
+        for c0 in range(a, b, 8):
+            n = min(8, b - c0)
+            f0, f1 = SWEEPS.get(a, (2200, 2200)) if c0 == a else (
+                (SWEEPS[a][1], SWEEPS[a][1]) if a in SWEEPS else (2200, 2200))
+            env = {"param": "Frequency", "device": "Auto Filter", "unit": "raw",
+                   "points": [[0, sr.filter_raw(f0)], [n * 4, sr.filter_raw(f1)]]}
+            C("create_midi_clip", track=STAB, bar=c0, length=n * 4, notes=_stab_notes(c0, n),
+              name="dub chord", envelopes=[env])
+
+
+# ---------------------------------------------------------------- v20: tracks without junk automation
+# Live's API cannot delete Arrangement automation, and overrides come back whenever a clip
+# goes through Session ("Back to Arrangement"). Device automation dies with the device (the
+# D-Room Reverb, the master Limiters and the bass Simpler were re-created with their params);
+# mixer automation (the CLAP sends, the BASS fader riding +5 dB in the groove) dies with the
+# track: clone the track (devices + params + sidechain + routing + clips), mute the old one.
+SAMPLES = {"BASS": "user_library/Samples/Claude/Nobody Kit/C_BinBassTone_01_SP.wav",
+           "CLAP": "user_library/Samples/Claude/Nobody Kit/SCHT_Clap2.wav"}
+
+
+def _clone_track(src, sample, volume_db, sends):
+    new = src + " "                                           # Live strips trailing spaces
+    new = src + " (clean)"
+    names = [t["name"] for t in client.call("get_song")["tracks"]]
+    if new in names:
+        return new
+    srcdevs = client.call("get_track", {"track": src})["devices"]
+    C("create_track", kind="midi", name=new)
+    C("load_device", track=new, path=sample)
+    for d in srcdevs[1:]:
+        path = "audio_effects/" + d["name"].split("#")[0]
+        C("load_device", track=new, path=path)
+    newdevs = client.call("get_track", {"track": new})["devices"]
+    for i, (a, b) in enumerate(zip(srcdevs, newdevs)):
+        C("copy_device", src_track=src, src_device=i, track=new, device=i)
+        try:
+            inp = client.call("device_inputs", {"track": src, "device": i})
+            if inp.get("type") and inp["type"] not in ("No Input", "None"):
+                C("set_device_input", track=new, device=i, source=inp["type"],
+                  channel=inp.get("channel"))
+        except Exception:
+            pass
+    C("set_track_output", track=new, dest=client.call("track_routing", {"track": src})["output"])
+    for c in _clips(src):
+        if c.get("muted"):
+            continue
+        notes = client.call("get_notes", {"track": src, "clip": {"at": c["start"]}})
+        C("create_midi_clip", track=new, beat=c["start"], length=c["end"] - c["start"],
+          notes=notes, name=c["name"])
+    C("set_track", track=new, volume_db=volume_db)
+    for k, db in sends.items():
+        C("set_send", track=new, send=k, db=db)
+    C("set_track", track=src, mute=True, name=src + " (old, automated)")
+    return new
+
+
+def v20_clean_tracks():
+    _clone_track("BASS", SAMPLES["BASS"], -17.3, {})
+    _clone_track("CLAP", SAMPLES["CLAP"], -7.2, {3: -24})
+
+
 def dub():
     dub_bass()
     dub_swing()
@@ -1416,4 +1535,5 @@ if __name__ == "__main__":
      "v16_break_perc": v16_break_perc,
      "v16_builds": v16_builds,
      "v17_vocals": v17_vocals,
-     "v18": v18}[sys.argv[1]]()
+     "v18": v18, "v19_stab": v19_stab,
+     "v20_clean_tracks": v20_clean_tracks}[sys.argv[1]]()
