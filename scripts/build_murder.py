@@ -1237,6 +1237,18 @@ def v14_bass():
     C("set_param", track="LOW END", device="EQ Eight", param="3 Gain A", display=0)
 
 
+def v15_gain_staging():
+    """He: "o baixo tá clipando e engolindo tudo, cadê o headroom". Measured soloed, master
+    limiters off: bass -10.7 LUFS / peak -1.0 dBFS, 8 LU OVER the kick (-18.6); its Saturator
+    (12 dB drive, 75 %) alone added +7.4 dB; the LOW END bus peaked at -0.4 dBFS. The BASS
+    fader carries arrangement volume automation (-17.3): level is set inside the chain."""
+    C("set_param", track="BASS", device="Saturator", param="Drive", db=4)
+    C("set_param", track="BASS", device="Saturator", param="Dry/Wet", display=40)
+    C("set_param", track="BASS", device="Utility", param="Output", db=-7.5)   # -> -3 LU vs kick
+    # premaster drop: TP -6.0 dBFS, -17.3 LUFS: clip only the kick's transient, limit ~2 dB
+    v13_master(limiter_gain=11, clip_db=-9.6)
+
+
 def dub():
     dub_bass()
     dub_swing()
@@ -1252,4 +1264,4 @@ if __name__ == "__main__":
      "v7_vocals": v7_vocals, "v7_mix": v7_mix, "v8_mix": v8_mix, "v8b_mix": v8b_mix, "v8b_breaks": v8b_breaks,
      "v9": v9, "v9_keys": v9_keys, "v10_mix": v10_mix, "v11": v11, "v12_stabs": v12_stabs,
      "v13_mix": v13_mix, "v13_mix_rest": v13_mix_rest, "v13_master": v13_master,
-     "v14_bass": v14_bass}[sys.argv[1]]()
+     "v14_bass": v14_bass, "v15_gain_staging": v15_gain_staging}[sys.argv[1]]()
