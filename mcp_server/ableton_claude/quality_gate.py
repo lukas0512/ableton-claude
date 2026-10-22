@@ -23,7 +23,10 @@ def _leftovers(tracks, details):
     for t in tracks:
         name = t["name"].strip().lower()
         files = [c.get("file") or "" for c in details[t["i"]].get("clips", [])]
-        recorded = any("/Samples/Recorded/" in f for f in files)
+        # a render track holds one or two recorded takes and nothing else; a part resampled
+        # into Samples/Recorded and then arranged (many clips) is music, not a leftover
+        recorded = (0 < len(files) <= 2
+                    and all("/Samples/Recorded/" in f for f in files))
         if name.startswith(LEFTOVER_PREFIXES) or (recorded and not name.startswith(("ref", "archive"))):
             out.append(_finding("error", "leftover track", t["name"],
                                 "a render or measurement track is still in the set"
@@ -120,7 +123,10 @@ def _master(song, call):
     if "Limiter" not in devs:
         return [_finding("warn", "master", "master", "no limiter on the master",
                          "Limiter, True Peak, ceiling -1 dBTP")]
-    lim = call("get_device", {"track": "master", "device": "Limiter"})
+    # the last limiter feeds the output: a soft-clip stage before a True Peak one is fine
+    last = devs.count("Limiter") - 1
+    lim = call("get_device", {"track": "master",
+                              "device": f"Limiter#{last}" if last else "Limiter"})
     p = {x["name"]: x["display"] for x in lim["params"]}
     out = []
     if p.get("Mode") != "True Peak":
@@ -146,6 +152,60 @@ def _form(song):
     return []
 
 
+def _looped_phrases(tracks, call):
+    """A vocal phrase clip left looping and longer than its loop plays the phrase twice
+    ("o vocal está repetindo 2x, aí perde o hook")."""
+    out = []
+    for t in tracks:
+        if t.get("kind") != "audio" or not any(k in t["name"].upper() for k in ("VOX", "VOCAL")):
+            continue
+        for c in call("get_track", {"track": t["i"], "markers": True}).get("clips", []):
+            if c.get("muted") or not c.get("looping"):
+                continue
+            span = (c.get("loop_end") or 0) - (c.get("loop_start") or 0)
+            if span > 0 and c["end"] - c["start"] > span + 0.25:
+                out.append(_finding("error", "phrase repeats", t["name"],
+                                    f"'{c.get('name', '')}' at bar {c['start'] / 4 + 1:g} loops "
+                                    f"{span:.2f} beats over {c['end'] - c['start']:.2f}",
+                                    "turn looping off or trim the clip to its phrase"))
+    return out
+
+
+def _state(tracks, call):
+    """Leftover debugging state that silently ruins a render: a soloed track (v17 of Murder
+    rendered the riff alone), a device switched off on the master or a bus, and Arrangement
+    automation that came from edits made while a render recorded (a master device switched
+    on/off, a time parameter of many seconds)."""
+    out = [_finding("error", "soloed track", t["name"], "a track is soloed: the render plays it alone",
+                    "set_track(solo=False)") for t in tracks if t.get("solo")]
+    buses = ["master"] + [t["name"] for t in tracks
+                          if t["name"].isupper() and not t.get("mute") and
+                          any(k in t["name"] for k in ("BUS", "DRUMS", "LOW END"))]
+    for b in buses:
+        try:
+            devs = call("get_track", {"track": b}).get("devices", [])
+        except Exception:
+            continue
+        out += [_finding("warn", "device off", b, "%s is switched off" % d["name"],
+                         "switch it on, or delete it if it is not meant to play")
+                for d in devs if not d.get("on", True)]
+    try:
+        autos = call("automated_params")
+    except Exception:
+        autos = []
+    for a in autos:
+        junk = (a["track"] == "master" and a["param"] == "Device On") or \
+               (a["param"] in ("Decay Time", "Release", "Attack") and a["now"].endswith(" s")
+                and float(a["now"].split()[0]) >= 5)
+        if junk and a["state"] == "playing":
+            out.append(_finding("error", "recorded automation", a["track"],
+                                "%s %s is automated (%s): likely written while a render recorded"
+                                % (a["device"], a["param"], a["now"]),
+                                "override it (set the value while playing, not recording) and ask "
+                                "the producer to delete the lane"))
+    return out
+
+
 def run(call):
     song = call("get_song")
     tracks = [t for t in song["tracks"]]
@@ -160,13 +220,16 @@ def run(call):
     findings = []
     findings += _leftovers(tracks, details)
     if call("transport_state").get("re_enable_automation_enabled"):
-        findings.append(_finding("error", "automation overridden", "-",
-                                 "a fader move disabled clip envelopes (Re-Enable Automation is lit)",
-                                 "ableton_command('re_enable_automation')"))
+        findings.append(_finding("warn", "automation overridden", "-",
+                                 "Re-Enable Automation is lit: some automation is overridden",
+                                 "check automated_params: re-enable only if the overridden lanes are "
+                                 "wanted (junk recorded during a render must stay overridden)"))
+    findings += _state(tracks, call)
     findings += _hot_simplers(tracks, details, call)
     findings += _empty_pads(tracks, details, notes_of, call)
     findings += _pocket(tracks, notes_of, song.get("tempo", 120.0))
     findings += _voices(tracks, details)
+    findings += _looped_phrases(tracks, call)
     findings += _master(song, call)
     findings += _form(song)
     order = {"error": 0, "warn": 1, "info": 2}
