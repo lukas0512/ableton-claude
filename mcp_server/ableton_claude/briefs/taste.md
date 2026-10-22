@@ -42,6 +42,70 @@ section you changed (`transport(action="play", bar=…)`) and say what to listen
 - Drop 2 must land harder than drop 1 ("o drop tá fraquinho"): the break layer under the
   kick, boom and crash +3 dB, loops +1.5 dB, every reserved layer from bar 1.
 
+- **Every drop gets the formula of the strongest one** (Let The Rhythm, 2026-10-20: "o
+  primeiro drop tem muito mais força que os outros"). The first hook hit hardest because it
+  was the only one with a 2-bar kick hole, a stab pickup in the last half bar and stab + ride
+  + voice + crash all landing together; later drops came back without the stab/ride or the
+  voice. Give each drop that whole entrance, and drop 2 every layer plus the voice. Measured:
+  grooves and drops sat within 0.3 LU (-7.6..-8.0 LUFS) under the limiter: the contrast has
+  to come from what enters, not from level.
+- **A break in a club track stays "pista"** ("break muito sem energia, fraquinho, não tem
+  build up"): kick out but every percussion layer, the stab and the filtered bass keep
+  going; nothing drops out two bars early. The build brings the kick back from bar 5 of 8:
+  quarters, 8ths, then 16ths up to the 2-beat breath, its velocity rising (Simpler
+  Vol<Vel 100 %; leave every normal kick at 127). Passed: -9.6, -8.9, -8.4, -8.1, -8.2 LUFS
+  per bar, drop -7.4. Too-loud 8th kicks put the bar before the drop over the drop (-6.2).
+- **Ear candies at the turns**, from the track's own material: its vocal phrase reversed
+  through a reverb into each drop, a reverse cymbal, an F# sub boom on the drop downbeat, the
+  phrase's last syllable thrown into a baked 3/16 ping-pong echo at phrase ends and before
+  drops, a soft reverse cymbal at each drop's 9th bar. ("falta mais earcandies e detalhes")
+
+- **Monotony is measured, then broken by absence** (From The Streets v28: "às vezes tá muito
+  repetitiva e monótona... groove por ausência, uns glitches"). v27 had every kick phrase
+  within -8.8..-9.2 LUFS and a loudness range of 2.7 LU. Take things away for a moment
+  instead of adding layers: the bass resting beats 2-4 while the riff answers, the kick out
+  for beats 3-4, a full drum stop for two beats in the middle of a drop, the 16th hats out
+  for two bars. Each hole gets one glitch made from the track's own voice or riff (the
+  title's first syllable stuttering 16ths -> 32nds falling in pitch, the title in a tape
+  stop, the riff's attack bit-crushed in 32nds, the hook chop reversed then gated), never
+  on top of a transition FX.
+- **The second break + build must not outstay** ("ficou muito grande"): 16 + 8 bars passed
+  where 16 + 16 was too long. A special layer (the breakbeat) is a sauce, not a bed ("fica
+  por muito tempo e não dando só o sauce na hora certa"): it enters for the last 4 bars of
+  the break, drives the build's chops, and in the drop only answers at phrase ends (2 bars
+  every 8), never 16 bars straight.
+
+- **A shortened build must still rise** ("falta um pouco de tensão e release bem feito"):
+  cutting a build's first half left only its loudest bars. Rebuild the arc by subtraction:
+  first half without clap, off-beat hats and perc loop, everything back for two bars, then
+  one bar a cappella (the music out, the voice and its echo) and the drop. Passed: -10.8,
+  -9.7/-9.4 (highs +3.5 dB), a cappella -12.1/-12.7, drop -8.2 LUFS.
+
+- **Build to drop, measured on the references, not invented** ("olhe referências... não
+  invente qualquer coisa"). Sexy Vibes (9 refs), the 8 bars before a drop: the kick's sub
+  (40-100 Hz) is gone, 35-50 dB under the drop; a high-passed kick often keeps pulsing in
+  quarters in 120-250 Hz (Ssero, Mood Child); the bass stays only filtered; in the last bar
+  the low end and body fall further while the highs (hats, voice, FX) keep their level; the
+  drop brings the sub back +35-40 dB. Our bar-long a cappella cut the highs too: that is what
+  "killed the energy". Build the filtered kick on its own track (same sample, EQ HP 48 dB at
+  180 Hz, into the drum bus). Never change the main kick's Vol<Vel for it: with every kick note
+  at 127 it still made the kick louder and the bass, keyed by the kick, vanished in the drops.
+  No looped one-bar cells repeating the same words through the build ("loops batidos falando
+  a coisa errada"); a fill (909 tom run) and the title's syllable stuttering are the pre-drop.
+
+- **A build must start at or above the break and climb to its last bar** ("o build up não faz
+  pressão e alívio, tá fraquinho e reto"). v35's build opened 2-3 LU under the break it followed.
+  Carry the break's groove into the build and open it: a low-passed loop with its filter rising
+  450 Hz -> 1.8 kHz and +6 dB over the build, the high-passed kick gaining weight (HP 400 -> 150 Hz),
+  density up in the last bar of the climb (kick and clap in 8ths), then one bar with the lows out.
+  Passed (2-bar averages): -10.2, -9.9, -8.7, breath -11.2, drop -7.9 LUFS.
+- **A clip envelope on a device parameter stays where it ended**: every other clip on that track
+  needs its own envelope holding its value (the groove's low-pass at 450 Hz in the break, the HP
+  kick at 180 Hz in intro/outro), or the next pass plays with the build's last setting.
+- **A stem's "other" loop can carry the original DJ's scratches**: keep the groove, lose the
+  scratches with a low-pass (~450 Hz); he deleted the whole loop once because the scratches were
+  too loud, and the break lost its bass-line groove with it.
+
 ## 3. Groove and drums
 
 - **One pocket**: every 16th part swings the same (kit: off-16ths +10.8 ms at 125); a hat
@@ -85,6 +149,18 @@ section you changed (`transport(action="play", bar=…)`) and say what to listen
 - The theme (the title line) is the teaser at the turns and the lead of the hooks; disclose
   it in stages.
 
+- **A solo in the breakdown is thematic and played by hand** ("humanizar muito mais o começo
+  desse solinho, fazer algo mais temático e esticar mais no break, às vezes fica vazio"):
+  take the theme from the vocal hook's melody (pitch-track it: "lift your hands" = C#5 A4
+  F#4, 5-3-1), state it alone, answer it, harmonise it, lift it an octave, and carry it into
+  the tension (call/answer, then compressed every half bar up high). Humanise: lay back on
+  beats, push the anticipations, +-6 ms scatter, velocity/length variation, half-step
+  graces, ghost repeats, rolled double stops. A breakdown with no low end at all (sub 1 %)
+  read as empty: keep the filtered bass under it (sub ~40 %).
+- **Swing**: on Let The Rhythm he asked for "mais groove e mais swing": 54 % -> ~58 %
+  (Swing 16ths 57 at 115 % on every MIDI part; the loops that already carry ~54 % get the
+  54 groove on top, timing only). Subtract percussion in the grooves rather than add.
+
 ## 6. Voices
 
 - Sparse beats busy: the v14 dynamic (few phrases, space between) was better than trading
@@ -101,6 +177,45 @@ section you changed (`transport(action="play", bar=…)`) and say what to listen
 - Story: the voice far (radio band) in the intro, real and close in the break (its filter
   opening over 2 bars), the title a cappella before the drop.
 
+- **Voices enter and leave like a record, not a cut** ("cortados na forma certa... entrando
+  e saindo mais na boa... pra não parecer que foi cortado"). Phrases cut on the source's bar
+  lines start or end mid-word (v29: the City call ended at -16 dB, hook B opened at -18).
+  Re-cut from the vocal stem: find the phrase by cross-correlation, move each edge to the
+  nearest gap between words (-26 dB under the phrase peak), fade 8 ms in / 40 ms out. Dense
+  rap often has no gap for 1.5 s: then let the phrase dissolve (150 ms fade) into an echo of
+  its last syllable. Echoes live on their own track (VOX - throws), unwarped, a 3/16
+  ping-pong at the track's tempo, darker each repeat, into the voices' plate.
+- **Not where the ear expects it** ("às vezes os vocais tão em lugares bem óbvios... a track
+  um pouco previsível"): a call every 4 or 8 bars on the same pick-up becomes wallpaper. Keep
+  the call at the theme's first statement and before breaks; move the others mid-phrase (beat
+  2.5 of bar 2 of 4), drop the ones that only repeat the pattern, and let the drop's hook
+  enter in its second 8 (in a kick hole), not on the drop's downbeat.
+
+- **His call pattern** (From The Streets v31, he fixed two calls himself): one statement before
+  a hook, never the same call twice in a row ("o vocal está repetindo 2x, aí perde o hook");
+  the first call with its pick-up, cut on the next bar line (31.875 -> 33.0); a later call
+  without the pick-up, starting on the downbeat, one bar (40.0 -> 41.0). The same one-bar
+  call on the drop's downbeat (65). A phrase clip must never be left looping longer than its
+  phrase: `quality_gate` now fails on it ("phrase repeats").
+
+- **One channel per vocal role** ("separar em canais diferentes os vocais que são diferentes...
+  e dá pra dar energia"): calls (the theme), hooks, radio versions, the second voice's answers,
+  each with the source channel's chain copied, all into one vocal bus and one plate. Then each
+  gets its own energy and level against the kick (limiter off): hooks got a parallel Glue
+  (4:1, 50 % wet, +2 dB) and +1 dB saturation, and still read -10 LU under the kick, so +1.7 dB
+  to the approved -8.3; calls were hot at -6.5 LU (-1.5 dB); the Murder answers +1.5 dB to sit
+  with the City.
+
+- **The energy curve, measured against the references** ("mix profissional e com sentimento,
+  pensando na dinâmica e avanço da música"). Sexy Vibes medians, each section type against the
+  loudest 8 bars: intro -4.2 LU, groove -0.7, break -3.8, drop -0.9, outro -6.4. From The Streets
+  v34 read intro -0.7, break -1.9, outro -0.5: a kick alone already fills the limiter, so the
+  track started at the top and never advanced. Fix by subtraction and filtering, not faders:
+  the kick high-passed (sub off) for the first and last 8 bars (the same HP kick channel as
+  the build), the break bass only in each break's second half, loops/atmos/hook clip gain -2
+  to -3 dB inside the breaks. v35: intro -3.7, break -2.6, LRA 2.5 -> 3.3 LU. A track with
+  volume automation (the guitar's energy map) takes its trim as clip gain, never a fader move.
+
 ## 7. Mix process (measured, every time)
 
 - Solo every element over the same 8 drop bars with the master limiter off and compare
@@ -115,6 +230,29 @@ section you changed (`transport(action="play", bar=…)`) and say what to listen
 - After any fader move on a track with clip volume envelopes call `re_enable_automation`.
 - Master for his car / a beach club: EQ (HP 28 Hz, +1 dB 3.5 kHz, +1 dB air) → Glue 2:1
   slow, range 3 → Limiter True Peak -1 dBTP; -9.6 LUFS integrated, drops -8.9, crest ~8 dB.
+
+- **One atmosphere** ("não tá tudo na mesma atmosfera"): the loops sat in one reverb, the
+  voices in a plate, the FX in a third, the clap almost dry. Put every melodic part and
+  voice in the same plate, a shared long tail (an atmos return) low under all of them, every
+  drum in the same short room. Width above 200 Hz: v27 drops read 6-7 % side/mid against
+  the Sexy Vibes references' 6-56 % (median ~16 %): pan the two loops apart and widen the
+  music bus (Utility 140 %, bass mono 120 Hz), not the drums, bass or lead voice.
+
+- **Fix the balance in the elements, not on the master** ("acerta o sub e o ar nos
+  elementos"). Measure each element soloed with the master glue and limiter OFF (through the
+  limiter everything soloed reads the same level) and remember the master EQ is still in that
+  path: moving a correction off the master changes every solo reading. From The Streets v29:
+  sub 47 % -> 44 % and low 40 % -> 43 % (Sexy Vibes 35-46 / 42-54) from kick -3.5 dB @50 +2.5
+  @90, bass fader -1.5 (back to -3 LU under the kick) +3 dB @85 (the E1's 2nd harmonic, root
+  untouched); air from undoing the drum bus's -2.5 dB shelf @9k (now -1.5 @7k + 2 dB shelf
+  @14k), +2 dB @13k on the hats and a 12 dB slope on their drawn low-pass; the 630 Hz excess
+  was the City vocal (-2.5 @630, +1.5 @1.6k, +2 @5k on the VOX bus) and a narrow resonance
+  in the City synth. The master EQ then only keeps HP 32, +1 @85, -1 @45 and a 2 dB air shelf.
+
+- **No long tails on voices or scratches** ("reverb gigante no scratch + Murder vocal, fica uma
+  cauda gigante no fundo... tudo alinhado e colado"): a 4 s atmos send on the voices smeared
+  the whole mix. Voices, throws, chops and scratches: the 1.4 s plate only. A shared long
+  return is glue for the loops at most, short (2 s) and low (-20).
 
 ## 8. Project hygiene ("muito desorganizado")
 
@@ -131,3 +269,33 @@ section you changed (`transport(action="play", bar=…)`) and say what to listen
 Not perfect yet: the drop-2 impact can grow, the voices and the breakbeat can glue further,
 more ear candy with character (US gangster rap meets UKG), and a lighter, summery, bouncy
 master for a beach club.
+
+## 9. The standard of his reference folder, measured (Dub House Streets, 2026-10-22)
+
+He: "analisar os detalhes e o porquê das músicas que escolhi: o groove das drums, o timbre do
+baixo, os stabs e keys... criar um padrão de bom gosto, medido nos detalhes". 13 tracks
+separated (htdemucs) and measured; medians [p25..p75]. This is the target his tracks are
+judged against; where the references differ, it is a choice to make with him.
+
+- **Drums**: kick 4x4 (never broken), clap on 2+4, 16th hats; one swing for hats and claps
+  (~56-57 %). Hat accents: the off-beat "and" +7.5 dB over the on-beat, the "e"/"a" 7 dB under it,
+  ~12 hits/bar, ~27 % ghosts. A quiet busy mid-perc layer (~11 hits/bar, 30 % ghosts). Variation
+  from percussion (1.3 pattern changes / 16 bars), not hats; the kick drops out for one bar ~3x per
+  32 groove bars, mostly on a phrase's 8th bar. Claps dry (~87 ms to -20 dB). No snare rolls.
+- **Bass**: 95 % of notes off the beat, 7 % with the kick; ~5.4 notes/bar, ~2 16ths long, cut not
+  decaying. Kick and bass share time by note placement more than sidechain: bass -19 dB at the
+  kick, back within 3 dB after ~190 ms. Tone warm and dark, even harmonics (2nd -2, 3rd -11,
+  above 300 Hz -28 dB), mono, register B1-C2.
+- **Stabs/keys**: in ~63 % of bars at -15 dB under the drums; 70 % short (~110 ms), 74 % off the
+  beat, mid register (~780 Hz), wide; m9/maj9/7sus4, ≤2 changes per 8 bars; movement from filter
+  sweeps (~5 sweeps of 4+ bars).
+- **Vocals**: voiced only ~33 % of the time; phrases short (median 1.2 beats, 90 % ≤ 4 beats, 3 %
+  ≥ 8 beats): chops and one-liners repeated as a hook (bar-to-bar correlation 0.7+), not verses;
+  -16 dB under the drums, dry, narrower than the music. Rap verses over house read "fora da
+  música, fora de warp" (Murder pista, 2026-10-22).
+- **Arrangement**: 16 bars drums, bass at 17, something changes every ~4 bars; breaks drop the
+  kick (and the bass half the time) and keep clap, hats, stabs and the hook, 1-4 LU under the drop;
+  drops land on kick + bass returning, not on FX. The theme: a short vocal hook over the off-beat
+  bass, stabs colouring it, drums never stopping.
+- Full data: the study `dub_house_streets` and the analysis scripts (taste_standard) in the
+  session that produced this; re-measure with the same method for a new reference folder.
