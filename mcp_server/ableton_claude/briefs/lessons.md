@@ -517,3 +517,16 @@ The LOW END bus carried a 48 dB/oct HP at 36 Hz under a riff that walks E1 (41 H
 D1 (37 Hz) and D#1 (39 Hz): it took the sub of half the riff. With the bass EQ's own -3 dB
 shelf at 55 Hz and a "deep sub" bell at 35 Hz the bass lost its sub three times. A reference
 curve's "excess" at 31-39 Hz can be the riff's own low notes: check the note list first.
+
+## Never change anything while a render records: it becomes Arrangement automation
+
+A render arms Arrangement recording; every parameter, send or fader moved meanwhile is
+written as automation and plays back later on its own. Murder pista (2026-10-22): a solo
+measurement that toggled the master limiters during a full render left them switching off
+for bars 56-59 (an 11 dB hole read as "the build is forgotten"); a reverb decay set to 60 s
+by mistake, the clap sends and the bass fader (+5 dB in the groove) all came back after every
+"fix", and the bass Simpler's volume rode 0 dB in a break. The bridge now refuses mutating
+commands while Live records. `automated_params` lists every automated parameter (state
+playing/overridden); Live's API cannot delete Arrangement automation, only override it (set
+the value while playing, not recording): ask the producer to delete the lanes, and never press
+Re-Enable Automation on overridden junk. Live 12 returns no envelopes for Arrangement clips.

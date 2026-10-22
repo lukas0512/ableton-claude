@@ -100,10 +100,24 @@ def _err(e):
     return {"error": "%s: %s" % (type(e).__name__, e), "trace": traceback.format_exc(limit=6)}
 
 
+# While Live records (a render), every parameter or mixer change is written into the
+# Arrangement as automation that later plays back on its own: on Murder pista toggling the
+# master limiters during a render left them switching off for 4 bars, a reverb decay of
+# 60 s and the bass fader riding 5 dB. These commands are refused until the render ends.
+_MUTATING = ("set_", "add_notes", "create_", "delete_", "load_device", "move_device",
+             "copy_device", "duplicate_", "fill_range", "shift_clips", "trim_clip",
+             "mute_clips_in_range", "clip_envelope", "clear_cues")
+_SAFE_WHILE_RECORDING = ("set_cue",)
+
+
 def _run(ctx, cmd, args):
     fn = COMMANDS.get(cmd)
     if fn is None:
         raise LookupError("unknown command: %s" % cmd)
+    if (cmd.startswith(_MUTATING) and cmd not in _SAFE_WHILE_RECORDING
+            and getattr(ctx.song, "record_mode", False)):
+        raise RuntimeError("Live is recording (a render): %s would be written into the "
+                           "Arrangement as automation. Wait for the render to finish." % cmd)
     return fn(ctx, **args)
 
 
@@ -518,6 +532,43 @@ def get_device(ctx, track, device):
 
 
 @command
+def api_methods(ctx, track="master", device=None, param=None):
+    """Introspection: the automation-related members Live exposes on a track, a device
+    parameter (or the mixer volume) and the song, to find what the API allows."""
+    t = _track(ctx, track)
+    p = t.mixer_device.volume if device is None else _param(_device(t, device), param)
+    pick = lambda o: sorted(n for n in dir(o) if "autom" in n.lower() or "envelope" in n.lower()
+                            or "clear" in n.lower())
+    return {"track": pick(t), "param": pick(p), "song": pick(ctx.song)}
+
+
+@command
+def automated_params(ctx):
+    """Every parameter in the set that carries Arrangement automation (automation_state 1 =
+    playing, 2 = overridden by a manual move): mixer volume/pan/sends and every device
+    parameter on every track, return and the master. Arrangement automation is invisible
+    to get_track/get_device values and to clip envelopes; a level ride hidden in a bus
+    or master device shows up here."""
+    s = ctx.song
+    tracks = [(t.name, t) for t in s.tracks] + \
+             [("return:" + t.name, t) for t in s.return_tracks] + [("master", s.master_track)]
+    out = []
+    for name, t in tracks:
+        m = t.mixer_device
+        params = [("mixer", "volume", m.volume), ("mixer", "pan", m.panning)]
+        params += [("mixer", "send:%d" % i, p) for i, p in enumerate(m.sends)]
+        for d in t.devices:
+            params += [(d.name, p.name, p) for p in d.parameters]
+        for owner, pname, p in params:
+            st = getattr(p, "automation_state", 0)
+            if st:
+                out.append({"track": name, "device": owner, "param": pname,
+                            "state": {1: "playing", 2: "overridden"}.get(st, st),
+                            "now": p.str_for_value(p.value)})
+    return out
+
+
+@command
 def get_notes(ctx, track, clip):
     c = _clip(_track(ctx, track), clip)
     notes = c.get_notes_extended(0, 128, -1e6, 2e6)
@@ -686,6 +737,38 @@ def _write_envelope(track, clip, spec, resolution=0.25):
         env.insert_step(offset + pts[0][0], resolution, pts[0][1])
         steps = 1
     return {"param": p.name, "steps": steps}
+
+
+@command
+def read_clip_envelopes(ctx, track, clip, samples=16):
+    """Which parameters a clip automates and their values across the clip: the mixer
+    (volume, pan, sends) and every device parameter with a clip envelope, each sampled at
+    `samples` evenly spaced points (beats from the clip start, display strings). Live 12's
+    API returns no envelope for Arrangement clips (measured 2026-10-22: an Arrangement clip
+    with a drawn filter envelope read empty): this works on Session clips only. For
+    Arrangement automation use automated_params."""
+    t = _track(ctx, track)
+    c = _clip(t, clip)
+    offset = c.loop_start if c.looping else c.start_marker
+    length = c.end_time - c.start_time
+    n = max(2, min(int(samples), 64))
+    times = [length * i / (n - 1) for i in range(n)]
+    candidates = [("mixer", "volume", t.mixer_device.volume),
+                  ("mixer", "pan", t.mixer_device.panning)]
+    candidates += [("mixer", "send:%d" % i, s) for i, s in enumerate(t.mixer_device.sends)]
+    for d in t.devices:
+        candidates += [(d.name, p.name, p) for p in d.parameters]
+    out = []
+    for owner, name, p in candidates:
+        env = c.automation_envelope(p)
+        if env is None:
+            continue
+        vals = []
+        for x in times:
+            v = env.value_at_time(offset + x)
+            vals.append([round(x, 3), p.str_for_value(v)])
+        out.append({"device": owner, "param": name, "values": vals})
+    return {"clip": c.name, "start": c.start_time, "length": length, "envelopes": out}
 
 
 def _via_session(ctx, t, start, fill):

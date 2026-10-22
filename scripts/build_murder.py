@@ -1249,6 +1249,90 @@ def v15_gain_staging():
     v13_master(limiter_gain=11, clip_db=-9.6)
 
 
+def v16_breaks():
+    """v15 measured per 8 bars: breaks -18.5 / -16.8 / -18.8 LUFS under drops at -8 (10 LU;
+    refs and his rule 3.5-5): the stacked break trims plus a lighter limiter. Breaks +4.5 dB;
+    the master air shelf +2.5 -> +1 dB (air 4.6 % vs refs 2.4-3.9)."""
+    for tr in BREAK_TRACKS + ("VOX MURDER - theme calls", "CHOPS - Murder"):
+        for c in _clips(tr):
+            if any(a <= c["start"] / 4 + 1 < b for a, b in BREAKS):
+                C("set_clip", track=tr, clip={"at": c["start"]},
+                  gain_db=round(c.get("gain_db", 0) + 4.5, 2))
+    C("set_param", track="master", device="EQ Eight", param="8 Gain A", display=1)
+
+
+def v16_break_perc():
+    """Breaks still 7 LU under the drops and thin (only 16th hats, a filtered riff, voices):
+    his FTS rule "a break in a club track stays pista" -- the kick out, the percussion on.
+    Clap, off-beat hats, shaker and perc loop copied from drop 1 into both breaks."""
+    C("delete_clips_in_range", track="PERC LOOP", start_bar=49, end_bar=57)
+    C("duplicate_range", track="PERC LOOP", start_bar=65, end_bar=73, dest_bar=49)
+    C("delete_clips_in_range", track="PERC LOOP", start_bar=97, end_bar=113)
+    C("duplicate_range", track="PERC LOOP", start_bar=65, end_bar=81, dest_bar=97)
+    for tr in ("CLAP", "HAT OFF - persona", "HAT OFF - shaker shot"):   # MIDI: cut from drop 1
+        src = next(c for c in _clips(tr) if c["start"] <= beat(65) < c["end"])
+        notes = client.call("get_notes", {"track": tr, "clip": {"at": src["start"]}})
+        for dest, bars in ((49, 8), (97, 16)):
+            a = beat(65) - src["start"]
+            cut = [[p, round(t - a, 4), d, v] for p, t, d, v in notes if a <= t < a + bars * 4]
+            if not any(abs(c["start"] - beat(dest)) < .01 for c in _clips(tr)):
+                C("create_midi_clip", track=tr, bar=dest, length=bars * 4, notes=cut,
+                  name="break (from drop 1)")
+
+
+def v16_builds():
+    """v16b: breaks -11.7..-13.3 (4-5 LU under the drops: right) but the builds opened under
+    them (-16.0 at 57, -13.7 at 113): no voice there, only the filtered riff. His FTS rule:
+    the build starts at the break's level and climbs -- the riff's clip gain ramps +2 -> +6 dB
+    under its opening filter, the high-passed bass teaser +3 dB."""
+    ramp = {0: 2, 1: 3.5, 2: 5, 3: 6}
+    for a in (57, 113):
+        for c in _clips("LOOP MURDER - riff bed"):
+            k = int((c["start"] / 4 + 1 - a) // 2)
+            if 0 <= k <= 3:
+                C("set_clip", track="LOOP MURDER - riff bed", clip={"at": c["start"]},
+                  gain_db=round(c.get("gain_db", 0) + ramp[k], 2))
+    v = client.call("get_track", {"track": "BASS - teaser (HP)"})["vol_db"]
+    C("set_track", track="BASS - teaser (HP)", volume_db=round(v + 3, 1))
+
+
+# ---------------------------------------------------------------- v17: less voice, more groove
+# He: "muito vocal... como é rap às vezes fica fora de warp, não fala muito a track; pouco
+# groove; os vocais não ficam dentro da música. Quero simples, groove, elegante, de classe,
+# que balança, bem colado." Long rap phrases are where the warp drifts and where the voice
+# fights the groove: the verses go (muted, not deleted), the short rhythmic "Murder" chant
+# stays at the turns, the chops answer in three 8-bar spans only, the voices sit deeper.
+KEEP_VOX = {  # track: bars kept (clip start bar, rounded); every other clip muted
+    "VOX MURDER - theme calls": {32, 61, 62, 63, 64, 67, 96, 117, 121, 149},
+    "VOX MURDER - hooks": {49, 64, 105, 109, 141},
+    "VOX MURDER - radio": {17, 120, 161},
+    "VOX MURDER - Pimp C": set(),
+    "VOX MURDER - trades": set(),
+    "VOX - throws": set(),
+}
+CHOPS_KEEP = [(41, 49), (81, 89), (141, 149)]
+
+
+def v17_vocals():
+    for tr, keep in KEEP_VOX.items():
+        for c in _clips(tr):
+            bar = int(round(c["start"] / 4 + 1))
+            C("set_clip", track=tr, clip={"at": c["start"]}, muted=bar not in keep)
+    for c in _clips("CHOPS - Murder"):
+        bar = c["start"] / 4 + 1
+        C("set_clip", track="CHOPS - Murder", clip={"at": c["start"]},
+          muted=not any(a <= bar < b for a, b in CHOPS_KEEP))
+    v = client.call("get_track", {"track": "VOX BUS"})["vol_db"]
+    C("set_track", track="VOX BUS", volume_db=round(v - 1.5, 1))
+    # "a ambiência do vocal muda a brisa, fica macabra, não dá vontade de dançar": voices
+    # drier and shorter, the long atmos off the voice and mostly off the riff
+    for tr in ("VOX MURDER - theme calls", "VOX MURDER - hooks", "VOX MURDER - radio"):
+        C("set_send", track=tr, send=4, db=-18)             # E-Plate
+    C("set_send", track="VOX MURDER - radio", send=2, db=-70)   # C-Atmos off
+    C("set_send", track="LOOP MURDER - riff bed", send=2, db=-24)
+    C("set_param", track="return:E-Plate", device="Reverb", param="Decay Time", display="900 ms")
+
+
 def dub():
     dub_bass()
     dub_swing()
@@ -1264,4 +1348,8 @@ if __name__ == "__main__":
      "v7_vocals": v7_vocals, "v7_mix": v7_mix, "v8_mix": v8_mix, "v8b_mix": v8b_mix, "v8b_breaks": v8b_breaks,
      "v9": v9, "v9_keys": v9_keys, "v10_mix": v10_mix, "v11": v11, "v12_stabs": v12_stabs,
      "v13_mix": v13_mix, "v13_mix_rest": v13_mix_rest, "v13_master": v13_master,
-     "v14_bass": v14_bass, "v15_gain_staging": v15_gain_staging}[sys.argv[1]]()
+     "v14_bass": v14_bass, "v15_gain_staging": v15_gain_staging,
+     "v16_breaks": v16_breaks,
+     "v16_break_perc": v16_break_perc,
+     "v16_builds": v16_builds,
+     "v17_vocals": v17_vocals}[sys.argv[1]]()
