@@ -501,3 +501,19 @@ loops). Start a new track's drums from it; what makes it work:
   pocket), `onset_chop`, `stem_loop` + `place_loop` (the originals' own instruments),
   `breakbeat_loop`, and `solo_levels` (levels vs the kick, masking). Start the next vocal
   remix from them, not from a one-off script.
+
+## A bare number in `set_param(display=...)` for a time parameter is read in seconds
+
+Murder pista (2026-10-22): `display=120` on a Compressor Release and `display=600` on a
+Reverb Decay Time became 3.00 s (the maximum) and 60 s. The bass sat under a 3 s release
+ducked all the time ("o baixo atrasado pra entrar", "sem sub, não faz o groove"), the music bus
+too, and every drum fed a 60 s room. Always pass the unit as a string (`display="120 ms"`),
+read the `display` the call returns, and after any batch of time settings scan the set:
+no Release/Attack/Decay/Predelay over ~1.5 s unless it is meant.
+
+## Never high-pass a bus above the bass riff's lowest note
+
+The LOW END bus carried a 48 dB/oct HP at 36 Hz under a riff that walks E1 (41 Hz) down to
+D1 (37 Hz) and D#1 (39 Hz): it took the sub of half the riff. With the bass EQ's own -3 dB
+shelf at 55 Hz and a "deep sub" bell at 35 Hz the bass lost its sub three times. A reference
+curve's "excess" at 31-39 Hz can be the riff's own low notes: check the note list first.

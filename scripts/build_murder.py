@@ -1136,7 +1136,7 @@ def v13_mix():
     # 1. the sub breathes with the kick: deeper, faster duck on the bass
     C("set_param", track="BASS", device="Compressor", param="Threshold", db=-38)
     C("set_param", track="BASS", device="Compressor", param="Ratio", display=10)
-    C("set_param", track="BASS", device="Compressor", param="Release", display=120)
+    C("set_param", track="BASS", device="Compressor", param="Release", display="120 ms")
     # 2. the deep sub (31-39 Hz) on the low-end bus: a bell, never a HP above E1 (41 Hz)
     _eq("LOW END", _free("LOW END", set()), "Bell", 35, -3, 1.2)
     # 4. presence on the drums (4-5 kHz), hats' spikes rounded (soft clip 1-2 dB)
@@ -1164,7 +1164,7 @@ def v13_mix_rest():
     # 7. the music breathes with the kick, the 500 Hz box and 1 kHz bump out
     C("set_param", track="MUSIC BUS", device="Compressor", param="Threshold", db=-22)
     C("set_param", track="MUSIC BUS", device="Compressor", param="Ratio", display=3)
-    C("set_param", track="MUSIC BUS", device="Compressor", param="Release", display=160)
+    C("set_param", track="MUSIC BUS", device="Compressor", param="Release", display="160 ms")
     _eq("MUSIC BUS", _free("MUSIC BUS", set()), "Bell", 500, -2, 1.4)
     _eq("MUSIC BUS", _free("MUSIC BUS", set()), "Bell", 1000, -1.5, 2)
     _eq("VOX BUS", _free("VOX BUS", set()), "Bell", 500, -2, 1.4)
@@ -1213,6 +1213,30 @@ def v13_master(limiter_gain=12.5, clip_db=-9.7):
     C("set_param", track="master", device=lim, param="Input Gain", db=limiter_gain)
 
 
+# ---------------------------------------------------------------- v14: the bass back
+# He: "o baixo atrasado pra entrar", "o baixo tá sem sub, kick forte mas o baixo não tá
+# presente e fazendo o groove"; the stabs "horrível": all four stab channels deleted.
+# Causes (measured): v13's 10:1 / 120 ms duck kept 70-250 Hz 5-10 dB down from 140 to
+# 420 ms after every kick (the riff's first note sits at ~140 ms); the LOW END bus had a
+# 48 dB HP at 36 Hz (the riff's D1 37 Hz / D#1 39 Hz / E1 41 Hz), plus the bass EQ's
+# -3 dB shelf at 55 Hz and -2.5 dB at 50 Hz and v13's -3 dB bell at 35 Hz: the sub was cut
+# three times.
+STABS = ("KEYS - wurli stabs", "STAB - twice for murder", "STAB - dub pluck", "STAB - organ")
+
+
+def v14_bass():
+    for tr in STABS:
+        if any(t["name"] == tr for t in client.call("get_song")["tracks"]):
+            C("delete_track", track=tr)
+    C("set_param", track="BASS", device="Compressor", param="Threshold", db=-32)
+    C("set_param", track="BASS", device="Compressor", param="Ratio", display=6)
+    C("set_param", track="BASS", device="Compressor", param="Release", display="60 ms")
+    C("set_param", track="BASS", device="EQ Eight", param="1 Gain A", display=0)   # shelf 55
+    C("set_param", track="BASS", device="EQ Eight", param="2 Gain A", display=0)   # bell 50
+    C("set_param", track="LOW END", device="EQ Eight", param="1 Frequency A", display=25)
+    C("set_param", track="LOW END", device="EQ Eight", param="3 Gain A", display=0)
+
+
 def dub():
     dub_bass()
     dub_swing()
@@ -1227,4 +1251,5 @@ if __name__ == "__main__":
      "dub_v3": dub_v3, "dub_mix2": dub_mix2, "v4": v4, "v5_mix": v5_mix, "v6_bass_back": v6_bass_back,
      "v7_vocals": v7_vocals, "v7_mix": v7_mix, "v8_mix": v8_mix, "v8b_mix": v8b_mix, "v8b_breaks": v8b_breaks,
      "v9": v9, "v9_keys": v9_keys, "v10_mix": v10_mix, "v11": v11, "v12_stabs": v12_stabs,
-     "v13_mix": v13_mix, "v13_mix_rest": v13_mix_rest, "v13_master": v13_master}[sys.argv[1]]()
+     "v13_mix": v13_mix, "v13_mix_rest": v13_mix_rest, "v13_master": v13_master,
+     "v14_bass": v14_bass}[sys.argv[1]]()
