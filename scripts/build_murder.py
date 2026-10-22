@@ -1525,6 +1525,59 @@ def v21_polish():
     C("set_param", track="master", device="Limiter#1", param="Input Gain", db=11.3)
 
 
+# ---------------------------------------------------------------- v22: back to what worked
+# He: "estragou o arranjo, o baixo às vezes tem às vezes não, sem peso; quando o riff da
+# música sai parece que a track morre". v18's guitar-as-colour, kick-outs and perc rests
+# undone; the stab muted; the re-created bass Simplers had lost FTS's +14 cent detune (the
+# bass sat 14 cents off the guitar riff).
+def v22_restore():
+    guitar = _cut_loop("Murder guitar riff", 24)
+    T = "LOOP MURDER - riff bed"
+    _clear(T)
+    for a, b in BED_V4:
+        at = beat(a)
+        while at < beat(b) - .01:
+            bar = at / 4 + 1
+            n = min(guitar["beats"], beat(b) - at)
+            env = {"param": "Frequency", "device": "Auto Filter", "unit": "raw",
+                   "points": [[0, sr.filter_raw(_bed_hz_v4(bar))],
+                              [n, sr.filter_raw(_bed_hz_v4(bar + n / 4))]]}
+            sr.place_warped(call, T, guitar["path"], at, n, guitar["markers"], envelopes=[env],
+                            name="Murder guitar riff")
+            k = int((bar - 57) // 2) if 57 <= bar < 65 else int((bar - 113) // 2) if 113 <= bar < 121 else -1
+            if 0 <= k <= 3:
+                g = {0: 2, 1: 3.5, 2: 5, 3: 6}[k]
+            elif any(x <= bar < y for x, y in BREAKS):
+                g = -0.5
+            elif 17 <= bar < 49:
+                g = -1.5
+            else:
+                g = 0
+            if g:
+                C("set_clip", track=T, clip={"at": at}, gain_db=g)
+            at += n
+    for c in _clips("KICK"):                              # the kick-outs back to four on the floor
+        if c.get("muted"):
+            continue
+        notes = client.call("get_notes", {"track": "KICK", "clip": {"at": c["start"]}})
+        tmpl = [n for n in notes if int((c["start"] + n[1]) // 4) + 1 not in KICK_OUT][:4]
+        add = []
+        for bar in KICK_OUT:
+            rel = (bar - 1) * 4 - c["start"]
+            if 0 <= rel < c["end"] - c["start"] and not any(rel <= n[1] < rel + 4 for n in notes):
+                add += [[p, round(rel + (t % 4), 4), d, v] for p, t, d, v in tmpl]
+        if add:
+            C("add_notes", track="KICK", clip={"at": c["start"]}, notes=add)
+    for c in _clips("PERC LOOP"):
+        if c.get("muted"):
+            C("set_clip", track="PERC LOOP", clip={"at": c["start"]}, muted=False)
+    v = client.call("get_track", {"track": "SNARE"})["vol_db"]
+    C("set_track", track="SNARE", volume_db=round(v + 10, 1))
+    C("set_track", track=STAB, mute=True)
+    for tr in ("BASS (clean)", "BASS - teaser (HP)"):
+        C("set_param", track=tr, device=0, param="Detune", display=14)
+
+
 def dub():
     dub_bass()
     dub_swing()
@@ -1547,4 +1600,5 @@ if __name__ == "__main__":
      "v17_vocals": v17_vocals,
      "v18": v18, "v19_stab": v19_stab,
      "v20_clean_tracks": v20_clean_tracks,
-     "v21_polish": v21_polish}[sys.argv[1]]()
+     "v21_polish": v21_polish,
+     "v22_restore": v22_restore}[sys.argv[1]]()
