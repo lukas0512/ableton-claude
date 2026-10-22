@@ -1333,6 +1333,69 @@ def v17_vocals():
     C("set_param", track="return:E-Plate", device="Reverb", param="Decay Time", display="900 ms")
 
 
+# ---------------------------------------------------------------- v18: his references' standard
+# The measured standard of Dub House Streets (briefs/taste.md section 9) and his choice of
+# all four moves: the guitar as colour not bed, the UKG snare as a ghost, a change every ~4
+# bars (kick out one bar at 3 of 4 phrase ends, percussion variants), stabs (separate step).
+RIFF_SPANS = [(25, 33), (37, 41), (45, 49), (49, 57), (57, 64.5),        # intro 2, groove, break, build
+              (69, 73), (77, 81), (85, 89), (93, 97),                    # drop 1: 2nd half of each 8
+              (97, 113), (113, 120.5),                                   # break 2, build 2
+              (125, 129), (133, 137), (141, 145), (149, 153),            # drop 2
+              (157, 161)]                                                # outro, then gone
+
+
+def v18_riff():
+    guitar = _cut_loop("Murder guitar riff", 24)
+    T = "LOOP MURDER - riff bed"
+    _clear(T)
+    for a, b in RIFF_SPANS:
+        at = beat(a)
+        while at < beat(b) - .01:
+            bar = at / 4 + 1
+            n = min(guitar["beats"], beat(b) - at)
+            env = {"param": "Frequency", "device": "Auto Filter", "unit": "raw",
+                   "points": [[0, sr.filter_raw(_bed_hz_v4(bar))],
+                              [n, sr.filter_raw(_bed_hz_v4(bar + n / 4))]]}
+            sr.place_warped(call, T, guitar["path"], at, n, guitar["markers"], envelopes=[env],
+                            name="Murder guitar motif")
+            k = int((bar - a) // 2)                       # the builds keep their +2..+6 ramp
+            if a in (57, 113) and 0 <= k <= 3:
+                C("set_clip", track=T, clip={"at": at}, gain_db={0: 2, 1: 3.5, 2: 5, 3: 6}[k])
+            elif any(x <= bar < y for x, y in BREAKS):
+                C("set_clip", track=T, clip={"at": at}, gain_db=2)
+            at += n
+
+
+def v18_snare_ghost():
+    v = client.call("get_track", {"track": "SNARE"})["vol_db"]
+    C("set_track", track="SNARE", volume_db=round(v - 10, 1))
+
+
+KICK_OUT = [40, 72, 80, 88, 128, 136, 144, 168]     # the 8th bar of 3 of every 4 phrases
+
+
+def v18_changes():
+    for c in _clips("KICK"):
+        if c.get("muted"):
+            continue
+        notes = client.call("get_notes", {"track": "KICK", "clip": {"at": c["start"]}})
+        keep = [n for n in notes if int((c["start"] + n[1]) // 4) + 1 not in KICK_OUT]
+        if len(keep) != len(notes):
+            C("add_notes", track="KICK", clip={"at": c["start"]}, notes=keep, replace=True)
+    # percussion variants: the perc loop rests one 4-bar block in four inside the drops
+    for c in _clips("PERC LOOP"):
+        bar = c["start"] / 4 + 1
+        if (65 <= bar < 97 or 121 <= bar < 153) and int((bar - 65) // 4) % 4 == 3:
+            C("set_clip", track="PERC LOOP", clip={"at": c["start"]}, muted=True)
+
+
+def v18():
+    v18_riff()
+    v18_snare_ghost()
+    v18_changes()
+    print("v18 done")
+
+
 def dub():
     dub_bass()
     dub_swing()
@@ -1352,4 +1415,5 @@ if __name__ == "__main__":
      "v16_breaks": v16_breaks,
      "v16_break_perc": v16_break_perc,
      "v16_builds": v16_builds,
-     "v17_vocals": v17_vocals}[sys.argv[1]]()
+     "v17_vocals": v17_vocals,
+     "v18": v18}[sys.argv[1]]()
