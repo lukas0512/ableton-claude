@@ -1578,6 +1578,92 @@ def v22_restore():
         C("set_param", track=tr, device=0, param="Detune", display=14)
 
 
+# ---------------------------------------------------------------- v23: sub keeps the groove, drier, glitches
+# He: "temos 2 baixos, equilibrar médio e sub; quando tirar o médio não ficar sem sub que faz o
+# movimento e groove; nos breaks as diferenças de volume são meio merda; uma track mais seca,
+# com mais fx, glitch e criatividade". The breaks had no low end and the builds only the
+# high-passed teaser: a low-passed sub plays the riff through breaks and builds (out for the
+# last two beats before each drop); the returns come down; glitches from the track's own voice
+# and guitar at phrase ends.
+SUB = "BASS - sub (breaks)"
+SUB_SPANS = [(49, 62.5), (97, 118.5)]
+
+
+def v23_sub():
+    global DUB_SWING
+    DUB_SWING = V4_SWING
+    names = [t["name"] for t in client.call("get_song")["tracks"]]
+    if SUB not in names:
+        src = "BASS (clean)"
+        C("create_track", kind="midi", name=SUB)
+        C("load_device", track=SUB, path=SAMPLES["BASS"])
+        srcdevs = client.call("get_track", {"track": src})["devices"]
+        for d in srcdevs[1:]:
+            C("load_device", track=SUB, path="audio_effects/" + d["name"])
+        for i in range(len(srcdevs)):
+            C("copy_device", src_track=src, src_device=i, track=SUB, device=i)
+        C("set_device_input", track=SUB, device="Compressor", source="KICK", channel="Post Mixer")
+        C("load_device", track=SUB, path="audio_effects/Auto Filter")
+        C("set_param", track=SUB, device="Auto Filter", param="Frequency", display="140 Hz")
+        C("set_track_output", track=SUB, dest="LOW END")
+        C("set_track", track=SUB, volume_db=-15)
+    _clear(SUB)
+    for a, b in SUB_SPANS:
+        bars = int(np.ceil(b - a))
+        notes = [n for n in dub_riff(bars, 64) if n[1] < (b - a) * 4 - .01]
+        C("create_midi_clip", track=SUB, bar=a, length=(b - a) * 4, notes=notes, name="sub riff (LP)")
+
+
+def v23_dry():
+    for r, d in ((4, -4), (3, -4), (2, -6)):            # E-Plate, D-Room, C-Atmos
+        v = client.call("get_track", {"track": "return:%d" % r})["vol_db"]
+        C("set_track", track="return:%d" % r, volume_db=round(v + d, 1))
+
+
+def _gl_files():
+    FX_DIR.mkdir(parents=True, exist_ok=True)
+    bs = 60 / DUB_BPM
+    word, fs = sf.read(next(FX_DIR.glob("Murder chop - word*.wav")), dtype="float32")
+    out = {}
+    # the title's attack in 16ths then 32nds, falling a little each repeat (one beat)
+    s16, s32 = int(bs / 4 * fs), int(bs / 8 * fs)
+    parts = [word[:s16]] * 2 + [signal.resample(word[:s32], int(s32 * (1 + .06 * k)))[:s32] for k in range(4)]
+    y = np.concatenate(parts).astype(np.float32)
+    out["murder_roll"] = str(FX_DIR / "Murder roll 16-32 (128).wav"); sf.write(out["murder_roll"], y, fs)
+    # the guitar's first 8th repeated in 16ths, gated (one beat)
+    g, gfs = sf.read(next(LOOPS.glob("Murder guitar riff (pocket 0.050)*.wav")), dtype="float32")
+    sl = g[:int(bs / 4 * gfs * .8)]
+    gate = np.zeros((int(bs / 4 * gfs), g.shape[1]), np.float32); gate[:len(sl)] = sl * np.hanning(len(sl) * 2)[len(sl):, None]
+    y = np.concatenate([gate] * 4)
+    out["riff_roll"] = str(FX_DIR / "Guitar roll 16ths (128).wav"); sf.write(out["riff_roll"], y, gfs)
+    # the guitar's first beat in a tape stop
+    seg = g[:int(bs * gfs)]; n = len(seg); pos = np.cumsum(np.linspace(1, .1, n)); pos = pos[pos < n - 1]
+    ts = np.stack([np.interp(pos, np.arange(n), seg[:, c]) for c in range(seg.shape[1])], 1).astype(np.float32)
+    out["riff_stop"] = str(FX_DIR / "Guitar tape stop (128).wav"); sf.write(out["riff_stop"], ts, gfs)
+    return out
+
+
+GLITCH_ADD = [(36.75, "riff_roll"), (68.75, "riff_roll"), (72.5, "murder_roll"), (80.75, "riff_stop"),
+              (124.75, "riff_roll"), (136.75, "murder_roll"), (144.75, "riff_stop"), (160.75, "riff_roll")]
+
+
+def v23_glitches():
+    f = _gl_files()
+    have = {round(c["start"], 2) for c in _clips("FX - glitches")}
+    for bar, kind in GLITCH_ADD:
+        at = beat(bar)
+        if round(at, 2) not in have:
+            C("create_audio_clip", track="FX - glitches", path=f[kind], beat=at, warp=False,
+              name=kind.replace("_", " "))
+
+
+def v23():
+    v23_sub()
+    v23_dry()
+    v23_glitches()
+    print("v23 done")
+
+
 def dub():
     dub_bass()
     dub_swing()
@@ -1601,4 +1687,5 @@ if __name__ == "__main__":
      "v18": v18, "v19_stab": v19_stab,
      "v20_clean_tracks": v20_clean_tracks,
      "v21_polish": v21_polish,
-     "v22_restore": v22_restore}[sys.argv[1]]()
+     "v22_restore": v22_restore,
+     "v23": v23}[sys.argv[1]]()
