@@ -1664,6 +1664,51 @@ def v23():
     print("v23 done")
 
 
+# ---------------------------------------------------------------- v24: his V1 Mix + the calibrated mix
+# He put his own export "Lukas Galhardo - Murder V1 Mix" (21/10 19:43, the v7 state) in a REF
+# track: "o arranjo que mais ou menos gostei primeiro; agora uma mix bonitinha, alinhada,
+# calibrada e com base nas refs". Measured with the reference-standard script: V1 already sat
+# on his references (voiced 34.8 % vs refs 33 %, vocal bars 50 % vs 55 %, music centroid 842 Hz vs
+# ~780, rich bass harmonics); v23 had 11 % voice, a dull music bed (491 Hz) and a dark bass.
+# Back to V1's content: every vocal and chop, the EQ cuts added after V1 undone, the bass's
+# saturation back (level then calibrated against the kick); kept from later: headroom, the
+# master (clip + TP limiter), the clean tracks, the sub in breaks, drier returns.
+POST_V1_CUTS = {"LOOP MURDER - riff bed": (2500, 500, 180), "MUSIC BUS": (500, 1000),
+                "VOX BUS": (500,), "CHOPS - Murder": (3150,)}
+
+
+def v24_v1_content():
+    for tr in list(KEEP_VOX) + ["CHOPS - Murder"]:
+        for c in _clips(tr):
+            if c.get("muted"):
+                C("set_clip", track=tr, clip={"at": c["start"]}, muted=False)
+    v = client.call("get_track", {"track": "VOX BUS"})["vol_db"]
+    C("set_track", track="VOX BUS", volume_db=round(v + 1.5, 1))
+    for tr, freqs in POST_V1_CUTS.items():
+        p = client.call("get_device", {"track": tr, "device": "EQ Eight"})["params"]
+        d = {q["name"]: (q["display"], q["value"]) for q in p}
+        for k in range(1, 9):
+            if d[f"{k} Filter On A"][0] != "On" or d[f"{k} Filter Type A"][0] != "Bell":
+                continue
+            f = d[f"{k} Frequency A"][0].replace(" kHz", "000").replace(" Hz", "")
+            hz = float(f.replace(".", "", f.count(".") > 0 and "000" in f) if False else
+                       (float(d[f"{k} Frequency A"][0].split()[0]) * (1000 if "kHz" in d[f"{k} Frequency A"][0] else 1)))
+            if any(abs(hz - x) / x < .04 for x in freqs) and not d[f"{k} Gain A"][0].startswith("0.00"):
+                C("set_param", track=tr, device="EQ Eight", param=f"{k} Gain A", display=0)
+    for tr in ("BASS (clean)", "BASS - sub (breaks)"):
+        C("set_param", track=tr, device="Saturator", param="Drive", db=9)
+        C("set_param", track=tr, device="Saturator", param="Dry/Wet", display=60)
+
+
+def v24_levels_master():
+    """Measured soloed (limiters off): bass -3.7 LU vs the kick after Utility +1 dB (its
+    saturation compresses), riff -9.6, hooks -10.9, clap -8.5. Premaster drop G: -16.8 LUFS,
+    TP -4.6 dBFS -> clip 3.5 dB under the peak, limiter +10.5 dB."""
+    for tr in ("BASS (clean)", "BASS - sub (breaks)"):
+        C("set_param", track=tr, device="Utility", param="Output", db=1.0)
+    v13_master(limiter_gain=10.5, clip_db=-8.2)
+
+
 def dub():
     dub_bass()
     dub_swing()
@@ -1688,4 +1733,5 @@ if __name__ == "__main__":
      "v20_clean_tracks": v20_clean_tracks,
      "v21_polish": v21_polish,
      "v22_restore": v22_restore,
-     "v23": v23}[sys.argv[1]]()
+     "v23": v23, "v24_v1_content": v24_v1_content,
+     "v24_levels_master": v24_levels_master}[sys.argv[1]]()
