@@ -1803,6 +1803,20 @@ def v26_session():
                 pass
 
 
+def v26_master():
+    """Premaster drop H: -16.9 LUFS, TP -4.1: a -2 dB headroom Utility first in the master chain
+    (peak ~-6 dBFS into it), Glue threshold -2 dB to keep its action, clip 3.5 dB under the
+    peak, limiter +13 dB: drop ~-7.95 LUFS, max GR ~3.6 dB, kick punch ~5.8 (simulated)."""
+    devs = [d["name"] for d in client.call("get_track", {"track": "master"})["devices"]]
+    if devs.count("Utility") < 2:
+        C("load_device", track="master", path="audio_effects/Utility")
+        n = len(client.call("get_track", {"track": "master"})["devices"])
+        C("move_device", track="master", device=n - 1, position=0)
+    C("set_param", track="master", device="Utility#0", param="Output", db=-2)
+    C("set_param", track="master", device="Glue Compressor", param="Threshold", db=-17.5)
+    v13_master(limiter_gain=13, clip_db=-9.6)
+
+
 def dub():
     dub_bass()
     dub_swing()
@@ -1830,4 +1844,5 @@ if __name__ == "__main__":
      "v23": v23, "v24_v1_content": v24_v1_content,
      "v24_levels_master": v24_levels_master,
      "v25_two_basses": v25_two_basses,
-     "v26_session": v26_session}[sys.argv[1]]()
+     "v26_session": v26_session,
+     "v26_master": v26_master}[sys.argv[1]]()
