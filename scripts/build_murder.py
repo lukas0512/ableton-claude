@@ -1852,6 +1852,18 @@ def v27_bounce():
             C("set_param", track="BASS (clean)", device="EQ Eight", param=f"{k} Gain A", display=1.5)
 
 
+def v27_sub_clicks():
+    """He: "tem uns click no sub". A 0.1 ms sidechain compressor on a 41 Hz sine bends its
+    waveform (clicks); with every bass note on the off-beat 8th the sub never meets the kick,
+    so the sub loses its compressor; envelope 5 ms attack / 60 ms release. The mid bass +3.5 dB
+    (fewer notes read -12.5 LU under the kick)."""
+    if any(d["name"] == "Compressor" for d in client.call("get_track", {"track": SINE})["devices"]):
+        C("delete_device", track=SINE, device="Compressor")
+    C("set_param", track=SINE, device="Operator", param="Ae Attack", display="5.00 ms")
+    C("set_param", track=SINE, device="Operator", param="Ae Release", display="60.0 ms")
+    C("set_param", track="BASS (clean)", device="Utility", param="Output", db=7.5)
+
+
 def dub():
     dub_bass()
     dub_swing()
@@ -1881,4 +1893,5 @@ if __name__ == "__main__":
      "v25_two_basses": v25_two_basses,
      "v26_session": v26_session,
      "v26_master": v26_master,
-     "v27_bounce": v27_bounce}[sys.argv[1]]()
+     "v27_bounce": v27_bounce,
+     "v27_sub_clicks": v27_sub_clicks}[sys.argv[1]]()
