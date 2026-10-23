@@ -1709,6 +1709,100 @@ def v24_levels_master():
     v13_master(limiter_gain=10.5, clip_db=-8.2)
 
 
+# ---------------------------------------------------------------- v25: two basses, like his references
+# He: "na referência tem 2 bass e não só o que tá médio; falta o bass mesmo, sub grave que faz
+# dançar". A clean sine sub (Operator) plays the riff an octave under the sample bass (E1 41 Hz),
+# mono, ducked by the kick like the bass; the BinBassTone becomes the mid bass (HP 90 Hz), so the
+# two split the low end instead of stacking the same fundamental (the FTS phasing).
+SINE = "BASS - sub (sine)"
+OPERATOR = {"Osc-B On": ("item", "Off"), "Osc-C On": ("item", "Off"), "Osc-D On": ("item", "Off"),
+            "Osc-A Wave": ("item", "Sine"), "Ae Attack": ("display", "2.00 ms"),
+            "Ae Decay": ("display", "1.00 s"), "Ae Sustain": ("db", 0), "Ae Release": ("display", "40.0 ms"),
+            "Filter On": ("item", "On"), "Filter Type": ("item", "Lowpass"),
+            "Filter Freq": ("display", "120 Hz"), "Filter Res": ("display", 0), "Volume": ("db", -6)}
+
+
+def v25_two_basses():
+    names = [t["name"] for t in client.call("get_song")["tracks"]]
+    if SINE not in names:
+        C("create_track", kind="midi", name=SINE)
+        C("load_device", track=SINE, path="instruments/Operator")
+    for p, (kind, v) in OPERATOR.items():
+        try:
+            C("set_param", track=SINE, device="Operator", param=p, **{kind: v})
+        except Exception as e:                            # a param missing on this Operator
+            print("skip", p, e)
+    devs = [d["name"] for d in client.call("get_track", {"track": SINE})["devices"]]
+    if "Compressor" not in devs:
+        C("load_device", track=SINE, path="audio_effects/Compressor")
+    C("set_device_input", track=SINE, device="Compressor", source="KICK", channel="Post Mixer")
+    for p, kw in (("Threshold", {"db": -32}), ("Ratio", {"display": 6}), ("Attack", {"display": "0.10 ms"}),
+                  ("Release", {"display": "60 ms"})):
+        C("set_param", track=SINE, device="Compressor", param=p, **kw)
+    C("set_track_output", track=SINE, dest="LOW END")
+    _clear(SINE)
+    for c in _clips("BASS (clean)"):
+        notes = client.call("get_notes", {"track": "BASS (clean)", "clip": {"at": c["start"]}})
+        C("create_midi_clip", track=SINE, beat=c["start"], length=c["end"] - c["start"],
+          notes=[[p - 36, t, d, v] for p, t, d, v in notes], name="sub (sine)")
+    # the sample bass becomes the mid bass
+    C("set_param", track="BASS (clean)", device="EQ Eight", param="1 Filter Type A", item="High Pass 12dB")
+    C("set_param", track="BASS (clean)", device="EQ Eight", param="1 Frequency A", display="90 Hz")
+    C("set_param", track="BASS (clean)", device="EQ Eight", param="1 Filter On A", value=1)
+
+
+# ---------------------------------------------------------------- v26: a clean, organised session
+# He: "desembole o low end, bem definido e desenhado, cuidado com o sidechain, deixe headroom";
+# "apague canais não usados, alinhe os buses, mixe as coisas juntas, crie as rooms, separe os
+# elementos". Low end (v25 + here): sine sub + HP'd sample bass sum coherently (within 0.6 dB of
+# the parts' coherent sum, no cancellation), the LOW END bus saturation off (it intermodulated
+# kick + sub into the 100-300 Hz mud and was +2.3 dB of the kick's level: KICK fader to 0 dB),
+# soloed vs the kick: sub -5.4, mid bass -8.3 LU; LOW END peaks -5.6 dBFS.
+UNUSED = ["CLAP (old, automated)", "BASS (old, automated)", "CONGAS", "TOM 909", "BREAKBEAT",
+          "BASS - break", "ATMOS - riff wash", "LOOP MURDER +12 (drop 2 only)",
+          "LOOP MURDER - break 2 groove", "FX - scratch (empty)", STAB]
+SPACES = {  # track: {send index: dB}; A music room, B delay, C atmos, D drum room, E vocal plate
+    "LOOP MURDER - riff bed": {0: -20, 2: -70, 3: -70, 4: -70},
+    "CHOPS - Murder": {0: -22, 1: -14, 3: -70, 4: -70},
+    "VOX MURDER - theme calls": {3: -70}, "VOX MURDER - hooks": {3: -70},
+    "VOX MURDER - radio": {3: -70}, "VOX MURDER - Pimp C": {3: -70, 4: -18},
+    "FX - glitches": {4: -70},
+    "VOX MURDER - trades": {4: -18}, "VOX - throws": {4: -15},
+}
+COLOURS = {14: ["KICK", "BASS (clean)", "BASS - sub (sine)", "BASS - sub (breaks)",
+                "BASS - teaser (HP)", "FX - sub boom", "KICK - build (HP)"],
+           15: ["CLAP (clean)", "SNARE"],
+           17: ["HAT 16ths", "HAT OFF - persona", "HAT OFF - shaker shot", "HAT OFF - imite",
+                "RIDE 909", "CRASH 909"],
+           16: ["PERC LOOP"], 19: ["LOOP MURDER - riff bed", "CHOPS - Murder"],
+           24: ["VOX MURDER - theme calls", "VOX MURDER - hooks", "VOX MURDER - radio",
+                "VOX MURDER - Pimp C", "VOX MURDER - trades", "VOX - throws"],
+           26: ["FX - transitions", "FX - glitches"],
+           1: ["LOW END"], 2: ["DRUMS"], 4: ["MUSIC BUS"], 11: ["VOX BUS"], 12: ["FX BUS"],
+           27: ["REF - Murder (original)", "REF - Murder V1 Mix (his pick)"]}
+
+
+def v26_session():
+    names = [t["name"] for t in client.call("get_song")["tracks"]]
+    for tr in UNUSED:
+        if tr in names:
+            C("delete_track", track=tr)
+    C("set_track_output", track="BASS - teaser (HP)", dest="LOW END")
+    # A: the music's own medium room (it was an unused 2.5 s reverb)
+    C("set_track", track="return:0", name="Music Room", volume_db=-6)   # Live adds the "A-"
+    C("set_param", track="return:0", device="Reverb", param="Decay Time", display="1.20 s")
+    C("set_param", track="return:0", device="Reverb", param="Predelay", display="15.0 ms")
+    for tr, sends in SPACES.items():
+        for k, db in sends.items():
+            C("set_send", track=tr, send=k, db=db)
+    for colour, tracks in COLOURS.items():
+        for t in tracks:
+            try:
+                C("set_track", track=t, color_index=colour)
+            except Exception:
+                pass
+
+
 def dub():
     dub_bass()
     dub_swing()
@@ -1734,4 +1828,6 @@ if __name__ == "__main__":
      "v21_polish": v21_polish,
      "v22_restore": v22_restore,
      "v23": v23, "v24_v1_content": v24_v1_content,
-     "v24_levels_master": v24_levels_master}[sys.argv[1]]()
+     "v24_levels_master": v24_levels_master,
+     "v25_two_basses": v25_two_basses,
+     "v26_session": v26_session}[sys.argv[1]]()
