@@ -1817,6 +1817,41 @@ def v26_master():
     v13_master(limiter_gain=13, clip_db=-9.6)
 
 
+# ---------------------------------------------------------------- v27: a bass that bounces
+# He: "o baixo ainda parece muito embolado, não tá groove, parece uma sujeira; tinha que tocar
+# umas notas pra dar o balanço, meio longas". Six short off-kick notes per bar on two layers
+# with heavy saturation read as a buzz. Now four notes per bar on the off-beat 8ths, held ~80 %
+# of the gap to the next kick (the classic house bounce), Murder's notes (E E G A | E E D D#),
+# a short pickup on the last 16th every 4th bar; every bass layer plays it; the mid bass cleaner.
+def bounce_riff(bars, e=64, vel=None):
+    out = []
+    for b in range(bars):
+        cell = ((e, e, e + 3, e + 5) if b % 2 == 0 else (e, e, e - 2, e - 1))
+        for k, (p, step) in enumerate(zip(cell, (2, 6, 10, 14))):
+            v = vel(b, k) if vel else (112 if k in (0, 2) else 104)
+            out.append([p, b * 4 + step / 4, .4, v])
+        if b % 4 == 3:                                     # pickup into the next phrase
+            out.append([e, b * 4 + 15 / 4 + V4_SWING, .15, 92])
+    return out
+
+
+def v27_bounce():
+    for tr, e in (("BASS (clean)", 64), (SINE, 28), (SUB, 64), ("BASS - teaser (HP)", 76)):
+        for c in _clips(tr):
+            bars = int(round((c["end"] - c["start"]) / 4 + .49))
+            ramp = (lambda b, k, n=bars: int(70 + 20 * (b * 4 + k) / max(1, n * 4 - 1))) \
+                if "teaser" in tr else None
+            notes = [n for n in bounce_riff(bars, e, ramp) if n[1] < c["end"] - c["start"] - .01]
+            C("add_notes", track=tr, clip={"at": c["start"]}, notes=notes, replace=True)
+    C("set_param", track="BASS (clean)", device="Saturator", param="Drive", db=5)
+    C("set_param", track="BASS (clean)", device="Saturator", param="Dry/Wet", display=35)
+    p = client.call("get_device", {"track": "BASS (clean)", "device": "EQ Eight"})["params"]
+    d = {q["name"]: q["display"] for q in p}
+    for k in range(1, 9):
+        if d[f"{k} Frequency A"] == "900 Hz" and d[f"{k} Gain A"].startswith("3"):
+            C("set_param", track="BASS (clean)", device="EQ Eight", param=f"{k} Gain A", display=1.5)
+
+
 def dub():
     dub_bass()
     dub_swing()
@@ -1845,4 +1880,5 @@ if __name__ == "__main__":
      "v24_levels_master": v24_levels_master,
      "v25_two_basses": v25_two_basses,
      "v26_session": v26_session,
-     "v26_master": v26_master}[sys.argv[1]]()
+     "v26_master": v26_master,
+     "v27_bounce": v27_bounce}[sys.argv[1]]()
