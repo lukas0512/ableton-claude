@@ -1864,6 +1864,69 @@ def v27_sub_clicks():
     C("set_param", track="BASS (clean)", device="Utility", param="Output", db=7.5)
 
 
+# ---------------------------------------------------------------- v28: riff and choir apart
+# He: "enjoativo o riff junto com o vocal de fundo de coral no loop Murder; tocam sempre juntos;
+# podia alternar e ter eles em canais separados". htdemucs_6s (stems6/) splits the record's
+# 'other': the riff is the piano stem (E-G-A-D#, the bass line on keys, in tune), the choir is
+# what stays in 'other' (E5 B4 G4 D5 voices). The riff keeps the bed (continuous, as he wants);
+# the choir alternates: featured in the breaks, 8-bar blocks in the groove and drops.
+STEMS6 = SRC / "stems6"
+CHOIR = "LOOP MURDER - choir"
+CHOIR_SPANS = [(41, 49), (49, 57), (73, 81), (89, 97), (97, 113), (129, 137), (145, 153)]
+
+
+def _loop6(stem, name, bar=24):
+    x, fs = sf.read(str(STEMS6 / f"{stem}.wav"), dtype="float32")
+    g = sr.source_grid(str(MIX), 86.0)
+    return sr.cut_loop(x, fs, str(LOOPS / f"Murder {name} (6s, pocket {V4_SWING:.3f}).wav"),
+                       g["bpm"], g["downbeat"], bar, 2, V4_SWING)
+
+
+def _lay(track, loop, spans, gain_of, hz_of):
+    _clear(track)
+    for a, b in spans:
+        at = beat(a)
+        while at < beat(b) - .01:
+            bar = at / 4 + 1
+            n = min(loop["beats"], beat(b) - at)
+            env = {"param": "Frequency", "device": "Auto Filter", "unit": "raw",
+                   "points": [[0, sr.filter_raw(hz_of(bar))], [n, sr.filter_raw(hz_of(bar + n / 4))]]}
+            sr.place_warped(call, track, loop["path"], at, n, loop["markers"], envelopes=[env],
+                            name=Path(loop["path"]).stem)
+            g = gain_of(bar)
+            if g:
+                C("set_clip", track=track, clip={"at": at}, gain_db=g)
+            at += n
+
+
+def _bed_gain(bar):
+    k = int((bar - 57) // 2) if 57 <= bar < 65 else int((bar - 113) // 2) if 113 <= bar < 121 else -1
+    if 0 <= k <= 3:
+        return {0: 2, 1: 3.5, 2: 5, 3: 6}[k]
+    if any(x <= bar < y for x, y in BREAKS):
+        return -0.5
+    return -1.5 if 17 <= bar < 49 else 0
+
+
+def v28_riff_choir():
+    riff, choir = _loop6("piano", "riff keys"), _loop6("other", "choir")
+    T = "LOOP MURDER - riff bed"
+    C("set_track", track=T, name="LOOP MURDER - riff (keys)")
+    _lay("LOOP MURDER - riff (keys)", riff, BED_V4, _bed_gain, _bed_hz_v4)
+    names = [t["name"] for t in client.call("get_song")["tracks"]]
+    if CHOIR not in names:
+        C("create_track", kind="audio", name=CHOIR)
+        C("set_track_output", track=CHOIR, dest="MUSIC BUS")
+        C("load_device", track=CHOIR, path="audio_effects/EQ Eight")
+        _eq(CHOIR, 1, "High Pass 12dB", 300)
+        C("load_device", track=CHOIR, path="audio_effects/Auto Filter")
+    C("set_track", track=CHOIR, volume_db=-8, pan=-.3, color_index=19)
+    C("set_send", track=CHOIR, send=0, db=-16)            # A-Music Room: the choir sits further back
+    open_hz = lambda bar: 1800 if any(x <= bar < y for x, y in BREAKS) else 9000
+    _lay(CHOIR, choir, CHOIR_SPANS, lambda bar: 2 if any(x <= bar < y for x, y in BREAKS) else 0,
+         open_hz)
+
+
 def dub():
     dub_bass()
     dub_swing()
@@ -1894,4 +1957,5 @@ if __name__ == "__main__":
      "v26_session": v26_session,
      "v26_master": v26_master,
      "v27_bounce": v27_bounce,
-     "v27_sub_clicks": v27_sub_clicks}[sys.argv[1]]()
+     "v27_sub_clicks": v27_sub_clicks,
+     "v28_riff_choir": v28_riff_choir}[sys.argv[1]]()
