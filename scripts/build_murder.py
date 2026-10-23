@@ -1927,6 +1927,19 @@ def v28_riff_choir():
          open_hz)
 
 
+def v29_low_balance():
+    """v28 drop: sub 48.9 % (refs 24-37), low 35.8 % (40-53), the sub never breathing (50 ms
+    range 10.7 dB vs 19-36): the sine -5 dB then -1, the mid bass +2 dB (Utility +9.5), the
+    riff +1.5 dB; the sine's notes 0.32 beat (silence ~80 ms before each kick), the mid bass
+    keeps its long 0.4-beat notes (the bounce he asked for)."""
+    C("set_param", track=SINE, device="Operator", param="Volume", db=-6)
+    C("set_param", track="BASS (clean)", device="Utility", param="Output", db=9.5)
+    for c in _clips(SINE):
+        notes = client.call("get_notes", {"track": SINE, "clip": {"at": c["start"]}})
+        C("add_notes", track=SINE, clip={"at": c["start"]},
+          notes=[[p, t, min(d, .32), v] for p, t, d, v in notes], replace=True)
+
+
 def dub():
     dub_bass()
     dub_swing()
@@ -1958,4 +1971,5 @@ if __name__ == "__main__":
      "v26_master": v26_master,
      "v27_bounce": v27_bounce,
      "v27_sub_clicks": v27_sub_clicks,
-     "v28_riff_choir": v28_riff_choir}[sys.argv[1]]()
+     "v28_riff_choir": v28_riff_choir,
+     "v29_low_balance": v29_low_balance}[sys.argv[1]]()
