@@ -5,7 +5,7 @@ from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
-from . import analysis, client, genres, journal, knowledge, library, loops, mixing, references, tension, timbre, validate
+from . import analysis, client, genres, journal, knowledge, library, loops, mixing, references, storage, tension, timbre, validate
 from .music import club, groove, harmony, melody, pocket, samples, theory
 
 INSTRUCTIONS = """\
@@ -216,6 +216,10 @@ def ableton_batch(commands: list[dict]) -> list:
     """Run many commands in one Live main-thread tick.
     commands: [{"cmd": "create_midi_clip", "args": {...}}, ...]. Each result has ok/result
     or ok/error; a failure does not stop the rest. Changes are journaled."""
+    return _journaled_batch(commands)
+
+
+def _journaled_batch(commands):
     befores = [_before(c.get("cmd"), c.get("args") or {}) for c in commands]
     out = client.batch(commands)
     for c, b, r in zip(commands, befores, out):
@@ -264,6 +268,24 @@ def revert_changes(ids: list[int] | None = None, last: int = 1) -> dict:
         journal.mark_reverted(rec)
         done.append({"id": rec["id"], "cmd": rec["cmd"], "restored": rec["before"]})
     return {"reverted": done, "skipped": skipped}
+
+
+@mcp.tool()
+def taste_report(min_changes: int = 3) -> dict:
+    """What this user keeps and what they undo, learned from every change ever journaled
+    (revert_changes marks the undone ones): per move family ("level", "EQ Eight: 4 Gain
+    A up", "load Glue Compressor", "notes"...), how many were made, how many reverted.
+    Read it before proposing moves: lean on what they keep, ask before repeating a
+    family they mostly undo. Only reverts done through revert_changes count (not Cmd+Z)."""
+    fams = journal.taste(min_changes=min_changes)
+    undone = [f for f in fams if f["reverted"] and f["kept_pct"] < 50]
+    kept = [f for f in fams if f["kept_pct"] >= 90][-8:]
+    return {"families": fams[:40],
+            "mostly_undone": ["%s: %d of %d undone" % (f["family"], f["reverted"], f["changes"])
+                              for f in undone],
+            "kept": ["%s (%d kept)" % (f["family"], f["changes"] - f["reverted"]) for f in kept],
+            "note": None if fams else "no reverts recorded yet: the journal learns from "
+                                      "revert_changes from now on"}
 
 
 @mcp.tool()
@@ -919,7 +941,7 @@ _SOLO = {}
 
 @mcp.tool()
 def solo_levels(tracks: list[str], start_bar: int, end_bar: int, kick: str = "KICK",
-                spectra: bool = True, mask_db: float = 6.0) -> dict:
+                spectra: bool = True, mask_db: float = 6.0, one_pass: bool = False) -> dict:
     """Measure every element on its own: each of `tracks` (and `kick`) soloed over bars
     [start_bar, end_bar) with the master limiter off, rendered, its integrated LUFS
     against the soloed kick (vs_kick_lu) and its 1/3-octave spectrum; then a masking
@@ -927,8 +949,13 @@ def solo_levels(tracks: list[str], start_bar: int, end_bar: int, kick: str = "KI
     Set faders from vs_kick_lu (the kick always loudest; From The Streets: bass -3, clap
     -9, snare -15, hats -16..-17, music loops -12..-18, vocal -12 LU). Sparse parts read
     low in integrated LUFS: judge them by ear too.
-    Runs in the background, in real time (~(bars x 4 x 60 / tempo + 6) s per element;
-    measure 8 bars of a drop): poll solo_levels_status, do not touch Live meanwhile.
+    Default: each element soloed through its buses and the master, one real-time pass
+    per element (~bars x 4 x 60 / tempo + 6 s each). one_pass=True taps every track post
+    fader in ONE pass instead (~6x faster for 10 elements) but misses bus, return and
+    master processing: exact for tracks that go straight to Main, a survey otherwise
+    (Murder Pista: hats -20.6 vs the kick tapped, -11.3 soloed). The result lists the
+    bused tracks in `via_bus`.
+    Runs in the background: poll solo_levels_status, do not touch Live meanwhile.
     Render tracks are deleted (names matched stripped: Live drops trailing spaces) and
     solos and the limiter are restored even on failure."""
     from . import solo_pass
@@ -939,7 +966,7 @@ def solo_levels(tracks: list[str], start_bar: int, end_bar: int, kick: str = "KI
     tempo = client.call("get_song")["tempo"]
     n = len(set(tracks) | {kick})
     job = {"state": "running", "log": [], "started": time.time(),
-           "expected_s": solo_pass.expected_seconds(n, start_bar, end_bar, tempo)}
+           "expected_s": solo_pass.expected_seconds(n, start_bar, end_bar, tempo, one_pass)}
     _SOLO.clear()
     _SOLO.update(job)
 
@@ -947,7 +974,7 @@ def solo_levels(tracks: list[str], start_bar: int, end_bar: int, kick: str = "KI
         try:
             _SOLO["result"] = solo_pass.run(client.call, tracks, start_bar, end_bar, kick=kick,
                                             spectra=spectra, mask_db=mask_db,
-                                            log=_SOLO["log"].append)
+                                            log=_SOLO["log"].append, one_pass=one_pass)
             _SOLO["state"] = "done"
         except Exception as e:
             _SOLO["state"], _SOLO["error"] = "failed", "%s: %s" % (type(e).__name__, e)
@@ -956,6 +983,90 @@ def solo_levels(tracks: list[str], start_bar: int, end_bar: int, kick: str = "KI
     threading.Thread(target=work, name="solo_levels", daemon=True).start()
     return {"state": "running", "expected_s": job["expected_s"],
             "next": "call solo_levels_status() until it is done"}
+
+
+_SPLIT = {}
+
+
+@mcp.tool()
+def split_elements(path: str | None = None, track: str | None = None,
+                   clips: list[int] | None = None, drums: bool = True, vocals: bool = True,
+                   reverb: bool = False, tag: bool = True, place: bool = True,
+                   mute_source: bool = True, out_dir: str | None = None) -> dict:
+    """Open a mix, loop or sample into one channel per element: vocals / drums / bass /
+    music, then the drums into KICK, SNARE, TOMS, HATS, RIDE, CRASH (DrumSep) and the
+    vocals into VOX LEAD and VOX BACK (karaoke model); reverb=True also splits the lead
+    into VOX DRY and VOX VERB (its reverb) and reports wet_dry_db. tag=True says what each
+    vocal/music stem holds over time (rap_or_speech, sung_vocal, scratch, crowd, fx,
+    keys, guitar, synth...), so a scratch or a hook can be cut out of the vocal stem.
+    Give `path` (a file: stems only) or `track` (+ `clips` indices, default all audio
+    clips): with place=True every element gets its own audio track under the source,
+    each source clip re-created there with the same position, warp markers, markers and
+    loop, the track's volume and pan, and the source clips muted (journaled:
+    revert_changes undoes it all). Silent elements (under -55 dBFS, or 30 dB under the
+    loudest: separation leftovers) are listed, not placed.
+    Stems go to '<file> elements/' next to each source (reused on a second call).
+    Heavy: a 4-minute song takes several minutes per model, models download on first use
+    (~0.1-0.9 GB each). Runs in the background: poll split_elements_status. Hats split
+    poorly (published SDR 4 dB): judge HATS by ear. Never run during a render."""
+    from . import elements
+    if _SPLIT.get("state") == "running":
+        return {"state": "running", "log": _SPLIT["log"][-5:]}
+    if not path and not track:
+        return {"error": "give path or track"}
+    if track and client.call("record_status").get("state") in ("recording", "finalizing"):
+        return {"error": "a render is running: split after it"}
+    if path and not os.path.exists(path):
+        return {"error": "no such file: %s" % path}
+    _SPLIT.clear()
+    _SPLIT.update(state="running", log=[], started=time.time())
+
+    def work():
+        try:
+            with storage.ANALYSIS_LOCK:
+                if path:
+                    r = elements.analyze(path, out_dir, drums, vocals, reverb, tag,
+                                         log=_SPLIT["log"].append)
+                    _SPLIT["result"] = dict(r, summary=elements.summary(r))
+                else:
+                    info, by_file = elements.source_clips(client.call, track, clips)
+                    if not by_file:
+                        raise ValueError("no audio clips on %r" % track)
+                    results = {}
+                    for f in by_file:
+                        _SPLIT["log"].append("split %s" % Path(f).name)
+                        results[f] = elements.analyze(f, None, drums, vocals, reverb, tag,
+                                                      log=_SPLIT["log"].append)
+                    out = {"files": {f: dict(r, summary=elements.summary(r))
+                                     for f, r in results.items()}}
+                    if place:
+                        idx = [t["i"] for t in client.call("get_song")["tracks"]
+                               if t["name"] == info["name"]][0]
+                        out["placed"] = elements.place(_journaled, _journaled_batch, track,
+                                                       idx, info, by_file, results,
+                                                       mute_source)
+                    _SPLIT["result"] = out
+            _SPLIT["state"] = "done"
+        except Exception as e:
+            _SPLIT["state"], _SPLIT["error"] = "failed", "%s: %s" % (type(e).__name__, e)
+
+    import threading
+    threading.Thread(target=work, name="split_elements", daemon=True).start()
+    return {"state": "running", "next": "call split_elements_status() until it is done"}
+
+
+@mcp.tool()
+def split_elements_status(wait_s: float = 50) -> dict:
+    """Progress or result of the running split_elements job (waits up to wait_s)."""
+    deadline = time.time() + wait_s
+    while _SPLIT.get("state") == "running" and time.time() < deadline:
+        time.sleep(1.0)
+    if not _SPLIT:
+        return {"error": "no split_elements job in this session"}
+    out = {k: _SPLIT[k] for k in ("state", "error", "result") if k in _SPLIT}
+    if _SPLIT.get("state") == "running":
+        out.update(log=_SPLIT["log"][-5:], elapsed_s=round(time.time() - _SPLIT["started"]))
+    return out
 
 
 @mcp.tool()

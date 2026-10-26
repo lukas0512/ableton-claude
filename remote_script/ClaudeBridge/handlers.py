@@ -1610,6 +1610,58 @@ def set_loop(ctx, on, start_bar=None, end_bar=None):
 
 @command
 def record_master(ctx, start_bar, end_bar, name="Claude Render"):
+    def resampling(rt):
+        routes = list(rt.available_input_routing_types)
+        res = [r for r in routes if "resampl" in r.display_name.lower()]
+        if not res:
+            raise RuntimeError("Resampling input not available: %s"
+                               % [r.display_name for r in routes])
+        rt.input_routing_type = res[0]
+    return (yield from _start_record(ctx, start_bar, end_bar, [(name, None, resampling)]))
+
+
+def _source_route(options, track_name):
+    """The routing type that is track `track_name`: Live lists tracks by name, unnamed
+    ones as '<n>-Audio'. Exact first, then '<n>-<name>'; never a fragment ("KICK" must
+    not pick "KICK 2")."""
+    m = [r for r in options if r.display_name == track_name] or \
+        [r for r in options if r.display_name.split("-", 1)[-1] == track_name]
+    if not m:
+        raise ValueError("no input %r; choices: %s"
+                         % (track_name, [r.display_name for r in options]))
+    return m[0]
+
+
+@command
+def record_tracks(ctx, tracks, start_bar, end_bar, tap="Post Mixer", prefix="tap"):
+    """Record several tracks' outputs at once, each into its own new audio track (input =
+    that track, channel `tap`: "Post Mixer" includes its fader and pan, "Post FX" not).
+    One real-time pass instead of soloing and rendering each in turn. Returns sends do
+    not reach these taps. record_status lists the files per source when done."""
+    names = [_track(ctx, t).name for t in tracks]
+    if len(set(names)) != len(names):
+        raise ValueError("tracks must be distinct: %s" % names)
+
+    def tap_of(src):
+        def setup(rt):
+            rt.input_routing_type = _source_route(list(rt.available_input_routing_types), src)
+            # the channel list keeps the old input's channels (Ext. In "1/2") for a few
+            # ticks after the type changes
+            for _ in range(30):
+                yield
+                names = [c.display_name for c in rt.available_input_routing_channels]
+                if tap in names:
+                    break
+            rt.input_routing_channel = _pick(list(rt.available_input_routing_channels),
+                                             tap, "channel")
+        return setup
+    specs = [(("%s %s" % (prefix, n))[:31], n, tap_of(n)) for n in names]
+    return (yield from _start_record(ctx, start_bar, end_bar, specs))
+
+
+def _start_record(ctx, start_bar, end_bar, specs):
+    """specs = [(render track name, source name or None, setup(rt))]; setup may be a
+    generator (input channels appear a tick after the input type is set)."""
     s = ctx.song
     job = ctx.record_job
     if job and job.get("state") in ("recording", "finalizing"):
@@ -1621,17 +1673,30 @@ def record_master(ctx, start_bar, end_bar, name="Claude Render"):
     for t, _ in saved["arm"]:
         t.arm = False
 
-    s.create_audio_track(-1)
-    rt = s.tracks[len(s.tracks) - 1]
-    rt.name = name
-    routes = list(rt.available_input_routing_types)
-    res = [r for r in routes if "resampl" in r.display_name.lower()]
-    if not res:
-        raise RuntimeError("Resampling input not available: %s"
-                           % [r.display_name for r in routes])
-    rt.input_routing_type = res[0]
-    rt.current_monitoring_state = 2   # Off: no feedback loop into master
-    rt.arm = True
+    made = []
+    try:
+        for name, src, setup in specs:
+            s.create_audio_track(-1)
+            rt = s.tracks[len(s.tracks) - 1]
+            rt.name = name
+            made.append((rt, src))
+            step = setup(rt)
+            if step is not None and hasattr(step, "send"):
+                yield from step
+            rt.current_monitoring_state = 2   # Off: no feedback loop into master
+            rt.arm = True
+    except Exception:
+        for rt, _ in reversed(made):
+            try:
+                s.delete_track(list(s.tracks).index(rt))
+            except Exception:
+                pass
+        for t, was in saved["arm"]:
+            try:
+                t.arm = was
+            except Exception:
+                pass
+        raise
 
     s.metronome = False
     s.loop = False
@@ -1643,10 +1708,11 @@ def record_master(ctx, start_bar, end_bar, name="Claude Render"):
     # Measured on Live 12.4: after the playhead settles, start_playing() starts from it.
     # continue_playing() ignores a moved playhead and resumes where playback stopped.
     s.start_playing()
-    ctx.record_job = {"state": "recording", "start": a, "end": b, "track": rt,
-                      "saved": saved, "name": name, "ticks": 0,
+    ctx.record_job = {"state": "recording", "start": a, "end": b, "track": made[0][0],
+                      "tracks": made, "saved": saved, "name": specs[0][0], "ticks": 0,
                       "seconds": (b - a) * 60.0 / s.tempo}
     return {"state": "recording", "start_beat": a, "end_beat": b,
+            "tracks": [rt.name for rt, _ in made],
             "expected_seconds": round((b - a) * 60.0 / s.tempo, 1)}
 
 
@@ -1654,7 +1720,8 @@ def _finish_record(ctx, job):
     s = ctx.song
     s.stop_playing()
     s.record_mode = False
-    job["track"].arm = False
+    for rt, _ in job.get("tracks") or [(job["track"], None)]:
+        rt.arm = False
     sv = job["saved"]
     for t, was in sv["arm"]:
         try:
@@ -1676,6 +1743,8 @@ def record_status(ctx):
     out["now"] = ctx.song.current_song_time
     if job.get("file"):
         out["file"] = job["file"]
+    if job.get("files"):
+        out["files"] = job["files"]
     if job.get("error"):
         out["error"] = job["error"]
     return out
@@ -1729,9 +1798,15 @@ def tick(ctx):
             s.start_playing()
     elif job["state"] == "finalizing":
         job["ticks"] += 1
-        clips = list(job["track"].arrangement_clips)
-        if clips and clips[0].file_path:
-            job["file"] = clips[0].file_path
+        files = {}
+        for rt, src in job.get("tracks") or [(job["track"], None)]:
+            clips = list(rt.arrangement_clips)
+            if clips and clips[0].file_path:
+                files[src or rt.name] = clips[0].file_path
+        if len(files) == len(job.get("tracks") or [1]):
+            job["file"] = list(files.values())[0]
+            if job.get("tracks") and job["tracks"][0][1] is not None:
+                job["files"] = files
             job["state"] = "error" if job.get("error") else "done"
         elif job["ticks"] > 100:
             job["state"] = "error"
@@ -1900,8 +1975,10 @@ def _replace_warp_markers(c, markers):
             except Exception:
                 pass
     import Live
+    end = _sample_seconds(c)
     for beat, sec in markers:
-        if beat <= 1e-6:
+        # Live lists a marker one 32nd past the sample's end; adding it back fails
+        if beat <= 1e-6 or sec > end + 1e-6:
             continue
         c.add_warp_marker(Live.Clip.WarpMarker(float(sec), float(beat)))   # (sample_time, beat_time)
 

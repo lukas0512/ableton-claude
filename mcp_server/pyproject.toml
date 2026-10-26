@@ -21,6 +21,8 @@ ableton-claude-mcp = "ableton_claude.server:main"
 dev = ["pytest>=8"]
 build = ["pyinstaller==6.22.0"]
 ear = [
+    "audio-separator[cpu]>=0.47",
+    "audioread>=3.1.0",
     "beat-this",
     "demucs>=4.0.1",
     "torch>=2.14.0",
@@ -39,3 +41,6 @@ beat-this = { url = "https://github.com/CPJKU/beat_this/archive/main.zip" }
 
 [tool.uv]
 default-groups = ["dev", "ear"]
+# audio-separator pins beartype 0.18.5, which rejects Python 3.14 type hints and fails
+# to load every RoFormer model
+override-dependencies = ["beartype>=0.22"]

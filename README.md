@@ -24,6 +24,9 @@ Native app chat ──MCP──▶ mcp_server (Python) ──TCP 9878──▶ C
 | `mcp_server/ableton_claude/analysis.py` | Objective mix measurements and technical flags. |
 | `mcp_server/ableton_claude/references.py` | Learns a genre from reference tracks: tempo (0.02 BPM), bass-anchored key, swing, loudness, 1/3-octave shape, and structure (kick on the beats vs bass on the off-beats, per bar). |
 | `mcp_server/ableton_claude/knowledge.py` | Curated genre conventions (deep house, tech house, minimal, UK garage, soulful, disco) plus measured profiles; plans section lengths. |
+| `mcp_server/ableton_claude/elements.py` | `split_elements`: opens a mix, loop or sample into one track per element (kick, snare, toms, hats, ride, crash, bass, music, lead/backing vocal, dry voice/reverb) under the source, same positions and warp, revertible. |
+| `mcp_server/ableton_claude/ear/separate.py` | Separation by task through python-audio-separator (htdemucs_ft, DrumSep, RoFormer karaoke and dereverb); models download on first use into `~/Music/Ableton Claude/Models/separation`. |
+| `mcp_server/ableton_claude/ear/tagging.py` | PANNs Cnn14 AudioSet tags along a file: rap or speech, singing, scratch, crowd, fx, keys, guitar... |
 | `mcp_server/ableton_claude/mixing.py` | Turns a profile comparison into a few broad, capped EQ bands and limiter drive, and applies them on the Live master. |
 | `~/Music/Ableton Claude/knowledge/genres/*.profile.json` | Per-user measured genre profiles (built from your own reference folders). Repository profiles are development examples, not loaded into the app. |
 | `scripts/build_deep_house.py` | Worked example: rebuilds a project into a 6-minute deep house track with a story. |

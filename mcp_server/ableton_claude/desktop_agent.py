@@ -16,13 +16,16 @@ READ_TOOLS = {"producer_brief", "ableton_status", "list_genres", "genre_knowledg
               "analyze_sample", "analyze_bassline", "music_chords", "music_progression", "music_call_and_response",
               "production_intent", "production_review", "music_drum_pattern", "music_pocket_sketch", "music_club_motif", "remix_plan", "music_build_roll", "library_search", "library_midi", "change_log",
               "producer_tools", "genre_principles", "validate_against_genre", "compare_to_reference",
-              "compare_by_ear", "listen", "render_wait", "extract_groove", "heard_midi", "find_samples"}
+              "compare_by_ear", "listen", "render_wait", "extract_groove", "heard_midi", "find_samples",
+              "split_elements_status", "solo_levels_status", "taste_report"}
 READ_COMMANDS = {"get_song", "get_track", "get_device", "get_notes", "browse", "grooves",
                  "warp_markers", "track_routing", "device_inputs", "record_status"}
 EXCLUDED = {"study_references", "study_status", "learn_genres", "learn_genres_status", "reference_study"}
 
 
 def read_only(name, args):
+    if name == "split_elements":      # a file split writes stems, never the project
+        return not args.get("track")
     return name in READ_TOOLS or (name == "ableton_command" and args.get("cmd") in READ_COMMANDS)
 
 
@@ -222,7 +225,8 @@ class ProducerAgent:
             if any(job["state"] in ("queued", "running") for job in genres._JOBS.values()):
                 return {"error": "Espere o aprendizado terminar antes de renderizar."}
         if name in {"analyze_audio", "analyze_reference", "analyze_timbre", "analyze_tension", "compare_to_genre", "listen", "production_review", "remix_plan", "compare_by_ear",
-                    "find_samples", "analyze_sample", "analyze_bassline", "extract_groove", "heard_midi", "validate_against_genre", "compare_to_reference"}:
+                    "find_samples", "analyze_sample", "analyze_bassline", "extract_groove", "heard_midi", "validate_against_genre", "compare_to_reference",
+                    "split_elements"}:
             from . import client
             try:
                 if client.call("record_status", timeout=2).get("state") in ("recording", "finalizing"):

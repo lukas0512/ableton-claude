@@ -190,6 +190,36 @@ Continue iteratively until additional changes produce negligible improvement or 
 - REMIX: `remix_plan(path, genre, target_bpm, target_tonic, source_bpm)` analyzes the original and returns source offsets, activity candidates, tempo ratio and key uncertainty. Audition candidates to identify the hook; activity is not melody recognition. Preserve aligned original stems and verify warp at start/middle/end. Ear stems remain in memory, so discover real files or explicitly export separation before importing. Retain an identifiable hook, rebuild kick/bass around it, and check separation/warp artifacts. Follow [Ableton's remix workflow](https://www.ableton.com/en/blog/a-step-by-step-guide-to-remixing-a-track/) and [stem alignment guidance](https://help.ableton.com/hc/en-us/articles/360000843404-Importing-and-exporting-stems).
 - MIX / MASTER: Fix source balance, tuning, note lengths and arrangement first; compare the same drop/transition at matched loudness. Inspect the actual final limiter and its controls; `mix_toward_genre` supports an existing Live Limiter or Pro-L 2 when compatible parameters are exposed, and preflights it before editing EQ. The crest-based drive estimate is not proof of punch or safe true peak. Measure the rendered output after final limiting and audition pumping/mono/full-song transitions. [Ableton's Limiter reference](https://www.ableton.com/en/manual/live-audio-effect-reference/#limiter) explains True Peak mode and final-chain placement.
 
+- TASTE FIRST: `taste_report` says which kinds of move this user keeps and which they
+  undo (every `revert_changes` is counted). Lean on what they keep; before repeating a
+  family they mostly undo, say so and ask.
+- ONE CHANNEL PER ELEMENT: a sampled loop, a pack loop or an original song arrives as one
+  file. `split_elements(track=..., clips=[...])` opens it into KICK, SNARE, TOMS, HATS,
+  RIDE, CRASH, BASS, MUSIC, VOX LEAD, VOX BACK (and with `reverb=True` VOX DRY + VOX VERB,
+  the reverb on its own fader) under the source, same positions and warp, source muted,
+  all revertible. Its tags say where the vocal stem holds rap, singing, a scratch or crowd,
+  so cut those pieces apart instead of treating the stem as one voice. Then level each
+  element with `solo_levels` (soloed through buses and master; `one_pass=True` is a fast
+  survey, exact only for tracks going straight to Main). Judge HATS by ear: they
+  separate poorly.
+- WORDS TO MOVES: a beginner describes sound, not settings. Translate the word into the
+  measurement first, then the smallest move, then re-render (the LLM2Fx result: text to
+  parameters works when the model sees the measured audio, not the word alone):
+
+  | They say | Measure | First move (EQ Eight / mixer), then verify |
+  |---|---|---|
+  | abafado, embolado, "sem brilho" | 2-6 kHz and 6-16 kHz shares vs the profile, `analyze_timbre` | cut 250-500 Hz 2-3 dB on the masking element before any top boost; then high shelf +1.5-2 dB from 6 kHz on that element only |
+  | estridente, "fura o ouvido" | 2-5 kHz per element (`solo_levels` spectra) | bell -2 dB, Q 2, at the loudest 1/3 octave of the loudest element there |
+  | "sem peso", fraco, "não bate" | kick_over_bass_db, low share, drop pulse return | kick level first (it leads), then bass vs kick per the profile; never a master low boost |
+  | grave estourando, "treme tudo" | 25-60 Hz share, limiter gain reduction on the kick | high-pass the non-bass elements at 100-150 Hz; sub level down 1-2 dB |
+  | vocal escondido, "não entende a letra" | vocal vs drums LU, 1-4 kHz masking | vocal fader +1-2 dB, or cut 2-4 kHz 1.5 dB on the element masking it |
+  | vocal "na frente demais", seco | vocal vs drums LU, wet_dry_db against the references | fader -1-2 dB; send to the room return before more level |
+  | longe, molhado, "lavado" | wet_dry_db, reverb tails into the next beat | lower the send or shorten decay/predelay; high-pass the return at 300 Hz |
+  | apertado, "sem espaço" | stereo width per element, mono loss | widen pads/FX only (never kick, sub, lead vocal) |
+  | "sem groove", duro | swing_self_pct, velocity spread | swing the hats/clap to the profile's %; vary velocities |
+
+  Each row is a starting move, not a rule: say which measurement it answers, change one
+  thing, render the same bars, compare at matched loudness, ask them to listen.
 - INSPECT: `ableton_status`, then `ableton_command("get_track", ...)` / `get_device` / `get_notes`. Hear a render with `listen`.
 - DIAGNOSE / COMPARE: render (`render_start` + `render_wait`), then `validate_against_genre`, `analyze_tension` (energy per section, drop jump), `analyze_timbre` (per element), `compare_by_ear` (producer terms). Judge against the genre's measured profile, not rules of thumb.
 - SAVE STATE: Live has no save API. Work on a copy of the user's project and ask the user to press Cmd+S (Ctrl+S) before a risky stage. Record every change you make (track, device, parameter, old value, new value) so it can be reverted by setting the old value back.

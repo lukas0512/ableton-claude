@@ -288,6 +288,24 @@ loops). Start a new track's drums from it; what makes it work:
   differ by one sample. Copy to the destination's exact frame count, rather than
   assuming independently rounded boundaries produce equal array lengths.
 
+- Levels against the kick come from the soloed pass (`solo_levels`), through the buses
+  and the master: on Murder Pista (2026-10-26) tapping each track post fader put the hats
+  9 LU lower, the clap 6 LU lower and the riff 3 LU higher against the kick than soloing
+  did, because the kick, drums and music each run through their own bus chain. The
+  one-pass tap is a survey for tracks that go straight to Main.
+- Live lists a warp marker one 32nd past the sample's end (8.0156 s on an 8 s loop);
+  copying the marker list back fails with "Warp marker sample time is out of range"
+  (the bridge now skips it).
+- On a 34-track set every bridge round trip costs ~0.7 s, even `ping`: placing 141 clips
+  one command at a time took 297 s, one batch per source clip 62 s. Batch anything that
+  repeats per clip.
+- `split_elements` on real material (2026-10-26): UGK "Murder" (5 min) opened into kick,
+  snare, hats, crash, bass, music, dry voice and backing in ~6 min (htdemucs_ft 70 s,
+  DrumSep 49 s, karaoke 165 s, dereverb 84 s on Apple Silicon); its vocal reverb sits
+  25 dB under the dry voice; the 'other' stem tags a scratch at 0:08. A percussion pack
+  loop gave snare, toms and hats channels (kick, ride and crash were leftovers, not
+  placed). Rap tags as Speech: the role is rap_or_speech.
+
 ## The ear (what the analysis can and cannot hear)
 
 - Chords are read from spectral peaks in 110-1500 Hz only. Over a bass pedal, read the upper

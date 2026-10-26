@@ -41,6 +41,14 @@ class FakeLive:
             if solo == [self.fail_render]:
                 self.job = {"state": "idle"}
             return {"state": "recording"}
+        if cmd == "track_routing":
+            return {"output": "DRUMS" if args["track"] == "CLAP" else "Main"}
+        if cmd == "record_tracks":
+            names = ["%s %s" % (args["prefix"], t) for t in args["tracks"]]
+            for n in names:
+                self.tracks.append({"i": len(self.tracks), "name": n[:31].rstrip(), "solo": False})
+            self.job = {"state": "done", "files": {t: "/r/%s.wav" % t for t in args["tracks"]}}
+            return {"state": "recording", "tracks": names}
         if cmd == "record_status":
             return self.job
         if cmd == "delete_track":
@@ -144,3 +152,18 @@ def test_solo_levels_tool_runs_in_the_background(monkeypatch):
     assert st["state"] == "done", st
     assert st["result"]["elements"]["BASS"]["vs_kick_lu"] == -3.3
     assert live.limiter_on and live.soloed() == {"VOX"}
+
+
+def test_one_pass_taps_every_track_at_once_and_cleans_up():
+    live = FakeLive()
+    r = sp.run(live, ["BASS", "CLAP", "VOX"], 81, 89, sleep=lambda s: None,
+               measure_fn=fake_measure, timeout_s=5, one_pass=True)
+    assert r["mode"] == "one_pass_post_fader" and r["via_bus"] == {"CLAP": "DRUMS"}
+    taps = [a for c, a in live.calls if c == "record_tracks"]
+    assert len(taps) == 1 and taps[0]["tracks"] == ["KICK", "BASS", "CLAP", "VOX"]
+    assert not [c for c, a in live.calls if c in ("record_master", "set_track", "set_device_on")]
+    assert "warning" in r
+    assert r["elements"]["BASS"]["vs_kick_lu"] == -3.3 and r["elements"]["VOX"]["silent"]
+    assert [t["name"] for t in live.tracks] == ["KICK", "BASS", "VOX", "CLAP",
+                                                "LOOP CITY - orig synth"]
+    assert sp.expected_seconds(4, 81, 89, 125, one_pass=True) == round(8 * 4 * 60 / 125 + 6)

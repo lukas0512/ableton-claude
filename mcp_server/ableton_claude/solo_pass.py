@@ -89,17 +89,96 @@ def render(call, start_bar, end_bar, name, timeout_s, sleep=time.sleep, poll_s=N
         _delete_render_tracks(call, name)
 
 
-def expected_seconds(n_elements, start_bar, end_bar, tempo):
-    return round(n_elements * ((end_bar - start_bar) * 4 * 60.0 / tempo + 6))
+def render_taps(call, tracks, start_bar, end_bar, timeout_s, sleep=time.sleep, poll_s=None):
+    """Record every track's own output (post fader) over [start_bar, end_bar) in one
+    pass; delete the tap tracks; return {track: file}."""
+    r = call("record_tracks", {"tracks": list(tracks), "start_bar": start_bar,
+                               "end_bar": end_bar, "prefix": PREFIX})
+    t0 = time.time()
+    try:
+        while True:
+            sleep(POLL_S if poll_s is None else poll_s)
+            st = call("record_status")
+            if st.get("state") == "done":
+                return st["files"]
+            if st.get("state") not in ("recording", "finalizing"):
+                raise RuntimeError("tap render: %s" % st)
+            if time.time() - t0 > timeout_s:
+                try:
+                    call("record_abort")
+                finally:
+                    raise RuntimeError("tap render timed out: %s" % st)
+    finally:
+        for name in r.get("tracks", []):
+            _delete_render_tracks(call, name)
+
+
+def expected_seconds(n_elements, start_bar, end_bar, tempo, one_pass=False):
+    return round((1 if one_pass else n_elements) * ((end_bar - start_bar) * 4 * 60.0 / tempo + 6))
+
+
+def _element(path, measure_fn, spectra):
+    lufs, peak, third = measure_fn(path)
+    if not np.isfinite(lufs):     # nothing played in these bars
+        return {"lufs": None, "silent": True, "file": path}
+    e = {"lufs": round(lufs, 1), "peak_db": round(peak, 1), "file": path}
+    if spectra:
+        e["third_octave_db"] = [round(v, 1) for v in third]
+    return e
+
+
+def _summary(out, failed, kick, start_bar, end_bar, spectra, mask_db, **extra):
+    k = out.get(kick, {}).get("lufs")
+    for e in out.values():
+        e["vs_kick_lu"] = round(e["lufs"] - k, 1) if k is not None and e["lufs"] is not None else None
+    res = dict({"bars": [start_bar, end_bar], "kick": kick, "elements": out,
+                "failed": failed}, **extra)
+    if spectra:
+        res["hz"] = THIRD_OCTAVES
+        res["masking"] = masking({n: e["third_octave_db"] for n, e in out.items()
+                                  if e["lufs"] is not None}, mask_db)
+    return res
 
 
 def run(call, tracks, start_bar, end_bar, kick="KICK", spectra=True, mask_db=MASK_DB,
-        sleep=time.sleep, measure_fn=None, timeout_s=None, log=None):
+        sleep=time.sleep, measure_fn=None, timeout_s=None, log=None, one_pass=False):
     """Solo each of `tracks` (the kick first) over [start_bar, end_bar) with the master
     limiter off and render it. Solo states and the limiter are restored whatever happens.
+    With `one_pass`, every track is tapped post fader at once instead (one real-time
+    pass; the taps miss bus, return and master processing, which soloing includes: on
+    Murder Pista, 2026-10-26, hats routed through the DRUMS bus read -20.6 vs the kick
+    tapped and -11.3 soloed). Tracks that route into a bus are listed in `via_bus`.
     Returns {elements: {name: {lufs, vs_kick_lu, peak_db, third_octave_db?}}, hz?,
     masking?, failed}."""
     measure_fn = measure_fn or measure
+    if one_pass:
+        names = [kick] + [t for t in tracks if t != kick]
+        tempo = call("get_song").get("tempo", 120.0)
+        via_bus = {}
+        for n in names:
+            try:
+                out_to = call("track_routing", {"track": n}).get("output")
+            except Exception:
+                continue
+            if out_to and out_to != "Main":
+                via_bus[n] = out_to
+        seconds = (end_bar - start_bar) * 4 * 60.0 / tempo
+        files = render_taps(call, names, start_bar, end_bar, timeout_s or seconds + 60,
+                            sleep=sleep)
+        out, failed = {}, {}
+        for n in names:
+            try:
+                out[n] = _element(files[n], measure_fn, spectra)
+            except Exception as e:
+                failed[n] = str(e)
+            if log:
+                log("%s: %s" % (n, out[n]["lufs"] if n in out else "failed"))
+        extra = {"mode": "one_pass_post_fader"}
+        if via_bus:
+            extra["via_bus"] = via_bus
+            extra["warning"] = ("these tracks feed a bus: their tapped levels miss its "
+                                "processing; set faders from one_pass=False")
+        return _summary(out, failed, kick, start_bar, end_bar, spectra, mask_db, **extra)
     song = call("get_song")
     tempo = song.get("tempo", 120.0)
     seconds = (end_bar - start_bar) * 4 * 60.0 / tempo
@@ -120,13 +199,7 @@ def run(call, tracks, start_bar, end_bar, kick="KICK", spectra=True, mask_db=MAS
             try:
                 path = render(call, start_bar, end_bar, ("%s %s" % (PREFIX, n[:12])).strip(),
                               timeout_s, sleep=sleep)
-                lufs, peak, third = measure_fn(path)
-                if not np.isfinite(lufs):     # nothing played in these bars
-                    out[n] = {"lufs": None, "silent": True, "file": path}
-                else:
-                    out[n] = {"lufs": round(lufs, 1), "peak_db": round(peak, 1), "file": path}
-                    if spectra:
-                        out[n]["third_octave_db"] = [round(v, 1) for v in third]
+                out[n] = _element(path, measure_fn, spectra)
             except Exception as e:   # one element failing must not leave the set soloed
                 failed[n] = str(e)
             finally:
@@ -138,12 +211,4 @@ def run(call, tracks, start_bar, end_bar, kick="KICK", spectra=True, mask_db=MAS
             call("set_track", {"track": n, "solo": True})
         for d in limiters:
             call("set_device_on", {"track": "master", "device": d, "on": was_on.get(d, True)})
-    k = out.get(kick, {}).get("lufs")
-    for e in out.values():
-        e["vs_kick_lu"] = round(e["lufs"] - k, 1) if k is not None and e["lufs"] is not None else None
-    res = {"bars": [start_bar, end_bar], "kick": kick, "elements": out, "failed": failed}
-    if spectra:
-        res["hz"] = THIRD_OCTAVES
-        res["masking"] = masking({n: e["third_octave_db"] for n, e in out.items()
-                                  if e["lufs"] is not None}, mask_db)
-    return res
+    return _summary(out, failed, kick, start_bar, end_bar, spectra, mask_db, mode="solo")

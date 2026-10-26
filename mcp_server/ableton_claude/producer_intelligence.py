@@ -5,12 +5,14 @@ import unicodedata
 from . import intent
 
 GROUPS = {
-    "inspect": {"ableton_status", "ableton_command", "change_log", "genre_knowledge", "genre_principles"},
+    "inspect": {"ableton_status", "ableton_command", "change_log", "genre_knowledge", "genre_principles", "taste_report"},
     "compose": {"production_intent", "music_chords", "music_progression", "music_call_and_response", "music_club_motif", "music_drum_pattern", "music_pocket_sketch",
                 "music_build_roll", "library_search", "library_midi", "genre_plan_structure"},
     "groove": {"analyze_sample", "analyze_bassline", "extract_groove", "groove_loop", "heard_midi", "find_samples", "library_search", "music_drum_pattern", "music_pocket_sketch"},
     "arrange": {"production_intent", "production_review", "genre_plan_structure", "music_build_roll", "analyze_tension"},
-    "mix": {"production_review", "analyze_audio", "compare_to_genre", "analyze_timbre", "mix_toward_genre", "compare_by_ear", "listen", "validate_against_genre"},
+    "mix": {"production_review", "analyze_audio", "compare_to_genre", "analyze_timbre", "mix_toward_genre", "compare_by_ear", "listen", "validate_against_genre",
+            "solo_levels", "solo_levels_status"},
+    "split": {"split_elements", "split_elements_status", "analyze_sample", "listen"},
     "verify": {"production_review", "render_start", "render_wait", "analyze_audio", "compare_to_reference", "compare_to_genre", "validate_against_genre", "listen"},
     "edit": {"ableton_batch", "live_undo", "revert_changes"},
     "remix": {"remix_plan", "listen", "analyze_sample", "heard_midi", "library_search", "extract_groove"},
@@ -22,6 +24,7 @@ PATTERNS = {
     "mix": r"\b(mix\w*|master\w*|profission\w*|professional|polish\w*|equilibr\w*|balance\w*|limp\w*|muddy|harsh|compare\w*|compar\w*|loud\w*)\b",
     "verify": r"\b(render\w*|audio|ouc\w*|listen|valid\w*|verifi\w*|compar\w*)\b",
     "remix": r"\b(remix\w*|remistur\w*|mashup\w*|bootleg\w*)\b",
+    "split": r"\b(separ\w*|stem\w*|isol\w*|canal|canais|channel\w*|split\w*|scratch\w*|vocal\w*|voz|acapella|ambien\w*|reverb\w*|sample\w*|elemento\w*)\b",
 }
 
 
@@ -97,6 +100,10 @@ For remix, call remix_plan on a discovered source file, retain an identifiable h
         craft += """EXPRESSION AND DELIBERATION: Use production_intent to translate feeling into testable musical hypotheses. Consider two coherent directions before editing; compare at least one meaningful alternative through a short audition when useful. Explain the chosen musical intent briefly, not hidden reasoning. Leave time for analysis/listening; never claim waiting by itself makes a better record. Work in coherent stages and keep user approvals. Bass amount, harmonic openness, note density, articulation and stereo width are independent axes. A quiet closed bass can be rhythmically busy; a heavy bass need not be bright. MIDI gates do not specify synth release. Anchor repetition and motif identity; vary phrase endings, rests, accents and timbre with purpose rather than independent jitter. Use production_review/listen section evidence to inspect every break/drop. An equal-LUFS drop may release tension through low-end return, pulse, timbre and space; do not require it to be louder. Do not turn reference quartiles into quality/emotion scores. No audio evidence means hypotheses only.\n"""
     if groups & {'compose', 'groove'}:
         craft += """\nPOCKET STUDY: For a new coordinated drums/bass sketch use music_pocket_sketch with the actual project BPM/key and explicit style. It returns main and stripped alternatives; reuse nested $result fields such as main.kick or stripped.bass. Preserve existing material when improving a project. Timing is already baked in; avoid double swing. Compare one musical variable at a time: first subtraction, then swing, then role offsets, then articulation. Keep anchors and motif identity; audition at matched perceived level. Measured reference timing outranks recipe defaults. Do not infer sound quality from MIDI diagnostics.\n"""
+    if groups & {'split', 'mix', 'remix'}:
+        craft += """\nELEMENTS: one element per channel. A loop, sample or original song on one track opens with split_elements(track, clips) into KICK/SNARE/TOMS/HATS/RIDE/CRASH/BASS/MUSIC/VOX LEAD/VOX BACK tracks under it (reverb=True adds VOX DRY + VOX VERB), same positions and warp, source muted, revertible; poll split_elements_status. Its tags show where the vocal stem holds rap/speech, singing, scratch, crowd or fx: cut those apart. Then solo_levels for levels against the kick (one_pass=True only surveys: it misses bus processing). HATS separate poorly: audition. Heavy (minutes per song): say so before starting.
+WORDS TO MOVES: translate a described sound (abafado, estridente, sem peso, vocal escondido, molhado) into the measurement that shows it, then the smallest move on the element responsible, then re-render the same bars. Never boost the master for an element's problem.
+TASTE: call taste_report early; lean on move families this user keeps, ask before repeating one they mostly undo.\n"""
     expression = intent.interpret(request)
     if expression['directions'] or expression['moods'] or expression['avoid']:
         craft += '\nExplicit request cues (heuristic data, not a substitute for the original request): ' + compact(expression, 2500)

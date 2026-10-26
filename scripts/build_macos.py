@@ -81,8 +81,13 @@ def main():
              "--collect-submodules", "mcp.client", "--copy-metadata", "mcp",
              "--collect-submodules", "anyio", "--collect-all", "beat_this", "--collect-all", "demucs",
              "--collect-all", "torchaudio", "--collect-all", "imageio_ffmpeg",
+             # split_elements' separator needs torch >= 2.13: not in the frozen Intel venv
+             *([] if arch == "x86_64" else ["--collect-all", "audio_separator",
+                                           "--collect-all", "onnxruntime",
+                                           "--copy-metadata", "audio-separator"]),
              "--copy-metadata", "torch", "--copy-metadata", "demucs", "--copy-metadata", "beat-this",
              "--add-data", str(ROOT / "mcp_server" / "ableton_claude" / "briefs") + ":ableton_claude/briefs",
+             "--add-data", str(ROOT / "mcp_server" / "ableton_claude" / "ear" / "data") + ":ableton_claude/ear/data",
              ROOT / "desktop" / "backend_entry.py"])
     app = BUILD / "product" / (APP_NAME + ".app")
     if app.exists():
