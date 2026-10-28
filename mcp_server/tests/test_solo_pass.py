@@ -167,3 +167,26 @@ def test_one_pass_taps_every_track_at_once_and_cleans_up():
     assert [t["name"] for t in live.tracks] == ["KICK", "BASS", "VOX", "CLAP",
                                                 "LOOP CITY - orig synth"]
     assert sp.expected_seconds(4, 81, 89, 125, one_pass=True) == round(8 * 4 * 60 / 125 + 6)
+
+
+def test_two_limiters_are_each_restored():
+    class TwoLimiters(FakeLive):
+        def __init__(self):
+            super().__init__()
+            self.on = {"Limiter#0": True, "Limiter#1": True}
+
+        def __call__(self, cmd, args=None):
+            if cmd == "get_song":
+                r = super().__call__(cmd, args)
+                r["master"]["devices"] = ["Utility", "Limiter", "Limiter"]
+                return r
+            if cmd == "set_device_on":
+                self.calls.append((cmd, args))
+                assert args["device"] in self.on, args["device"]
+                before = {"on": self.on[args["device"]]}
+                self.on[args["device"]] = args["on"]
+                return {"before": before}
+            return super().__call__(cmd, args)
+    live = TwoLimiters()
+    run(live)
+    assert live.on == {"Limiter#0": True, "Limiter#1": True}

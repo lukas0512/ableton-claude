@@ -185,7 +185,10 @@ def run(call, tracks, start_bar, end_bar, kick="KICK", spectra=True, mask_db=MAS
     timeout_s = timeout_s or seconds + 60
     names = [kick] + [t for t in tracks if t != kick]
     soloed = [t["name"] for t in song["tracks"] if t.get("solo")]
-    limiters = [d for d in song.get("master", {}).get("devices", []) if d == "Limiter"]
+    # every Limiter by its own address: two named "Limiter" once left the first one off
+    # (Murder Pista, 2026-10-26: both were turned off and on through the first's name)
+    n_lim = sum(d == "Limiter" for d in song.get("master", {}).get("devices", []))
+    limiters = ["Limiter#%d" % k for k in range(n_lim)] if n_lim > 1 else ["Limiter"] * n_lim
     was_on = {}
     out, failed = {}, {}
     try:

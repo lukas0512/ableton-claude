@@ -293,6 +293,14 @@ loops). Start a new track's drums from it; what makes it work:
   9 LU lower, the clap 6 LU lower and the riff 3 LU higher against the kick than soloing
   did, because the kick, drums and music each run through their own bus chain. The
   one-pass tap is a survey for tracks that go straight to Main.
+- Two devices with one name on a track (Murder's master: two "Limiter"s): address each as
+  "Limiter#0", "Limiter#1". Turning both off and on through the bare name toggled the first
+  twice and left it off after a soloed level pass (fixed in solo_pass, 2026-10-28).
+- To replace a dirty stem loop with MIDI, pick the preset by measurement: render each
+  candidate playing the transcribed line and compare its 1/3-octave shape with the loop's
+  (Murder's piano-stem riff: Grand Piano 9.2 dB RMS off, Upright 15.9, E-Piano 18.2), then
+  give the MIDI track the loop's own chain, filter map (clip envelopes), build ramps
+  (velocity) and sidechain, so the arrangement keeps its moves.
 - Live lists a warp marker one 32nd past the sample's end (8.0156 s on an 8 s loop);
   copying the marker list back fails with "Warp marker sample time is out of range"
   (the bridge now skips it).
