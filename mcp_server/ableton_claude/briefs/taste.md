@@ -171,6 +171,16 @@ section you changed (`transport(action="play", bar=…)`) and say what to listen
   (Swing 16ths 57 at 115 % on every MIDI part; the loops that already carry ~54 % get the
   54 groove on top, timing only). Subtract percussion in the grooves rather than add.
 
+- **Parts must converse, not stack** ("sem groove, só vários elementos tocando várias coisas sem
+  sentido, sem se conversar, sem sentimento", Project #6 v2, 2026-10-28). v2 layered pack loops
+  from different packs, each busy on its own (a stab loop ~11 attacks a bar, a bass loop ~8 notes
+  with several on the kick) over two drum kits at once. Measure every loop's onsets on the 16th
+  grid before choosing it; keep ONE drum system; let the sparse harmonic loop (4 off-beat hits a
+  bar, like the references) be the stab and write the bass in its holes and the kick's (ear: 100 %
+  off the beat, 0 % with the kick). Hats need phrase variation, never a pasted bar: his accent map,
+  a pocket every 2nd bar, a breath on a downbeat, a 32nd flutter into each phrase. A lead voice
+  needs company: a second phrase answering it and ad-libs under the drops.
+
 ## 6. Voices
 
 - Sparse beats busy: the v14 dynamic (few phrases, space between) was better than trading
@@ -264,6 +274,17 @@ section you changed (`transport(action="play", bar=…)`) and say what to listen
   scratch with the riff. Split it (riff / voice+scratch) so the scratch can sit lower (-4 dB
   passed first) without touching the riff. Chops built from a syllable must be tuned and in
   key, the second bar answering the first ("a primeira frase tá certa, o resto desafina").
+
+- **A "strange high" that relaxes in the breaks is a resonance in a loop** ("tô sentindo um agudo
+  estranho... quando cai no break dá um alívio, como se fosse um ruído", From The Streets v39):
+  the City synth stem carried two narrow peaks 113 Hz apart (1.99 / 2.11 kHz, +17/+16 dB over
+  their surroundings) that beat into a rough texture. He picked, by ear from four 8-bar A/B
+  files, the synth notched (-5 dB @2.05 kHz Q6, -3 @3.33 kHz Q6, low-pass 7 kHz) over taming
+  the 909 ride. Look for narrow peaks per soloed element; the aesthetics model cannot hear it.
+- **Each pre-drop gets a voice of its own** ("o pré-drop não tem nada pra caracterizar e
+  chamar a galera"): City a cappella into drop 1, the Murder trade's first line a cappella
+  into drop 2, cut at its natural pause and thrown into delay + plate. Open hats breathe:
+  out for the first 8 bars of a drop, back with the hook ("o open hat tá muito corrido").
 
 - **No long tails on voices or scratches** ("reverb gigante no scratch + Murder vocal, fica uma
   cauda gigante no fundo... tudo alinhado e colado"): a 4 s atmos send on the voices smeared
