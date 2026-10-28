@@ -116,6 +116,9 @@ PIANO = {
     "D": [(0, "a0"), (16, "b0")],
 }
 PIANO_SWING_S = 0.0155
+# v7 ("o groove dos synth ainda tá meio ruim, tá com muita cauda o timbre"): each hit was let
+# ring until the next one; the references' stabs are 70 % short (~110 ms). Held only in D.
+PIANO_STAB_S = 0.14
 PIANO_HIT_AUDIO = {}
 PIANO_SPANS = [(25, 49), (49, 65), (65, 97), (97, 121), (121, 161)]
 
@@ -186,9 +189,9 @@ def stab_freq(bar):
 
 
 LEVELS = {"FX RISER": -20.0, "FX DOWN": -18.0, "FX IMPACT": -12.0, "SUB BOOM": -14.0,
-          "CLAP LTR": -11.0, "GHOST SNARE": -15.0, "HAT 2": -15.0, "STAB SS": -16.0, "PIANO GATE": -14.0, "SHAKER": -15.0, "CONGAS": -16.0, "TOM 909": -19.0, "RIDE": -21.0,
-          "KICK": -8.0, "KICK HP": -11.0, "HATS": -13.0, "OPEN HAT": -16.0, "CRASH": -20.0,
-          "BASS": -3.0, "BASS BREAK": -11.0, "CHORDS": 2.0,
+          "CLAP LTR": -11.0, "GHOST SNARE": -15.0, "HAT 2": -17.0, "STAB SS": -16.0, "PIANO GATE": -14.0, "SHAKER": -15.0, "CONGAS": -16.0, "TOM 909": -19.0, "RIDE": -21.0,
+          "KICK": -8.0, "KICK HP": -11.0, "HATS": -16.0, "OPEN HAT": -17.0, "CRASH": -20.0,
+          "BASS": -3.0, "BASS BREAK": -11.0, "CHORDS": 4.0,
           "VOX": -14.0, "VOX 2": -16.0, "VOX ADLIB": -22.0}
 PANS = {"HAT 2": -0.25, "HATS": 0.08, "GHOST SNARE": 0.1, "STAB SS": 0.2, "OPEN HAT": 0.2, "SHAKER": 0.35, "CONGAS": 0.26, "TOM 909": -0.18, "RIDE": 0.1,
         "CHORDS": 0.0, "VOX 2": -0.1, "VOX ADLIB": 0.15}
@@ -260,14 +263,14 @@ SIMPLER = {"HAT 2": {"Vol < Vel": "100 %", "Volume": "-6"}, "CLAP LTR": {"Vol < 
            "BASS BREAK": {"Vol < Vel": "40 %", "Detune": "12 ct", "Volume": "0"}}
 # sends: [A-Reverb (plate), B-Delay, C-Room (short, every drum)]
 # D-Atmos: one shared long tail, low and dark, under the chords and the voices (the atmosphere)
-ATMOS = {"PIANO GATE": -16.0, "CHORDS": -15.0, "VOX ADLIB": -12.0, "VOX": -22.0, "VOX 2": -20.0, "STAB SS": -16.0,
+ATMOS = {"PIANO GATE": -24.0, "CHORDS": -26.0, "VOX ADLIB": -12.0, "VOX": -22.0, "VOX 2": -20.0, "STAB SS": -16.0,
          "OPEN HAT": -26.0, "SHAKER": -26.0}
-SENDS = {"PIANO GATE": [-18.0, -16.0, None], "GHOST SNARE": [None, None, -16.0], "HAT 2": [None, None, -22.0], "STAB SS": [-16.0, -18.0, None],
+SENDS = {"PIANO GATE": [-26.0, -20.0, None], "CHORDS": [-24.0, None, None], "GHOST SNARE": [None, None, -16.0], "HAT 2": [None, None, -22.0], "STAB SS": [-16.0, -18.0, None],
          "HATS": [None, None, -22.0], "OPEN HAT": [None, None, -20.0], "VOX": [-16.0, -18.0, None],
          "VOX ADLIB": [-12.0, None, None],
          "CRASH": [-16.0, None, None], "CLAP LTR": [None, None, -16.0], "SHAKER": [None, None, -21.0],
          "CONGAS": [None, None, -20.0], "TOM 909": [None, None, -22.0], "VOX 2": [-16.0, -18.0, None],
-         "CHORDS": [-14.0, None, None], "FX RISER": [-18.0, None, None], "FX DOWN": [-16.0, None, None]}
+         "FX RISER": [-18.0, None, None], "FX DOWN": [-16.0, None, None]}
 
 
 def log(*a):
@@ -369,8 +372,11 @@ def make_piano():
             t = st * s16 + (sw if abs(st - round(st)) < 1e-6 and int(round(st)) % 2 == 1 else 0)
             i0 = max(0, int((t - lead) * loops.SR))
             nxt = ev[j + 1][0] * s16 if j + 1 < len(ev) else 8 * BEAT_S
-            seg = hits[h][:max(0, int(nxt * loops.SR) - i0)].copy()
-            fade = min(len(seg), int(0.02 * loops.SR))
+            room = max(0, int(nxt * loops.SR) - i0)
+            if ph != "D":                        # stabs, not chords ringing into the next hit
+                room = min(room, int(PIANO_STAB_S * loops.SR))
+            seg = hits[h][:room].copy()
+            fade = min(len(seg), int((0.03 if ph != "D" else 0.02) * loops.SR))
             if fade:
                 ramp = np.linspace(1, 0, fade)
                 seg[-fade:] *= ramp[:, None] if seg.ndim == 2 else ramp
@@ -407,7 +413,7 @@ def make_gate(bar, phrase, density):
             continue
         pad = pads[chords[st // 16]]
         a = int(((st % 16) * s16) * loops.SR)
-        n = int(s16 * 0.7 * loops.SR)
+        n = int(s16 * 0.5 * loops.SR)
         seg = pad[a:a + n].copy()
         if len(seg) < n:
             continue

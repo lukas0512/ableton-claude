@@ -181,6 +181,15 @@ section you changed (`transport(action="play", bar=…)`) and say what to listen
   a pocket every 2nd bar, a breath on a downbeat, a 32nd flutter into each phrase. A lead voice
   needs company: a second phrase answering it and ad-libs under the drops.
 
+- **One pocket, checked at the sample** ("parece que são grooves diferentes", Project #6 v5): two
+  hat "one-shots" were 7 s files whose first hit came at 234 ms, so every hat note sounded half a
+  beat late; the piano's swing had been counted twice (28 ms against the hats' 15). Trim every
+  one-shot to its attack before it goes into a Simpler, and bake one off-16th delay into every
+  written part (the pool groove only on kit parts at the same amount).
+- **Stabs are short and dry** ("muita cauda o timbre"): a sliced chord let ring until the next hit
+  smeared the groove; cut each hit at ~140 ms (references: 70 % of stabs ~110 ms), keep the sends
+  low (plate -24, long tail -26). Held chords only in the breaks.
+
 ## 6. Voices
 
 - Sparse beats busy: the v14 dynamic (few phrases, space between) was better than trading
