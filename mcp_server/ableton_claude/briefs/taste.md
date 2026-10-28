@@ -99,6 +99,15 @@ section you changed (`transport(action="play", bar=…)`) and say what to listen
   450 Hz -> 1.8 kHz and +6 dB over the build, the high-passed kick gaining weight (HP 400 -> 150 Hz),
   density up in the last bar of the climb (kick and clap in 8ths), then one bar with the lows out.
   Passed (2-bar averages): -10.2, -9.9, -8.7, breath -11.2, drop -7.9 LUFS.
+- **Pressure and relief, measured every version** ("pressão e alívio dos drops pode ser
+  melhor", Murder v31). v30 sat at -8.0..-8.4 LUFS from bar 9 to 176: the breaks only 2 LU
+  under the drops and build 1's top bars over drop 1 (-7.8 vs -8.2). One gain map for the
+  music loops (grooves -1.5, breaks -2.5, the build climbing 0 -> +4.5 dB, drop 2 +1.5), the
+  breaks' sub ~8 dB under the drop, the high-passed kick pulsing through every build (HP 400
+  -> 150 Hz, 8ths in the last 2 bars, velocity 70 -> 120), the record's choir re-struck every
+  bar under an opening filter as the riser, the drop's sub never played inside a build.
+  Passed: break -12.6, build -12.7 -> -11.5 -> -10.3, a cappella, drop 1 -8.6; build 2 -12.4
+  -> -10.4, drop 2 -8.4.
 - **A clip envelope on a device parameter stays where it ended**: every other clip on that track
   needs its own envelope holding its value (the groove's low-pass at 450 Hz in the break, the HP
   kick at 180 Hz in intro/outro), or the next pass plays with the build's last setting.
@@ -253,6 +262,19 @@ section you changed (`transport(action="play", bar=…)`) and say what to listen
   cauda gigante no fundo... tudo alinhado e colado"): a 4 s atmos send on the voices smeared
   the whole mix. Voices, throws, chops and scratches: the 1.4 s plate only. A shared long
   return is glue for the loops at most, short (2 s) and low (-20).
+
+- **Gain staging: the kick at -10 dBFS, everything else under it, the master pulls the rest**
+  ("vamos fazer a mix sempre com o kick em -10 e o resto em cima disso, lembrando o kick ser o
+  elemento mais alto da track; depois esse espaço que vai sobrar puxamos com a master, pra ter
+  algo com mais qualidade e mais colado", Murder v31, 2026-10-28). Measure with the master
+  chain off: the kick's channel and its share of the master input peak at -10 dBFS, no element
+  peaks or reads louder than the kick, the mix lands ~-4.5 dBFS / -17.6 LUFS in a drop. When
+  every channel moves, move what reacts to level with it (bus compressor thresholds, keyed
+  compressors, bus saturators' drive/output, a bus limiter's ceiling) or the balance changes.
+  Then the master: no headroom trim, its Glue doing the glue (2:1, 10 ms, range 4, ~-19 dB
+  threshold), no makeup gain into the soft clipper (+2 dB there crushed every kick: the drop
+  read -7.4 at crest 7.7), the TP limiter +13. Passed: drop -8.4 LUFS at crest 8.7 (v30 -8.0
+  at 8.6), break -12.3, whole -9.35, -0.33 dBTP.
 
 ## 8. Project hygiene ("muito desorganizado")
 

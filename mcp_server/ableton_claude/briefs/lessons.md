@@ -556,3 +556,22 @@ commands while Live records. `automated_params` lists every automated parameter 
 playing/overridden); Live's API cannot delete Arrangement automation, only override it (set
 the value while playing, not recording): ask the producer to delete the lanes, and never press
 Re-Enable Automation on overridden junk. Live 12 returns no envelopes for Arrangement clips.
+
+## A full-length render outlives the MCP call: poll record_status, then delete the track
+
+Murder v31 (2026-10-28): `render_wait` on a 185-bar render timed out at the MCP layer three
+times, so its `delete_track` never ran and the render track ("v31 render") stayed in the set
+playing the whole rendered master. The next premaster measurement read the mix at 0 dBFS /
+-7.8 LUFS with the master chain off. For long renders call `solo_pass.render` from a script
+(it polls `record_status` and always deletes the track), or check the set for render tracks
+before measuring anything (`quality_gate` flags them).
+
+## Resynthesise a loop part: transcribe it, pick the preset by spectrum, keep the loop as air
+
+The Murder choir (htdemucs_6s 'other', smeared by separation) read on a CQT per half beat as
+two chords, Em (B3 G4 E5) and Em(maj7) (E3 G3 B4 D#5 E5). Five choir presets each played the
+two bars past the song's end, tapped in one pass, and compared with the loop's 1/3-octave
+shape 160 Hz-5 kHz: Choir Steam 9.4 dB RMS, Synthetic Choir Strings 9.7, Avalon 10.3. The MIDI
+track gets the loop's chain copied by device index (two EQ Eights stay two), a Utility for
+the clip gain map, and the loop 7 dB down under it. Measure the new part before the render:
+the preset came in at +1.5 LU over the kick at 0 dB (fader -17.5 for the -16 target).
