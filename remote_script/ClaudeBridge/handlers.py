@@ -1976,9 +1976,27 @@ def _replace_warp_markers(c, markers):
                 pass
     import Live
     end = _sample_seconds(c)
-    for beat, sec in markers:
-        # Live lists a marker one 32nd past the sample's end; adding it back fails
-        if beat <= 1e-6 or sec > end + 1e-6:
+    # Live lists a marker one 32nd past the sample's end; adding it back fails
+    keep = [(b, s) for b, s in markers if s <= end + 1e-6]
+    zero = [s for b, s in keep if abs(b) <= 1e-6]
+    if zero:
+        # auto-warp can pin beat 0 to the first transient (0.34 s into a City synth stem):
+        # every target marker earlier in the sample is then "behind" it and refused.
+        # Anchor the last target marker, drop the beat-0 one, re-add it at its own time.
+        last = max(keep, key=lambda m: m[0])
+        if last[0] > 1e-6:
+            c.add_warp_marker(Live.Clip.WarpMarker(float(last[1]), float(last[0])))
+        for m in list(c.warp_markers):
+            if m.beat_time <= 1e-6:
+                try:
+                    c.remove_warp_marker(m.beat_time)
+                except Exception:
+                    pass
+        if not any(m.beat_time <= 1e-6 for m in c.warp_markers):
+            c.add_warp_marker(Live.Clip.WarpMarker(float(zero[0]), 0.0))
+    have = set(round(m.beat_time, 6) for m in c.warp_markers)
+    for beat, sec in keep:
+        if beat <= 1e-6 or round(beat, 6) in have:
             continue
         c.add_warp_marker(Live.Clip.WarpMarker(float(sec), float(beat)))   # (sample_time, beat_time)
 

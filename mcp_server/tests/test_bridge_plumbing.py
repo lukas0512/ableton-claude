@@ -250,3 +250,34 @@ def test_render_refuses_playback_that_starts_away_from_the_render_start(bridge):
     h.tick(ctx)
     job = ctx.record_job
     assert "instead of 384.00" in job["error"] and not ctx.song.is_playing
+
+
+def test_warp_markers_replace_an_auto_warped_beat_zero(bridge):
+    """Auto-warp pinned beat 0 to the first transient (0.34 s into a City synth stem):
+    the copied markers start earlier in the sample and were all refused."""
+    h = sys.modules["ClaudeBridge.handlers"]
+    live = sys.modules["Live"]
+
+    class WM:
+        def __init__(self, sample_time, beat_time):
+            self.sample_time, self.beat_time = sample_time, beat_time
+    live.Clip = types.SimpleNamespace(WarpMarker=WM)
+
+    class Clip:
+        warping = True
+        sample_length = 44100 * 10
+        def __init__(self):
+            self.warp_markers = [WM(0.34, 0.0), WM(0.36, 0.0312)]
+        def remove_warp_marker(self, beat):
+            self.warp_markers = [m for m in self.warp_markers if m.beat_time != beat]
+        def add_warp_marker(self, m):
+            ms = sorted(self.warp_markers + [m], key=lambda x: x.beat_time)
+            if any(a.sample_time >= b.sample_time for a, b in zip(ms, ms[1:])):
+                raise RuntimeError("Warp marker beat time is behind right adjacent marker's beat time.")
+            self.warp_markers = ms
+
+    c = Clip()
+    h._sample_seconds = lambda clip: 10.0
+    h._replace_warp_markers(c, [[0.0, 0.0], [0.2724, 0.165], [0.5, 0.33], [8.0, 5.22]])
+    assert [(m.beat_time, m.sample_time) for m in c.warp_markers] == \
+        [(0.0, 0.0), (0.2724, 0.165), (0.5, 0.33), (8.0, 5.22)]
