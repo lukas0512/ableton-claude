@@ -593,3 +593,30 @@ compact JSON with floats at 4 decimals: get_song -43 %, a clip list -58 %. No to
 output schema, so the text is the whole result; the desktop app reads it with `compact.parse`
 (TOON is accepted only when it round-trips, so a brief stays text).
 
+
+## Beat-relative timbre measures flip with the grid: compare fixed bars, twice
+
+From The Streets v37: the same drop-1 excerpt read kick_over_bass 5.6 dB, clap tail 44 ms and
+bass harmonics -10.6 in one render and 0.1 dB / 449 ms / -5.6 in the next, with only the
+master chain different; drop 2 did not move at all under the same changes, and three master
+variants on 16 drop bars read identical. These measures hang on where the grid puts the
+beat, so a whole-track validation can "lose" a fix that is still in the set. Before acting on
+one, cut the same bars from both renders and re-measure; trust the stable ones (low-band
+width, 2-bar LUFS arc, brightness, solo levels against the kick).
+
+## A loop that carries rap and scratch: split it, feed the parts back into the loop track
+
+He heard "the scratches are in the same clip as the Murder vocal". The vocal clips were clean
+(the vocal model found only rap); PANNs found the scratches in the "Murder key" loops (vocal
+stem: rap + scratch alternating every 1-3 s; other: the guitar riff). `elements.analyze` +
+`place` gave each loop a RIFF and a VOX+SCRATCH track; routing both into the loop track
+(input No Input, monitoring in) keeps its arrangement automation, EQ and sends on the sum,
+so nothing about the build changes except the balance he now owns.
+
+## A chop riff from one syllable: tune the syllable, keep every step in key
+
+The UKG chop riff resampled one "ba" (A4 +15 cents) to 0/3/5/8 semitones: the 8 (F) is not
+in E minor and the second bar started an 8th late and ended on it ("the first phrase is right,
+the rest goes out of tune and out of the groove"). Rebuilt: syllable -15 cents, bar 2 answers
+bar 1's rhythm and ends E-D, odd 16ths +10.8 ms like the hats, clips Repitch (Beats mode
+re-chopped the syllables). Measure: +12 -> 0 cents, pitch classes in the mix 10 -> 8.

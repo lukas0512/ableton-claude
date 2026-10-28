@@ -57,3 +57,23 @@ def test_findings_against_references():
     assert f[0]["severity"] == "info" and "refs 7.40" in f[0]["detail"]
     f = aes.findings(_scored([6.5, 6.6]), ref_means=refs)
     assert f[0]["severity"] == "warn" and "under every reference" in f[0]["detail"]
+
+
+def test_a_whole_track_goes_to_the_model_in_small_batches():
+    sizes = []
+
+    def predict(batch):
+        sizes.append(len(batch))
+        return [{k: 5.0 for k in aes.AXES} for _ in batch]
+    w = aes.score_windows(np.zeros(int(aes.SR * 340), dtype=np.float32), predict=predict)
+    assert len(w) == 34 and max(sizes) <= aes.BATCH and sum(sizes) == 34
+
+
+def test_study_may_be_a_folder(tmp_path, monkeypatch):
+    from ableton_claude import server
+    for n in ("a.wav", "b.wav"):
+        sf.write(tmp_path / n, np.zeros((aes.SR, 2), np.float32), aes.SR)
+    monkeypatch.setattr(aes, "score_file", lambda p, **kw: {"mean": {k: 7.0 for k in aes.AXES}})
+    assert len(server._study_means(str(tmp_path))) == 2
+    with pytest.raises(ValueError):
+        server._study_means(str(tmp_path / "empty_study_that_does_not_exist"))

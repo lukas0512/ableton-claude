@@ -30,6 +30,9 @@ WIN_S = 10.0
 DROP_MEAN = 0.05
 DROP_WINDOW = 0.3
 GUARD_AXES = ("CE", "PQ")
+# windows per forward pass: a whole track in one batch (~40 windows) stalled the Mac's GPU
+# for minutes (memory pressure); 8 scored 2 minutes in 1.4 s on MPS, CPU took 5.3 s
+BATCH = 8
 CACHE = Path(DATA_DIR) / "aesthetics_cache.json"
 
 _predictor = None
@@ -52,7 +55,8 @@ def score_windows(mono, sr=SR, win_s=WIN_S, predict=None):
     starts = list(range(0, max(1, len(mono) - n // 2), n))
     batch = [{"path": torch.from_numpy(np.ascontiguousarray(mono[s:s + n], dtype=np.float32))[None],
               "sample_rate": sr} for s in starts]
-    rows = (predict or predictor().forward)(batch)
+    predict = predict or predictor().forward
+    rows = [r for i in range(0, len(batch), BATCH) for r in predict(batch[i:i + BATCH])]
     return [dict({"t": round(s / sr, 1)}, **{k: round(float(r[k]), 2) for k in AXES})
             for s, r in zip(starts, rows)]
 

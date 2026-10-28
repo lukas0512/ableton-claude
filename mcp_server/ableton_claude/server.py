@@ -253,9 +253,17 @@ def quality_gate(render: str | None = None, previous: str | None = None,
 
 
 def _study_means(study_name):
+    """Scores of a study's references; `study_name` may also be a folder of references
+    (older studies such as sexy_vibes kept no links to their audio)."""
     from . import study
     from .ear import aesthetics
-    return [aesthetics.score_file(p)["mean"] for p in study.audio_files(study.folder_of(study_name))]
+    folder = os.path.expanduser(study_name)
+    if not os.path.isdir(folder):
+        folder = study.folder_of(study_name)
+    files = study.audio_files(folder)
+    if not files:
+        raise ValueError("no reference audio in %s: pass the references' folder as `study`" % folder)
+    return [aesthetics.score_file(p)["mean"] for p in files]
 
 
 def _aesthetic_findings(render, previous=None, study_name=None):

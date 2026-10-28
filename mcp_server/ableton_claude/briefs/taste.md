@@ -259,6 +259,12 @@ section you changed (`transport(action="play", bar=…)`) and say what to listen
   was the City vocal (-2.5 @630, +1.5 @1.6k, +2 @5k on the VOX bus) and a narrow resonance
   in the City synth. The master EQ then only keeps HP 32, +1 @85, -1 @45 and a 2 dB air shelf.
 
+- **Every voice and scratch on its own fader** ("os scratchs com o vocal Murder estão na mesma
+  clip e os scratchs ficam demais às vezes"): a loop cut from the record carries rap and
+  scratch with the riff. Split it (riff / voice+scratch) so the scratch can sit lower (-4 dB
+  passed first) without touching the riff. Chops built from a syllable must be tuned and in
+  key, the second bar answering the first ("a primeira frase tá certa, o resto desafina").
+
 - **No long tails on voices or scratches** ("reverb gigante no scratch + Murder vocal, fica uma
   cauda gigante no fundo... tudo alinhado e colado"): a 4 s atmos send on the voices smeared
   the whole mix. Voices, throws, chops and scratches: the 1.4 s plate only. A shared long
