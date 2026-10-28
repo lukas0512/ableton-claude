@@ -5,7 +5,7 @@ from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
-from . import analysis, client, genres, journal, knowledge, library, loops, mixing, references, storage, tension, timbre, validate
+from . import analysis, client, compact, genres, journal, knowledge, library, loops, mixing, references, storage, tension, timbre, validate
 from .music import club, groove, harmony, melody, pocket, samples, theory
 
 INSTRUCTIONS = """\
@@ -139,6 +139,7 @@ def _instructions():
 
 
 mcp = FastMCP("ableton-claude", instructions=_instructions())
+compact.install()
 
 
 def _refresh_genres():
@@ -231,14 +232,62 @@ def _journaled_batch(commands):
 
 
 @mcp.tool()
-def quality_gate() -> dict:
+def quality_gate(render: str | None = None, previous: str | None = None,
+                 study: str | None = None) -> dict:
     """Static checks of the open set before a version goes to the producer (no render, no
     change): render/measurement tracks left in the set, clip automation overridden by a
     fader move, hot Simplers, notes on empty Drum Rack pads, drum parts in different swing
     pockets, voices in different spaces, an unsafe master, fewer than two drops. Each was
-    a real mistake (briefs/taste.md). Fix every "error" before you hand a version over."""
+    a real mistake (briefs/taste.md). Fix every "error" before you hand a version over.
+    Pass the version's `render` (and the `previous` version's render of the same bars,
+    and/or a `study`) to also check how it sounds: see `aesthetics`."""
     from . import quality_gate as gate
-    return gate.run(client.call)
+    res = gate.run(client.call)
+    if render:
+        try:
+            res["findings"] += _aesthetic_findings(render, previous, study)
+        except ImportError as e:
+            res["findings"].append({"severity": "info", "check": "aesthetics", "track": "master",
+                                    "detail": "ear not installed (%s)" % e, "fix": "-"})
+    return res
+
+
+def _study_means(study_name):
+    from . import study
+    from .ear import aesthetics
+    return [aesthetics.score_file(p)["mean"] for p in study.audio_files(study.folder_of(study_name))]
+
+
+def _aesthetic_findings(render, previous=None, study_name=None):
+    from .ear import aesthetics
+    new = aesthetics.score_file(render, cache=False)
+    old = aesthetics.score_file(previous, cache=False) if previous else None
+    return aesthetics.findings(new, old, _study_means(study_name) if study_name else None)
+
+
+@mcp.tool()
+def aesthetics(path: str, previous: str | None = None, study: str | None = None,
+               start_bar: float = 1.0, tempo: float | None = None) -> dict:
+    """How good a render sounds to a model trained on human ratings (Meta audiobox-
+    aesthetics, ~2 s for a whole track): CE enjoyment, CU usefulness, PC complexity, PQ
+    production quality, 1-10, per 10 s window and on average. With `previous` (a render of
+    the same bars before the change): where it got worse. With `study`: the references'
+    median and range. With `tempo` (and the render's `start_bar`): windows labelled by bar.
+    A guard and a ranker of variants, not a tension meter: breaks do not score lower than
+    drops. Murder v31 scored CE 7.13 / PQ 8.19 against Dub House Streets' 7.37 / 8.26."""
+    from .ear import aesthetics as aes
+    new = aes.score_file(path, cache=False)
+    if tempo:
+        new["windows"] = aes.with_bars(new["windows"], tempo, start_bar)
+    out = {"mean": new["mean"], "axes": aes.AXES, "windows": new["windows"]}
+    if previous:
+        old = aes.score_file(previous, cache=False)
+        if tempo:
+            old["windows"] = aes.with_bars(old["windows"], tempo, start_bar)
+        out["vs_previous"] = aes.compare(new, old)
+    if study:
+        out["vs_study"] = aes.against(new["mean"], _study_means(study))
+    return out
 
 
 @mcp.tool()

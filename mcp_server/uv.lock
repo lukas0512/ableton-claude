@@ -39,6 +39,7 @@ dependencies = [
     { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
     { name = "scipy", version = "1.18.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "soundfile" },
+    { name = "toon-format" },
 ]
 
 [package.dev-dependencies]
@@ -50,6 +51,7 @@ dev = [
 ]
 ear = [
     { name = "audio-separator", extra = ["cpu"] },
+    { name = "audiobox-aesthetics" },
     { name = "audioread" },
     { name = "beat-this" },
     { name = "demucs", version = "4.0.1", source = { registry = "https://pypi.org/simple" }, marker = "platform_machine == 'x86_64' and sys_platform == 'darwin'" },
@@ -68,6 +70,7 @@ requires-dist = [
     { name = "pyloudnorm", specifier = ">=0.1.1" },
     { name = "scipy", specifier = ">=1.11" },
     { name = "soundfile", specifier = ">=0.12" },
+    { name = "toon-format", specifier = ">=1.2.0" },
 ]
 
 [package.metadata.requires-dev]
@@ -75,6 +78,7 @@ build = [{ name = "pyinstaller", specifier = "==6.22.0" }]
 dev = [{ name = "pytest", specifier = ">=8" }]
 ear = [
     { name = "audio-separator", extras = ["cpu"], specifier = ">=0.47" },
+    { name = "audiobox-aesthetics", specifier = ">=0.0.4" },
     { name = "audioread", specifier = ">=3.1.0" },
     { name = "beat-this", url = "https://github.com/CPJKU/beat_this/archive/main.zip" },
     { name = "demucs", specifier = ">=4.0.1" },
@@ -182,6 +186,27 @@ wheels = [
 cpu = [
     { name = "onnxruntime", version = "1.23.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "onnxruntime", version = "1.31.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+]
+
+[[package]]
+name = "audiobox-aesthetics"
+version = "0.0.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "huggingface-hub" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
+    { name = "numpy", version = "2.5.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "rich" },
+    { name = "safetensors" },
+    { name = "submitit" },
+    { name = "torch" },
+    { name = "torchaudio" },
+    { name = "tqdm" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e8/ea/85319f871d5bec87d679f203a21a0fd03a2662b34b379d3d68f2229c1bb3/audiobox_aesthetics-0.0.4.tar.gz", hash = "sha256:c010f7c6ecfb770d43da433b3e7bb53cd2aba61bc37007799ed2fd0262c100d1", size = 39686, upload-time = "2025-05-01T20:24:42.405Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/63/92/1b1264ad5e70a8e61427b6807c883bcfac14315b2c394ff4129a52c2e46d/audiobox_aesthetics-0.0.4-py3-none-any.whl", hash = "sha256:e9e596c2a6180e3cf3aa92013bfc838ba46b109603c1fc00c6ed7e3b4054291a", size = 38040, upload-time = "2025-05-01T20:24:40.647Z" },
 ]
 
 [[package]]
@@ -1071,7 +1096,7 @@ dependencies = [
     { name = "click" },
     { name = "filelock" },
     { name = "fsspec" },
-    { name = "hf-xet", marker = "platform_machine == 'AMD64' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'arm64' or (platform_machine == 'x86_64' and sys_platform != 'darwin')" },
+    { name = "hf-xet", marker = "platform_machine == 'AMD64' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'arm64' or platform_machine == 'x86_64'" },
     { name = "httpx2" },
     { name = "packaging" },
     { name = "pyyaml" },
@@ -1410,6 +1435,18 @@ wheels = [
 ]
 
 [[package]]
+name = "markdown-it-py"
+version = "4.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "mdurl" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/06/ff/7841249c247aa650a76b9ee4bbaeae59370dc8bfd2f6c01f3630c35eb134/markdown_it_py-4.2.0.tar.gz", hash = "sha256:04a21681d6fbb623de53f6f364d352309d4094dd4194040a10fd51833e418d49", size = 82454, upload-time = "2026-05-07T12:08:28.36Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b3/81/4da04ced5a082363ecfa159c010d200ecbd959ae410c10c0264a38cac0f5/markdown_it_py-4.2.0-py3-none-any.whl", hash = "sha256:9f7ebbcd14fe59494226453aed97c1070d83f8d24b6fc3a3bcf9a38092641c4a", size = 91687, upload-time = "2026-05-07T12:08:27.182Z" },
+]
+
+[[package]]
 name = "markupsafe"
 version = "3.0.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1517,6 +1554,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ba/93/0142dc84a666daf8ad51a34268f34c12fd6fda4f3810c4be2504eecc8212/mcp-1.30.0.tar.gz", hash = "sha256:445414625fce5c295faa505bb11bacece661ab6f4028d57c935db57820b7a3e4", size = 680511, upload-time = "2026-09-07T14:34:15.845Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f5/f4/e58bc33317c92a0203664daaf00bf6f41166cc0149e5d6870a03f7cd004a/mcp-1.30.0-py3-none-any.whl", hash = "sha256:666edb5009503e1047c9d60346a756f94b261f05cc2625f23d41c728ffc484d0", size = 234581, upload-time = "2026-09-07T14:34:14.266Z" },
+]
+
+[[package]]
+name = "mdurl"
+version = "0.1.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d6/54/cfe61301667036ec958cb99bd3efefba235e65cdeb9c84d24a8293ba1d90/mdurl-0.1.2.tar.gz", hash = "sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba", size = 8729, upload-time = "2022-08-14T12:40:10.846Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8", size = 9979, upload-time = "2022-08-14T12:40:09.779Z" },
 ]
 
 [[package]]
@@ -3157,6 +3203,19 @@ wheels = [
 ]
 
 [[package]]
+name = "rich"
+version = "15.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "markdown-it-py" },
+    { name = "pygments" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c0/8f/0722ca900cc807c13a6a0c696dacf35430f72e0ec571c4275d2371fca3e9/rich-15.0.0.tar.gz", hash = "sha256:edd07a4824c6b40189fb7ac9bc4c52536e9780fbbfbddf6f1e2502c31b068c36", size = 230680, upload-time = "2026-04-12T08:24:00.75Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/82/3b/64d4899d73f91ba49a8c18a8ff3f0ea8f1c1d75481760df8c68ef5235bf5/rich-15.0.0-py3-none-any.whl", hash = "sha256:33bd4ef74232fb73fe9279a257718407f169c09b78a87ad3d296f548e27de0bb", size = 310654, upload-time = "2026-04-12T08:24:02.83Z" },
+]
+
+[[package]]
 name = "rotary-embedding-torch"
 version = "0.6.5"
 source = { registry = "https://pypi.org/simple" }
@@ -4056,6 +4115,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/12/64/da524626d3b9cc40c168a13da8335fe1c51be12c0a63685cc6db7308daae/tomli-2.4.1-cp314-cp314t-win_amd64.whl", hash = "sha256:2c1c351919aca02858f740c6d33adea0c5deea37f9ecca1cc1ef9e884a619d26", size = 121196, upload-time = "2026-03-25T20:22:01.169Z" },
     { url = "https://files.pythonhosted.org/packages/5a/cd/e80b62269fc78fc36c9af5a6b89c835baa8af28ff5ad28c7028d60860320/tomli-2.4.1-cp314-cp314t-win_arm64.whl", hash = "sha256:eab21f45c7f66c13f2a9e0e1535309cee140182a9cdae1e041d02e47291e8396", size = 100393, upload-time = "2026-03-25T20:22:02.137Z" },
     { url = "https://files.pythonhosted.org/packages/7b/61/cceae43728b7de99d9b847560c262873a1f6c98202171fd5ed62640b494b/tomli-2.4.1-py3-none-any.whl", hash = "sha256:0d85819802132122da43cb86656f8d1f8c6587d54ae7dcaf30e90533028b49fe", size = 14583, upload-time = "2026-03-25T20:22:03.012Z" },
+]
+
+[[package]]
+name = "toon-format"
+version = "1.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/06/9e/88b94e00ae3589130bb2bde233c60b55776deb670cc3d077657d6a8b9a2e/toon_format-1.2.0.tar.gz", hash = "sha256:ed09c0cb8ba58f17372f876df1e43400d2d916aef67c641f152d8a28c5898669", size = 20775, upload-time = "2026-10-18T13:23:36.594Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f3/9e/69331571d5b91b3f34f0dcd7c8135bb3241e41c3c3effb4af8f57772a9ca/toon_format-1.2.0-py3-none-any.whl", hash = "sha256:d94db4b088a281a7bbc85e75d7fbd24e6a0ec7bc110edb129285259eca6522c0", size = 22863, upload-time = "2026-10-18T13:23:35.557Z" },
 ]
 
 [[package]]

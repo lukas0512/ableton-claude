@@ -575,3 +575,21 @@ shape 160 Hz-5 kHz: Choir Steam 9.4 dB RMS, Synthetic Choir Strings 9.7, Avalon 
 track gets the loop's chain copied by device index (two EQ Eights stay two), a Utility for
 the clip gain map, and the loop 7 dB down under it. Measure the new part before the render:
 the preset came in at +1.5 LU over the kick at 0 dB (fader -17.5 for the -16 target).
+
+## A trained listener as a guard, not a tension meter (audiobox-aesthetics)
+
+`aesthetics` (Meta audiobox-aesthetics, CC-BY 4.0) scores CE/CU/PC/PQ per 10 s. Murder v30 ->
+v31: whole track +0.02, breaks and builds +0.2-0.3; Dub House Streets references median CE
+7.33-7.37, PQ 8.16-8.26 (v31 7.12 / 8.19). It does not dip in breaks or rise in drops, so the
+arc stays LUFS/sub/highs per 2 bars. Read files at their own rate and let the model resample:
+scipy's polyphase 44.1 -> 16 kHz took ~1 min per track, the model's resampler ~5 s in all.
+LAION's music CLAP through transformers (4.46 and 5.21) gave cosine ~0 between every window
+and every prompt: no zero-shot "tense build"/"full drop" from it without the original package.
+
+## Tool results are TOON or compact JSON (compact.py)
+
+FastMCP indents every dict by two spaces. `compact.install()` writes the shorter of TOON and
+compact JSON with floats at 4 decimals: get_song -43 %, a clip list -58 %. No tool declares an
+output schema, so the text is the whole result; the desktop app reads it with `compact.parse`
+(TOON is accepted only when it round-trips, so a brief stays text).
+

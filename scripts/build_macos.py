@@ -81,6 +81,7 @@ def main():
              "--collect-submodules", "mcp.client", "--copy-metadata", "mcp",
              "--collect-submodules", "anyio", "--collect-all", "beat_this", "--collect-all", "demucs",
              "--collect-all", "torchaudio", "--collect-all", "imageio_ffmpeg",
+             "--collect-all", "toon_format", "--collect-all", "audiobox_aesthetics",
              # split_elements' separator needs torch >= 2.13: not in the frozen Intel venv
              *([] if arch == "x86_64" else ["--collect-all", "audio_separator",
                                            "--collect-all", "onnxruntime",

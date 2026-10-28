@@ -1,7 +1,6 @@
 """A persistent local MCP session owned by the desktop app, with reconnection."""
 import asyncio
 import concurrent.futures
-import json
 import os
 import threading
 
@@ -18,10 +17,8 @@ def unpack(result):
         if set(structured) == {"result"}:
             return structured["result"]
         return structured
-    try:
-        return json.loads(text)
-    except ValueError:
-        return text
+    from .compact import parse
+    return parse(text)
 
 
 class LocalMCP:

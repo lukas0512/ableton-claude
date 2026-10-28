@@ -6,8 +6,10 @@ pyloudnorm>=0.1.1
 imageio-ffmpeg==0.6.0
 httpx>=0.28,<1
 PyJWT[crypto]>=2.10,<3
+toon-format>=1.2
 beat-this @ https://github.com/CPJKU/beat_this/archive/main.zip
 demucs==4.0.1
 torch==2.2.2
 torchaudio==2.2.2
+audiobox_aesthetics==0.0.4
 pyinstaller==6.22.0

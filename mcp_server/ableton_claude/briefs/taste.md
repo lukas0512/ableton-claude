@@ -7,7 +7,8 @@ can still be polished": treat that as the floor for the next track, not the goal
 his words. Numbers are what made the rule pass when measured.
 
 Before handing any version: run `quality_gate` (static checks of the set), then render and
-measure. He listens in Live while you work: after each pass start playback for him at the
+measure, and run `quality_gate(render=…, previous=…, study=…)` once more: a section that
+scores worse than the previous version (audiobox CE/PQ) is a warning to listen to. He listens in Live while you work: after each pass start playback for him at the
 section you changed (`transport(action="play", bar=…)`) and say what to listen for.
 
 ## 1. It is a club track ("não é um pop", "pensa em alto-falantes")
