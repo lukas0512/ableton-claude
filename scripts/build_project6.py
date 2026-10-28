@@ -31,6 +31,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "mcp_server"))
 from ableton_claude import client, knowledge, loops  # noqa: E402
 from ableton_claude.music import kits  # noqa: E402
 import numpy as np  # noqa: E402
+from scipy import signal  # noqa: E402
 
 C = client.call
 BPM = 129.0
@@ -103,13 +104,19 @@ PLAN = {
 # same chords earlier and on the off-beats, its last 2 beats empty for the voice/bass; C = the
 # bounce, the chords chopped on the "e"s and pushed; D = held chords for the breaks.
 PIANO_HITS = {"a0": 0.2, "a7": 7.0, "a10": 9.9, "b0": 15.86, "b7": 22.85, "b10": 26.06}
+# v6 ("falta encaixar, parecem grooves diferentes"): every hit on the 16th grid (the loop's
+# own 0.2 / 9.9 / 15.86 were its feel, not the set's), one swing (the hats' measured 15 ms),
+# and the melody varies: "g" hits are the same chord 5 semitones down (Cm9 -> Gm9, iv -> i)
 PIANO = {
-    "A": [(0.2, "a0"), (7.0, "a7"), (9.9, "a10"), (15.86, "b0"), (22.85, "b7"), (26.06, "b10")],
+    "A": [(0, "a0"), (7, "a7"), (10, "a10"), (16, "b0"), (23, "b7"), (26, "b10")],
     "B": [(2, "a7"), (7, "a10"), (10, "a7"), (13, "a10"), (18, "b0"), (23, "b7")],
-    "C": [(0.2, "a0"), (3, "a7"), (6, "a10"), (10, "a7"), (15.86, "b0"), (19, "b7"), (22, "b10"),
-          (27, "b7"), (30, "b10")],
-    "D": [(0.2, "a0"), (15.86, "b0")],
+    "C": [(0, "a0"), (3, "a7"), (6, "a10"), (10, "a7"), (16, "g0"), (19, "g7"), (22, "g10"),
+          (27, "g7"), (30, "g10")],
+    "E": [(0, "a0"), (7, "a7"), (10, "a10"), (16, "g0"), (23, "g7"), (26, "g10")],
+    "D": [(0, "a0"), (16, "b0")],
 }
+PIANO_SWING_S = 0.0155
+PIANO_HIT_AUDIO = {}
 PIANO_SPANS = [(25, 49), (49, 65), (65, 97), (97, 121), (121, 161)]
 
 
@@ -121,8 +128,8 @@ def piano_phrase(bar):
     if 49 <= bar < 57 or 97 <= bar < 113:
         return "D" if k % 2 == 0 else "A"    # breaks: held, then answered
     if 121 <= bar < 153:
-        return "ACAB"[k]                     # drop 2 turns the order around
-    return "ABAC"[k]
+        return "AEAC"[k]                     # drop 2: the answer moves to the i chord
+    return "ABAE"[k] if bar < 97 else "ABAC"[k]
 
 
 HOLES = [(72, 2, ("CHORDS",)), (88, 2, ("KICK",)), (136, 2, ("KICK", "CHORDS")), (144, 0, ("CHORDS",))]
@@ -179,9 +186,9 @@ def stab_freq(bar):
 
 
 LEVELS = {"FX RISER": -20.0, "FX DOWN": -18.0, "FX IMPACT": -12.0, "SUB BOOM": -14.0,
-          "CLAP LTR": -11.0, "GHOST SNARE": -15.0, "HAT 2": -8.0, "STAB SS": -16.0, "SHAKER": -12.0, "CONGAS": -16.0, "TOM 909": -19.0, "RIDE": -21.0,
-          "KICK": -8.0, "KICK HP": -11.0, "HATS": -1.0, "OPEN HAT": -7.0, "CRASH": -20.0,
-          "BASS": -5.0, "BASS BREAK": -13.0, "CHORDS": -1.0,
+          "CLAP LTR": -11.0, "GHOST SNARE": -15.0, "HAT 2": -15.0, "STAB SS": -16.0, "PIANO GATE": -14.0, "SHAKER": -15.0, "CONGAS": -16.0, "TOM 909": -19.0, "RIDE": -21.0,
+          "KICK": -8.0, "KICK HP": -11.0, "HATS": -13.0, "OPEN HAT": -16.0, "CRASH": -20.0,
+          "BASS": -3.0, "BASS BREAK": -11.0, "CHORDS": 2.0,
           "VOX": -14.0, "VOX 2": -16.0, "VOX ADLIB": -22.0}
 PANS = {"HAT 2": -0.25, "HATS": 0.08, "GHOST SNARE": 0.1, "STAB SS": 0.2, "OPEN HAT": 0.2, "SHAKER": 0.35, "CONGAS": 0.26, "TOM 909": -0.18, "RIDE": 0.1,
         "CHORDS": 0.0, "VOX 2": -0.1, "VOX ADLIB": 0.15}
@@ -207,6 +214,7 @@ DEVICES = [
                           "3 Gain A": "-3.0 dB", "3 Q A": "1.0"}), ("BASS BREAK", "Utility", {"Width": "0.0 %"}),
     ("STAB SS", "EQ Eight", {"1 Filter On A": "On", "1 Filter Type A": "High Pass 12dB", "1 Frequency A": "300 Hz",
                              "8 Filter On A": "On", "8 Filter Type A": "Low Pass 12dB", "8 Frequency A": "5.00 kHz"}),
+    ("PIANO GATE", "EQ Eight", {"1 Filter On A": "On", "1 Filter Type A": "High Pass 12dB", "1 Frequency A": "250 Hz"}),
     ("HAT 2", "EQ Eight", {"1 Filter On A": "On", "1 Filter Type A": "High Pass 12dB", "1 Frequency A": "400 Hz"}),
     ("GHOST SNARE", "EQ Eight", {"1 Filter On A": "On", "1 Filter Type A": "High Pass 12dB", "1 Frequency A": "200 Hz"}),
     ("LOW END", "EQ Eight", {"1 Filter On A": "On", "1 Filter Type A": "High Pass 12dB", "1 Frequency A": "22.0 Hz"}),
@@ -217,7 +225,7 @@ DEVICES = [
     # v3c: above 6 kHz still 5-16 dB under the references (the hat samples are dark): air on
     # the hats and shaker, the kick's sub at 50 Hz (-4 dB), the chords' 1 kHz (+4) down
     ("HATS", "EQ Eight", {"1 Filter On A": "On", "1 Filter Type A": "High Pass 12dB", "1 Frequency A": "350 Hz",
-                          "8 Filter On A": "On", "8 Filter Type A": "High Shelf", "8 Frequency A": "8.00 kHz", "8 Gain A": "5.0 dB"}),
+                          "8 Filter On A": "On", "8 Filter Type A": "High Shelf", "8 Frequency A": "8.00 kHz", "8 Gain A": "2.0 dB"}),
     ("OPEN HAT", "EQ Eight", {"8 Filter On A": "On", "8 Filter Type A": "High Shelf", "8 Frequency A": "8.00 kHz", "8 Gain A": "4.0 dB"}),
     ("SHAKER", "EQ Eight", {"8 Filter On A": "On", "8 Filter Type A": "High Shelf", "8 Frequency A": "9.00 kHz", "8 Gain A": "4.0 dB"}),
     ("KICK", "EQ Eight", {"2 Filter On A": "On", "2 Filter Type A": "Bell", "2 Frequency A": "50.0 Hz",
@@ -252,9 +260,9 @@ SIMPLER = {"HAT 2": {"Vol < Vel": "100 %", "Volume": "-6"}, "CLAP LTR": {"Vol < 
            "BASS BREAK": {"Vol < Vel": "40 %", "Detune": "12 ct", "Volume": "0"}}
 # sends: [A-Reverb (plate), B-Delay, C-Room (short, every drum)]
 # D-Atmos: one shared long tail, low and dark, under the chords and the voices (the atmosphere)
-ATMOS = {"CHORDS": -15.0, "VOX ADLIB": -12.0, "VOX": -22.0, "VOX 2": -20.0, "STAB SS": -16.0,
+ATMOS = {"PIANO GATE": -16.0, "CHORDS": -15.0, "VOX ADLIB": -12.0, "VOX": -22.0, "VOX 2": -20.0, "STAB SS": -16.0,
          "OPEN HAT": -26.0, "SHAKER": -26.0}
-SENDS = {"GHOST SNARE": [None, None, -16.0], "HAT 2": [None, None, -22.0], "STAB SS": [-16.0, -18.0, None],
+SENDS = {"PIANO GATE": [-18.0, -16.0, None], "GHOST SNARE": [None, None, -16.0], "HAT 2": [None, None, -22.0], "STAB SS": [-16.0, -18.0, None],
          "HATS": [None, None, -22.0], "OPEN HAT": [None, None, -20.0], "VOX": [-16.0, -18.0, None],
          "VOX ADLIB": [-12.0, None, None],
          "CRASH": [-16.0, None, None], "CLAP LTR": [None, None, -16.0], "SHAKER": [None, None, -21.0],
@@ -284,13 +292,13 @@ def make_files():
          "kick_q": OUT + "P6_KickHP_quarters_1bar_129.wav", "kick_8": OUT + "P6_KickHP_8ths_1bar_129.wav",
          "vox": VOX, "vox2": VOX2, "chords": CHORDS, "adlib": ADLIB, "stab": STAB}
     os.makedirs(LIB, exist_ok=True)
-    f["hat"] = loops.write(LIB + "P6_hat_gino04.wav", loops.read(HAT_SHOT))
-    f["open"] = loops.trim_hit(OPEN_SHOT, LIB + "P6_openhat_dropgun.wav", 0.16)
+    f["hat"] = shot(HAT_SHOT, LIB + "P6_hat_gino04.wav", 0.12)
+    f["open"] = shot(OPEN_SHOT, LIB + "P6_openhat_dropgun.wav", 0.30)
     f.update(make_piano())
     loops.write(LIB + "P6_clap_scht2.wav", loops.read(os.path.expanduser(
         "~/Music/Ableton/User Library/Samples/Claude/Nobody Kit/SCHT_Clap2.wav")))
-    loops.write(LIB + "P6_hat2_3q15.wav", loops.read(
-        PACKS + "3Q Samples Terrace Tech House 2/3Q_TT2_DRUM_HITS/3Q_TT2_HATS/3Q_TT2_Hat_15.wav"))
+    shot((
+        PACKS + "3Q Samples Terrace Tech House 2/3Q_TT2_DRUM_HITS/3Q_TT2_HATS/3Q_TT2_Hat_15.wav"), LIB + "P6_hat2_3q15.wav", 0.10)
     # the bass: the NSL Midbass's own G1 (its first note, 0.06-0.48 s), played by a Simpler
     x = loops.read(BASS)
     a, n = int(0.06 * loops.SR), int(0.42 * loops.SR)
@@ -310,6 +318,20 @@ def make_files():
     loops.write(f["kick_q"], loops.four_on_floor(KICK_SHOT, BPM, bars=1))
     loops.write(f["kick_8"], loops.four_on_floor(KICK_SHOT, BPM * 2, bars=2))   # 8 hits in one bar
     return f
+
+
+def shot(src, out, seconds):
+    """A one-shot that starts on its attack (1 ms before it) and lasts `seconds`, faded out.
+    v5's hat (GDKGK4_HAT 04) and open hat were 7 s files whose first hit came at 234 ms:
+    every hat note sounded half a beat late, or not at all ("parece que são grooves diferentes")."""
+    x = loops.read(src)
+    mono = np.abs(x).max(1) if x.ndim == 2 else np.abs(x)
+    a = max(0, int(np.argmax(mono > mono.max() * 0.1)) - int(0.001 * loops.SR))
+    y = x[a:a + int(seconds * loops.SR)].copy()
+    fade = min(len(y), int(0.015 * loops.SR))
+    ramp = np.linspace(1, 0, fade)
+    y[-fade:] *= ramp[:, None] if y.ndim == 2 else ramp
+    return loops.write(out, y)
 
 
 def make_piano():
@@ -332,15 +354,20 @@ def make_piano():
         end = starts[i + 1][1] if i + 1 < len(starts) else 32.0
         a, b = int((st - 0.1) * s16 * loops.SR), int((end - 0.05) * s16 * loops.SR)
         hits[name] = src[max(0, a):b].copy()
+    lead = 0.1 * s16                             # each slice starts this long before its attack
+    for name in [k for k in hits if k.startswith("a")]:   # Gm9: the same voicing 5 semitones down
+        hits["g" + name[1:]] = signal.resample(hits[name], int(len(hits[name]) * 2 ** (5 / 12.0)), axis=0)
     n = int(8 * BEAT_S * loops.SR)
-    sw = (SWING / 50.0 - 1) * s16 * 2           # an off-16th lands this late
+    sw = PIANO_SWING_S                           # an off-16th lands this late (the hats' 15 ms)
+    global PIANO_HIT_AUDIO
+    PIANO_HIT_AUDIO = hits
     out = {}
     for ph, events in PIANO.items():
         y = np.zeros((n,) + src.shape[1:])
         ev = sorted(events)
         for j, (st, h) in enumerate(ev):
             t = st * s16 + (sw if abs(st - round(st)) < 1e-6 and int(round(st)) % 2 == 1 else 0)
-            i0 = int(t * loops.SR)
+            i0 = max(0, int((t - lead) * loops.SR))
             nxt = ev[j + 1][0] * s16 if j + 1 < len(ev) else 8 * BEAT_S
             seg = hits[h][:max(0, int(nxt * loops.SR) - i0)].copy()
             fade = min(len(seg), int(0.02 * loops.SR))
@@ -350,6 +377,54 @@ def make_piano():
             y[i0:i0 + len(seg)] += seg[:n - i0]
         out["piano_" + ph] = loops.write(OUT + "P6_piano_%s_129.wav" % ph, y)
     return out
+
+
+# v6 ("usar um trance pra picar e fazer algo diferente no timbre e aleatório"): the piano's
+# chord held (phase-vocoder stretched: a pad timbre of the same chord) and chopped by a 16th
+# trance gate that opens only where the piano is silent (call and response at the 16th), each
+# open step with its own random low-pass and pan. Seeded per cell: random, but reproducible.
+GATE_SPANS = [(81, 97), (113, 121), (129, 153)]
+
+
+def make_gate(bar, phrase, density):
+    import librosa
+    s16 = BEAT_S / 4
+    n16 = 32
+    rnd = np.random.default_rng(1000 + bar)
+    piano_steps = {int(round(st)) for st, _ in PIANO[phrase]}
+    chords = []
+    for half in (0, 1):
+        names = [h for st, h in PIANO[phrase] if (st >= 16) == bool(half)]
+        chords.append("g0" if any(h.startswith("g") for h in names) else "a0")
+    pads = {}
+    for c in set(chords):
+        x = PIANO_HIT_AUDIO[c]
+        m = x.mean(1) if x.ndim == 2 else x
+        pads[c] = librosa.effects.time_stretch(m.astype(np.float32), rate=len(m) / (16 * s16 * loops.SR) * 1.05)
+    y = np.zeros((int(n16 * s16 * loops.SR), 2))
+    for st in range(n16):
+        if any(abs(st - p) <= 1 for p in piano_steps) or rnd.random() > density:
+            continue
+        pad = pads[chords[st // 16]]
+        a = int(((st % 16) * s16) * loops.SR)
+        n = int(s16 * 0.7 * loops.SR)
+        seg = pad[a:a + n].copy()
+        if len(seg) < n:
+            continue
+        cut = rnd.uniform(700, 6000)                  # the random timbre: a one-pole low-pass
+        al = np.exp(-2 * np.pi * cut / loops.SR)
+        seg = signal.lfilter([1 - al], [1, -al], seg)
+        env = np.ones(n)
+        f = int(0.003 * loops.SR)
+        env[:f] = np.linspace(0, 1, f)
+        env[-f:] = np.linspace(1, 0, f)
+        seg *= env * rnd.uniform(0.7, 1.0)
+        pan = rnd.uniform(-0.45, 0.45)
+        t0 = int((st * s16 + (PIANO_SWING_S if st % 2 == 1 else 0)) * loops.SR)
+        y[t0:t0 + n, 0] += seg * (1 - pan) ** 0.5
+        y[t0:t0 + n, 1] += seg * (1 + pan) ** 0.5
+    y /= max(1e-9, np.abs(y).max()) / 0.5
+    return loops.write(OUT + "P6_gate_%03d.wav" % bar, y)
 
 
 def ensure_tracks():
@@ -395,7 +470,7 @@ def ensure_tracks():
     for t in LOW_END:
         if t in [x["name"] for x in C("get_song")["tracks"]]:
             C("set_track_output", {"track": t, "dest": "LOW END"})
-    for t in ["STAB SS"]:
+    for t in ["STAB SS", "PIANO GATE"]:
         if t not in [x["name"] for x in C("get_song")["tracks"]]:
             C("create_track", {"kind": "audio", "name": t})
             C("set_track_input", {"track": t, "source": "No Input"})
@@ -532,6 +607,13 @@ def gen_notes(kind, bar, n_bars):
                     continue
                 v = 112 if j == 0 else int(rnd.uniform(92, 104))
                 out.append([60 + pitch - 43, o + st * 0.25, ln * 0.25 * 0.92, v])
+    # one pocket, baked: every off-16th of every written part (and the piano and the gate)
+    # lands PIANO_SWING_S late; no pool groove on top, so nothing can drift apart
+    sw = PIANO_SWING_S / BEAT_S
+    for n in out:
+        q = n[1] * 4
+        if abs(q - round(q)) < 1e-6 and int(round(q)) % 2 == 1:
+            n[1] = round(n[1] + sw, 4)
     return out
 
 
@@ -571,6 +653,13 @@ def build(files):
                                     "beat": (bar - 1) * 4.0, "name": "PIANO " + piano_phrase(bar),
                                     "warp": False, "envelopes": stab_env((bar - 1) * 4.0)})
     log("CHORDS", "phrased")
+    clear("PIANO GATE")
+    for a, b in GATE_SPANS:
+        for bar in range(a, b, 2):
+            dens = 0.35 + 0.5 * (bar - a) / max(1, b - a - 2) if a == 113 else 0.55
+            C("create_audio_clip", {"track": "PIANO GATE", "path": make_gate(bar, piano_phrase(bar), dens),
+                                    "beat": (bar - 1) * 4.0, "name": "GATE", "warp": False})
+    log("PIANO GATE", "chopped")
     for t in {x[0] for x in FX}:
         clear(t)
     for track, key, bar, bars in FX:
@@ -608,15 +697,16 @@ def build(files):
         cut_at("KICK", (bar - 1) * 4.0 - 1.0)
     # the breath: the last 2 beats before each drop empty, but the voice and the reverse crash
     for bar in DROPS:
-        for t in ("BASS BREAK", "KICK HP", "CHORDS", "FX RISER", "VOX 2", "VOX ADLIB", "STAB SS") + tuple(MIDI) + tuple(GEN):
+        for t in ("BASS BREAK", "KICK HP", "CHORDS", "FX RISER", "VOX 2", "VOX ADLIB", "STAB SS", "PIANO GATE") + tuple(MIDI) + tuple(GEN):
             cut_at(t, (bar - 1) * 4.0 - BREATH[bar])
     # the straight perc loop takes the pool's swing (it only follows while warped)
     pool = [g["name"] for g in C("grooves")["grooves"]]
     if GROOVE not in pool:
         C("load_device", {"track": "CLAP LTR", "path": "user_library/Grooves/%s.agr" % GROOVE})
     C("set_groove", {"name": GROOVE, "timing": 100, "random": 0, "velocity": 0, "groove_amount": 1.0})
-    for t in tuple(MIDI) + tuple(GEN):        # the piano's swing is baked into its phrases
+    for t in tuple(MIDI):                     # the kit parts take the pool's 16ths 57 (= 15.5 ms)
         C("apply_groove", {"track": t, "groove": GROOVE})
+    # the written parts carry it in their notes: their fresh clips get no pool groove
 
 
 def mix():
