@@ -620,3 +620,24 @@ in E minor and the second bar started an 8th late and ended on it ("the first ph
 the rest goes out of tune and out of the groove"). Rebuilt: syllable -15 cents, bar 2 answers
 bar 1's rhythm and ends E-D, odd 16ths +10.8 ms like the hats, clips Repitch (Beats mode
 re-chopped the syllables). Measure: +12 -> 0 cents, pitch classes in the mix 10 -> 8.
+
+## Movement by clip envelopes: every clip on the track carries one, and create before delete
+
+Arrangement automation cannot be written, but a new clip can carry envelopes for its
+track's sends, volume and device parameters (From The Streets v38: City synth Auto Filter
+closing 2 bars before each break, breathing in break 1, opening in the builds; hook clips
+throwing their last 2 beats into the delay -11 dB and the plate -8; a Utility Output envelope
+ducking a loop's rap -24 dB under the City hooks). An envelope's last value stays after the
+clip ends, so every clip on that track needs its own envelope (the throws track's older
+echoes got holding envelopes). Re-creating a clip means delete + create: a failed create
+(an Utility param is "Output", not "Gain") lost the clip; rebuild from the source clip
+still in the set, and check the param names first.
+
+## The aesthetics model does not hear a resonance: ask the ear with A/B files
+
+He heard "a strange high that relaxes when the break comes". Narrow peaks per soloed element
+found two suspects: the 909 ride (+20 dB at 1.6 kHz, +16 at 2.8 kHz) and the City synth
+(+17 at 1.99 kHz and +16 at 2.11 kHz, 113 Hz apart: they beat as a rough texture); both leave
+in the breaks. Four 8-bar renders (as is / synth notched / ride notched / both) scored within
+0.02 of each other on audiobox: send the files and let him choose. The model guards the
+whole; it does not find a resonance.
