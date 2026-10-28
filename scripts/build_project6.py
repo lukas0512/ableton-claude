@@ -30,6 +30,7 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "mcp_server"))
 from ableton_claude import client, knowledge, loops  # noqa: E402
 from ableton_claude.music import kits  # noqa: E402
+import numpy as np  # noqa: E402
 
 C = client.call
 BPM = 129.0
@@ -56,13 +57,14 @@ RISER = FXD + "FX/DCW_126_The_Rise_Fx.wav"                  # 4 bars at 126
 DOWNLIFTER = FXD + "FX/DCW_126_Classic_Downfiller_Fx.wav"
 IMPACT = FXD + "FX/DCW_126_Kick_Down_Fx.wav"                # a down-pitched kick
 SUB_BOOM = FXD + "BASS_HITS/WB_Optimal_1_Shots_Sub_Bass_Gmin.wav"   # G sub, the key's root
-DETUNE = {"BASS": 12, "BASS BREAK": 12, "STAB": 28, "VOX": 20, "CHORDS": 31}
+DETUNE = {"VOX": 20, "CHORDS": 31, "VOX ADLIB": 37}
+ADLIB = PACKS + "Loopmasters - Ultimate Vocals MULTiFORMAT/HOUSE_VOCALS/PHRASES/UVOX_118_Gm_ADLIBS_DOOHAHH.wav"
 VOX2 = PACKS + "Loopmasters - Ultimate Vocals MULTiFORMAT/HOUSE_VOCALS/PHRASES/UVOX_126_Gm_GUEYEHYEH.wav"
 CHORDS = PACKS + "Loopmasters - Ultimate Deep House/WAV_LOOPS/MUSIC_LOOPS/NSL_122_Gm_SoftChord.wav"
 GROOVE = "Swing 16ths 57"
 
-SECTIONS = [("INTRO A - drums, DJ", 1), ("INTRO B - bass 17, perc 21, stab 25, voice teaser 29", 17),
-            ("GROOVE - stab open", 33), ("BREAK 1 - kick out, groove stays", 49),
+SECTIONS = [("INTRO A - drums, DJ", 1), ("INTRO B - bass 17, chords 25, voice teaser 29", 17),
+            ("GROOVE - chords open, voice + answer", 33), ("BREAK 1 - kick out, groove stays", 49),
             ("BUILD 1 - HP kick, stab opens", 57), ("DROP 1 - kick + bass back, voice in 2nd 8", 65),
             ("MAIN BREAK - stab dark, filtered bass in 2nd half", 97), ("BUILD 2 - HP kick 8ths", 113),
             ("STOP - the solution, a cappella", 120), ("DROP 2 - everything from bar 1", 121), ("OUTRO A - stab closing, no voice", 153),
@@ -74,37 +76,41 @@ DROPS = [65, 121]
 BREATH = {65: 2.0, 121: 4.0}
 BREAKS = [49, 97]
 
+# v3 ("sem groove... vários elementos tocando várias coisas sem se conversar"): the pack
+# loops were each busy (the SS stab ~11 attacks a bar, the NSL bass ~8 notes, several on the
+# kick) and two drum kits ran at once. Now: one drum system (kit A's kick + the producer's own
+# let_the_rhythm parts), the soft chords as THE stab (4 off-beat hits a bar, Cm = iv9, the
+# references' rhythm), and a bass written to speak in the chords' and the kick's holes.
 # track: (file key, beats per file, warped?, [(start_bar, end_bar)])
 PLAN = {
     "KICK":       ("kick", 16, False, [(1, 49), (65, 97), (121, END)]),
-    "CLAP":       ("clap", 16, False, [(9, END)]),
-    "HATS 16":    ("hats", 16, False, [(1, END)]),
-    "OPEN HAT":   ("open", 16, False, [(13, 49), (73, 97), (129, 153), (153, 169)]),
-    "PERC":       ("perc", 16, True, [(21, 49), (57, 97), (105, 153), (153, 169)]),
-    "BASS":       ("bass", 8, True, [(17, 49), (65, 97), (121, 169)]),
-    "BASS BREAK": ("bass", 8, True, [(53, 65), (105, 121)]),
-    "STAB":       ("stab", 8, True, [(25, 161)]),
-    # the two voices trade: "Here is the solution" states, "Gueyehyeh" answers; the solution
-    # line also runs a cappella through each build's breath into the drop
+    # the stab: disclosed by its low-pass (closed in intro B, open in the groove, dark in breaks)
+    "CHORDS":     ("chords", 8, True, [(25, 161)]),
+    # the hook "Here is the solution" states, "Gueyehyeh" answers it, the "doo-ahh" ad-libs sit
+    # under the drops as a second voice; the hook also runs a cappella into each drop
     "VOX":        ("vox", 16, True, [(29, 33), (41, 45), (61, 65), (73, 77), (89, 93), (101, 105),
                                      (117, 121), (129, 133), (145, 149)]),
-    "VOX 2":      ("vox2", 16, True, [(81, 85), (109, 113), (137, 141)]),
-    # the soft chords (stab 1): scenery under the breaks, doubling the stab in drop 2
-    "CHORDS":     ("chords", 8, True, [(49, 65), (97, 121), (121, 153)]),
+    "VOX 2":      ("vox2", 16, True, [(45, 49), (77, 81), (93, 97), (105, 109), (133, 137), (149, 153)]),
+    "VOX ADLIB":  ("adlib", 16, True, [(65, 73), (81, 89), (121, 129), (137, 145)]),
 }
-# the producer's own drums (let_the_rhythm kit) over kit A: the syncopated clap with its
-# pickups and 32nd ramp, the early shaker, congas, the rolling 909 tom, the reserved ride
-# and the late rims. 8-bar loops aligned to the phrases (their fills close each phrase).
-# track: (instrument, kit part, [(start_bar, end_bar)])
+# the producer's own drums (let_the_rhythm): 8-bar loops aligned to the phrases (their fills
+# close each phrase). track: (instrument, kit part, [(start_bar, end_bar)])
 MIDI = {
-    "CLAP LTR": ("user_library/Samples/Claude/Nobody Kit/SCHT_Clap2.wav", "clap",
-                 [(17, 49), (49, 65), (65, 97), (97, 121), (121, 169)]),
+    "CLAP LTR": ("user_library/Samples/Claude/Nobody Kit/SCHT_Clap2.wav", "clap", [(9, 169)]),
     "SHAKER":   ("user_library/Samples/Claude/Nobody Kit/KMRBI_AW_Shaker_One_Shot_Chuga.wav",
-                 "hat_off_shaker_shot", [(9, 49), (53, 65), (65, 97), (101, 121), (121, 177)]),
-    "CONGAS":   ("Percussion Core Kit", "congas", [(33, 49), (49, 65), (73, 97), (97, 121), (121, 169)]),
-    "TOM 909":  ("909 Core Kit", "tom_909", [(41, 49), (81, 97), (121, 153)]),
-    "RIDE":     ("909 Core Kit", "ride", [(73, 97), (121, 153)]),
-    "RIM 909":  ("909 Core Kit", "rim_909", [(137, 169)]),
+                 "hat_off_shaker_shot", [(17, 49), (53, 65), (65, 97), (105, 121), (121, 177)]),
+    "CONGAS":   ("Percussion Core Kit", "congas", [(41, 49), (73, 97), (105, 121), (129, 161)]),
+    "TOM 909":  ("909 Core Kit", "tom_909", [(137, 153)]),
+    "RIDE":     ("909 Core Kit", "ride", [(129, 153)]),
+}
+LIB = os.path.expanduser("~/Music/Ableton/User Library/Samples/Claude/Project6/")
+# written parts on Simplers playing one-shots cut from the chosen sounds:
+# track: (one-shot key, generator, [(start_bar, end_bar)])
+GEN = {
+    "HATS":      ("hat", "hats", [(1, 49), (49, 65), (65, 97), (97, 121), (121, END)]),
+    "OPEN HAT":  ("open", "open", [(25, 49), (73, 97), (129, 153), (153, 169)]),
+    "BASS":      ("bass", "bass", [(17, 49), (65, 97), (121, 169)]),
+    "BASS BREAK": ("bass", "bass", [(53, 65), (105, 121)]),
 }
 # the high-passed kick of the builds: quarters, then 8ths in the last bar (1-bar files)
 KICK_HP = [(61, "q"), (62, "q"), (63, "q"), (64, "8"),
@@ -132,22 +138,17 @@ def stab_freq(bar):
 
 
 LEVELS = {"FX RISER": -20.0, "FX DOWN": -18.0, "FX IMPACT": -12.0, "SUB BOOM": -14.0,
-          "CLAP LTR": -9.0, "SHAKER": -18.0, "CONGAS": -15.0, "TOM 909": -18.0, "RIDE": -21.0,
-          "RIM 909": -17.0, "VOX 2": -14.0, "CHORDS": -17.0,
-          "KICK": -6.0, "KICK HP": -9.0, "CLAP": -15.0, "HATS 16": -17.0, "OPEN HAT": -19.0,
-          "PERC": -19.0, "CRASH": -20.0, "BASS": -9.0, "BASS BREAK": -17.0, "STAB": -14.0,
-          "VOX": -13.0}
-PANS = {"OPEN HAT": 0.2, "PERC": -0.25, "STAB": 0.08, "SHAKER": 0.35, "CONGAS": 0.26,
-        "TOM 909": -0.18, "RIDE": 0.1, "RIM 909": 0.12, "CHORDS": -0.12}
+          "CLAP LTR": -8.0, "SHAKER": -12.0, "CONGAS": -16.0, "TOM 909": -19.0, "RIDE": -21.0,
+          "KICK": -8.0, "KICK HP": -11.0, "HATS": -1.0, "OPEN HAT": -7.0, "CRASH": -20.0,
+          "BASS": -9.0, "BASS BREAK": -16.0, "CHORDS": -4.0,
+          "VOX": -16.0, "VOX 2": -18.0, "VOX ADLIB": -22.0}
+PANS = {"OPEN HAT": 0.2, "SHAKER": 0.35, "CONGAS": 0.26, "TOM 909": -0.18, "RIDE": 0.1,
+        "CHORDS": 0.0, "VOX 2": -0.1, "VOX ADLIB": 0.15}
 # (track, device, {param: display text or option})
 DEVICES = [
     ("KICK HP", "EQ Eight", {"1 Filter On A": "On", "1 Filter Type A": "High Pass 48dB", "1 Frequency A": "180 Hz"}),
-    ("CLAP", "EQ Eight", {"1 Filter On A": "On", "1 Filter Type A": "High Pass 12dB", "1 Frequency A": "150 Hz"}),
-    ("HATS 16", "EQ Eight", {"1 Filter On A": "On", "1 Filter Type A": "High Pass 12dB", "1 Frequency A": "350 Hz"}),
     ("OPEN HAT", "EQ Eight", {"1 Filter On A": "On", "1 Filter Type A": "High Pass 12dB", "1 Frequency A": "400 Hz"}),
-    ("PERC", "EQ Eight", {"1 Filter On A": "On", "1 Filter Type A": "High Pass 12dB", "1 Frequency A": "250 Hz"}),
     ("CRASH", "EQ Eight", {"1 Filter On A": "On", "1 Filter Type A": "High Pass 12dB", "1 Frequency A": "300 Hz"}),
-    ("STAB", "EQ Eight", {"1 Filter On A": "On", "1 Filter Type A": "High Pass 12dB", "1 Frequency A": "160 Hz"}),
     ("VOX", "EQ Eight", {"1 Filter On A": "On", "1 Filter Type A": "High Pass 12dB", "1 Frequency A": "180 Hz"}),
     ("VOX 2", "EQ Eight", {"1 Filter On A": "On", "1 Filter Type A": "High Pass 12dB", "1 Frequency A": "180 Hz"}),
     ("CHORDS", "EQ Eight", {"1 Filter On A": "On", "1 Filter Type A": "High Pass 12dB", "1 Frequency A": "180 Hz"}),
@@ -159,7 +160,23 @@ DEVICES = [
     ("TOM 909", "EQ Eight", {"1 Filter On A": "On", "1 Filter Type A": "High Pass 12dB", "1 Frequency A": "120 Hz"}),
     # the break's bass: the riff's sub and movement, no mids (never a high-pass on a bass)
     ("BASS BREAK", "EQ Eight", {"8 Filter On A": "On", "8 Filter Type A": "Low Pass 48dB", "8 Frequency A": "220 Hz"}),
-    ("STAB", "Auto Filter", {"Filter Type": "Low-pass", "Resonance": "10 %"}),
+    # the bass sample is stereo (its width read -9 dB): mono, like the references' (-30..-61)
+    ("BASS", "Utility", {"Width": "0.0 %"}),
+    ("BASS", "EQ Eight", {"3 Filter On A": "On", "3 Filter Type A": "Bell", "3 Frequency A": "160 Hz",
+                          "3 Gain A": "-3.0 dB", "3 Q A": "1.0"}), ("BASS BREAK", "Utility", {"Width": "0.0 %"}),
+    ("CHORDS", "Auto Filter", {"Filter Type": "Low-pass", "Resonance": "10 %"}),
+    ("VOX ADLIB", "EQ Eight", {"1 Filter On A": "On", "1 Filter Type A": "High Pass 12dB", "1 Frequency A": "250 Hz"}),
+    # v3c: above 6 kHz still 5-16 dB under the references (the hat samples are dark): air on
+    # the hats and shaker, the kick's sub at 50 Hz (-4 dB), the chords' 1 kHz (+4) down
+    ("HATS", "EQ Eight", {"1 Filter On A": "On", "1 Filter Type A": "High Pass 12dB", "1 Frequency A": "350 Hz",
+                          "8 Filter On A": "On", "8 Filter Type A": "High Shelf", "8 Frequency A": "8.00 kHz", "8 Gain A": "5.0 dB"}),
+    ("OPEN HAT", "EQ Eight", {"8 Filter On A": "On", "8 Filter Type A": "High Shelf", "8 Frequency A": "8.00 kHz", "8 Gain A": "4.0 dB"}),
+    ("SHAKER", "EQ Eight", {"8 Filter On A": "On", "8 Filter Type A": "High Shelf", "8 Frequency A": "9.00 kHz", "8 Gain A": "4.0 dB"}),
+    ("KICK", "EQ Eight", {"2 Filter On A": "On", "2 Filter Type A": "Bell", "2 Frequency A": "50.0 Hz",
+                          "2 Gain A": "3.0 dB", "2 Q A": "1.2"}),
+    ("CHORDS", "EQ Eight", {"4 Filter On A": "On", "4 Filter Type A": "Bell", "4 Frequency A": "1.00 kHz",
+                            "4 Gain A": "-2.5 dB", "4 Q A": "0.8"}),
+    ("master", "Limiter", {"Input Gain": "8.5"}),
     # the kick owns its first ~120 ms
     ("BASS", "Compressor", {"Threshold": "-24 dB", "Ratio": "6.00 : 1", "Attack": "0.10 ms",
                             "Release": "120 ms", "Auto Release On/Off": "Off", "Makeup": "Off", "S/C On": "On"}),
@@ -170,9 +187,19 @@ DEVICES = [
                                  "Filter Freq": "1.5 kHz", "Filter Width": "6.0"}),
 ]
 SIDECHAIN = {"BASS": "KICK", "BASS BREAK": "KICK HP"}
+# the Simplers of the written parts (device 0): hats follow the accent map (Vol < Vel 100 %),
+# the bass keeps some dynamics and the cents that put the NSL G1 on the loops' centre
+# Volume: a fresh Simpler sits at -12 dB; v3's first drop render read the bass 18.5 dB under
+# the drums (references -4) and the highs at 0.6 % (references 2.4)
+# v3b drop render vs the references' 1/3 octaves: 125-200 Hz +2..4 dB (the bass's register),
+# everything above 300 Hz 4-11 dB under: the kick and bass were the mix, the groove was buried
+SIMPLER = {"HATS": {"Vol < Vel": "100 %", "Volume": "-3"}, "OPEN HAT": {"Vol < Vel": "100 %", "Volume": "-6"},
+           "CLAP LTR": {"Volume": "-4"}, "SHAKER": {"Volume": "-4"},
+           "BASS": {"Vol < Vel": "40 %", "Detune": "12 ct", "Volume": "0"},
+           "BASS BREAK": {"Vol < Vel": "40 %", "Detune": "12 ct", "Volume": "0"}}
 # sends: [A-Reverb (plate), B-Delay, C-Room (short, every drum)]
-SENDS = {"CLAP": [None, None, -14.0], "HATS 16": [None, None, -22.0], "OPEN HAT": [None, None, -20.0],
-         "PERC": [None, None, -18.0], "STAB": [-16.0, -22.0, None], "VOX": [-16.0, -18.0, None],
+SENDS = {"HATS": [None, None, -22.0], "OPEN HAT": [None, None, -20.0], "VOX": [-16.0, -18.0, None],
+         "VOX ADLIB": [-12.0, None, None],
          "CRASH": [-16.0, None, None], "CLAP LTR": [None, None, -16.0], "SHAKER": [None, None, -21.0],
          "CONGAS": [None, None, -20.0], "TOM 909": [None, None, -22.0], "VOX 2": [-16.0, -18.0, None],
          "CHORDS": [-14.0, None, None], "FX RISER": [-18.0, None, None], "FX DOWN": [-16.0, None, None]}
@@ -198,7 +225,17 @@ def make_files():
     f = {"kick": OUT + "P6_Kick_push_129.wav", "clap": OUT + "P6_Clap_eyup_129.wav",
          "hats": OUT + "P6_Hats_16_129.wav", "open": OUT + "P6_OpenHat_off_129.wav",
          "kick_q": OUT + "P6_KickHP_quarters_1bar_129.wav", "kick_8": OUT + "P6_KickHP_8ths_1bar_129.wav",
-         "bass": BASS, "stab": STAB, "vox": VOX, "perc": PERC, "vox2": VOX2, "chords": CHORDS}
+         "vox": VOX, "vox2": VOX2, "chords": CHORDS, "adlib": ADLIB}
+    os.makedirs(LIB, exist_ok=True)
+    f["hat"] = loops.write(LIB + "P6_hat_gino04.wav", loops.read(HAT_SHOT))
+    f["open"] = loops.trim_hit(OPEN_SHOT, LIB + "P6_openhat_dropgun.wav", 0.16)
+    # the bass: the NSL Midbass's own G1 (its first note, 0.06-0.48 s), played by a Simpler
+    x = loops.read(BASS)
+    a, n = int(0.06 * loops.SR), int(0.42 * loops.SR)
+    y = x[a:a + n].copy()
+    fade = int(0.012 * loops.SR)
+    y[-fade:] *= np.linspace(1, 0, fade)[:, None] if y.ndim == 2 else np.linspace(1, 0, fade)
+    f["bass"] = loops.write(LIB + "P6_bass_nsl_G1.wav", y)
     loops.write(f["kick"], loops.four_on_floor(KICK_SHOT, BPM))
     loops.write(f["clap"], loops.from_template({"default": CLAP_SHOT}, T["clap"]["template"], BPM,
                                                steps=[4, 12], seed=1, swing_pct=SWING))
@@ -221,8 +258,19 @@ def ensure_tracks():
     for old, new in (("BASS 2 - NSL", "BASS"), ("STAB 3 - SS Chord", "STAB"), ("VOX 4 - Solution", "VOX")):
         if old in names:
             C("set_track", {"track": old, "name": new})
+    song = C("get_song")["tracks"]
+    for t in song:      # v2's audio loops that the written parts replace, and v2's extra layers
+        if t["name"] in ("CLAP", "HATS 16", "PERC", "STAB", "RIM 909") or (
+                t["name"] in GEN and t["kind"] == "audio"):
+            C("delete_track", {"track": t["name"]})
     names = [t["name"] for t in C("get_song")["tracks"]]
-    for t in ["KICK HP", "PERC", "BASS BREAK", "CRASH", "VOX 2", "CHORDS", "FX RISER", "FX DOWN",
+    for t, (key, _, _) in GEN.items():
+        if t not in names:
+            C("create_track", {"kind": "midi", "name": t})
+        if not C("get_track", {"track": t, "clips": False})["devices"]:
+            C("load_device", {"track": t, "path": "user_library/Samples/Claude/Project6/%s"
+                              % os.path.basename(SHOTS[key])})
+    for t in ["KICK HP", "CRASH", "VOX 2", "VOX ADLIB", "CHORDS", "FX RISER", "FX DOWN",
               "FX IMPACT", "SUB BOOM"]:
         if t not in names:
             C("create_track", {"kind": "audio", "name": t})
@@ -254,7 +302,7 @@ def place(track, path, beats, a, b, warp, detune=0, envelopes=None, gain_db=None
     while beat < stop - 1e-3:
         args = {"track": track, "path": path, "beat": beat, "name": track, "warp": warp}
         if warp:
-            args.update(beats=beats, warp_mode="complex_pro" if track not in ("PERC",) else "beats")
+            args.update(beats=beats, warp_mode="complex_pro")
             if detune:
                 args["detune"] = detune
         if envelopes:
@@ -275,6 +323,64 @@ def cut_at(track, beat):
             C("trim_clip", {"track": track, "clip": {"at": c["start"]}, "end_beat": beat})
 
 
+SHOTS = {"hat": LIB + "P6_hat_gino04.wav", "open": LIB + "P6_openhat_dropgun.wav",
+         "bass": LIB + "P6_bass_nsl_G1.wav"}
+# the producer's hat accents (let_the_rhythm, measured): on-beat 16ths ~11 dB under the "and"
+HAT_DB = [-10.8, -2.4, -0.5, -2.0, -11.3, -3.4, -0.4, -2.6, -11.9, -3.4, -0.8, -2.4, -10.5, -2.8, -0.8, -1.6]
+BREAK_BARS = [(49, 65), (97, 121)]
+# the bass speaks where the chords and the kick are silent. The chords hit 16ths 1 7 10 14
+# (bar A, Cm over the G pedal) and 0 7 10 14 (bar B); the kick 0 4 8 12. 16th, MIDI, 16ths long
+BASS_A = [(3, 43, 1.6), (6, 43, 1.0), (9, 46, 1.0), (11, 43, 1.6), (15, 46, 0.9)]   # G G Bb G | Bb pickup
+BASS_B = [(2, 48, 1.6), (6, 48, 1.0), (9, 46, 1.0), (11, 48, 1.6), (13, 50, 1.0), (15, 41, 0.9)]  # C C Bb C D | F
+
+
+def _in(bar, spans):
+    return any(a <= bar < b for a, b in spans)
+
+
+def gen_notes(kind, bar, n_bars):
+    """Notes for `n_bars` from song bar `bar`: phrase-aware variation, not a pasted loop."""
+    rnd = np.random.default_rng(bar * 7 + len(kind))
+    out = []
+    for k in range(n_bars):
+        b = bar + k
+        pos = (b - 1) % 8                       # bar in its 8-bar phrase
+        o = k * 4.0
+        if kind == "hats":
+            brk = _in(b, BREAK_BARS)
+            for st in range(16):
+                db = HAT_DB[st]
+                if b <= 8 and st % 4 != 2:      # intro: the "and" only, then the 16ths join
+                    continue
+                if brk and st % 4 == 0:         # breaks: lighter, no on-beat 16ths
+                    continue
+                if pos % 2 == 1 and st == 13:   # a pocket every 2nd bar
+                    continue
+                if pos == 3 and st == 0:        # a breath on the 4th bar's downbeat
+                    continue
+                if pos == 7 and st >= 14:       # phrase end: a 32nd flutter rising into the 1
+                    for j, v in enumerate((50, 62, 76, 90)):
+                        out.append([60, o + 3.5 + j * 0.125, 0.1, v])
+                    continue
+                v = 127 * 10 ** ((db - (3 if brk else 0)) / 20.0) * rnd.uniform(0.9, 1.05)
+                out.append([60, o + st * 0.25, 0.2, int(max(20, min(127, v)))])
+        elif kind == "open":
+            for st in (2, 6, 10, 14):
+                if pos == 7 and st == 14:       # the phrase breathes before its downbeat
+                    continue
+                if pos % 4 == 2 and st == 10:
+                    continue
+                out.append([60, o + st * 0.25, 0.3, int(rnd.uniform(92, 108))])
+        elif kind == "bass":
+            pat = BASS_A if (b - 1) % 2 == 0 else BASS_B
+            for j, (st, pitch, ln) in enumerate(pat):
+                if pos == 7 and st >= 11:       # space for the phrase's fill
+                    continue
+                v = 112 if j == 0 else int(rnd.uniform(92, 104))
+                out.append([60 + pitch - 43, o + st * 0.25, ln * 0.25 * 0.92, v])
+    return out
+
+
 def stab_env(beat):
     bar = beat / 4.0 + 1
     return [{"param": "Frequency", "device": "Auto Filter", "unit": "display",
@@ -289,7 +395,7 @@ def vox_env(beat):
 def build(files):
     for track, (key, beats, warp, ranges) in PLAN.items():
         clear(track)
-        env = {"STAB": stab_env, "VOX": vox_env, "VOX 2": vox_env}.get(track)
+        env = {"CHORDS": stab_env, "VOX": vox_env, "VOX 2": vox_env}.get(track)
         for a, b in ranges:
             place(track, files[key], beats, a, b, warp, DETUNE.get(track, 0), envelopes=env)
         log(track, "placed")
@@ -312,6 +418,16 @@ def build(files):
         else:
             C("create_audio_clip", {"track": track, "path": files[key], "beat": (bar - 1) * 4.0,
                                     "name": track, "warp": False})
+    for track, (_, kind, ranges) in GEN.items():
+        clear(track)
+        for a, b in ranges:
+            bar = a
+            while bar < b:
+                n = min(8, b - bar)
+                C("create_midi_clip", {"track": track, "beat": (bar - 1) * 4.0, "length": n * 4.0,
+                                       "name": track, "notes": gen_notes(kind, bar, n)})
+                bar += 8
+        log(track, "written")
     for track, (_, part, ranges) in MIDI.items():
         clear(track)
         loop = kits.pattern("let_the_rhythm", 8, [part], None)[part]
@@ -328,15 +444,14 @@ def build(files):
         cut_at("KICK", (bar - 1) * 4.0 - 1.0)
     # the breath: the last 2 beats before each drop empty, but the voice and the reverse crash
     for bar in DROPS:
-        for t in ("CLAP", "HATS 16", "OPEN HAT", "PERC", "BASS BREAK", "STAB", "KICK HP", "CHORDS",
-                  "FX RISER") + tuple(MIDI):
+        for t in ("BASS BREAK", "KICK HP", "CHORDS", "FX RISER", "VOX 2", "VOX ADLIB") + tuple(MIDI) + tuple(GEN):
             cut_at(t, (bar - 1) * 4.0 - BREATH[bar])
     # the straight perc loop takes the pool's swing (it only follows while warped)
     pool = [g["name"] for g in C("grooves")["grooves"]]
     if GROOVE not in pool:
-        C("load_device", {"track": "PERC", "path": "user_library/Grooves/%s.agr" % GROOVE})
+        C("load_device", {"track": "CLAP LTR", "path": "user_library/Grooves/%s.agr" % GROOVE})
     C("set_groove", {"name": GROOVE, "timing": 100, "random": 0, "velocity": 0, "groove_amount": 1.0})
-    for t in ("PERC",) + tuple(MIDI):
+    for t in ("CHORDS",) + tuple(MIDI) + tuple(GEN):
         C("apply_groove", {"track": t, "groove": GROOVE})
 
 
@@ -349,6 +464,9 @@ def mix():
             C("load_device", {"track": track, "query": device, "roots": ["audio_effects"]})
         for p, v in params.items():
             setp(track, device, p, v)
+    for track, params in SIMPLER.items():
+        for p, v in params.items():
+            C("set_param", {"track": track, "device": 0, "param": p, "display": v.replace(" ct", "").replace(" %", "")})
     for track, key in SIDECHAIN.items():
         C("set_device_input", {"track": track, "device": "Compressor", "source": key})
     for track, dbs in SENDS.items():
