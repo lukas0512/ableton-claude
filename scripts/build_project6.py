@@ -89,12 +89,17 @@ PLAN = {
     # the piano: phrases built from its own chord hits (PIANO), placed A B A C (see piano_phrase)
     # the hook "Here is the solution" states, "Gueyehyeh" answers it, the "doo-ahh" ad-libs sit
     # under the drops as a second voice; the hook also runs a cappella into each drop
-    "VOX":        ("vox", 16, True, [(29, 33), (41, 45), (61, 65), (73, 77), (89, 93), (101, 105),
-                                     (117, 121), (129, 133), (145, 149)]),
-    "VOX 2":      ("vox2", 16, True, [(45, 49), (77, 81), (93, 97), (105, 109), (133, 137), (149, 153)]),
-    "VOX ADLIB":  ("adlib", 16, True, [(65, 73), (81, 89), (121, 129), (137, 145)]),
     # drop 2's sauce: the SS stab only at phrase ends (2 bars every 8), never a bed
     "STAB SS":    ("stab", 8, True, [(127, 129), (143, 145), (151, 153)]),
+}
+# v8: the voices warped syllable by syllable (rap_phrase): sung loosely, their syllables sat up
+# to +-50 ms off the 16ths against a locked kit. Each syllable moves 60 % onto its 16th, the
+# off-16ths 15.5 ms late (the set's pocket). One take per voice, duplicated to its bars.
+# track: (padded source (half a beat of pre-roll), source bpm, pre-roll s, detune, bars)
+VOICES = {
+    "VOX":       ("P6_vox_solution_padded.wav", 126, 0.2385, 20, [29, 41, 61, 73, 89, 101, 117, 129, 145]),
+    "VOX 2":     ("P6_vox_gueyehyeh_padded.wav", 126, 0.2385, 0, [45, 77, 93, 105, 133, 149]),
+    "VOX ADLIB": ("P6_vox_doohahh_padded.wav", 118, 0.2546, 37, [65, 69, 81, 85, 121, 125, 137, 141]),
 }
 # absences inside the drops ("tirar a repetitividade, deixar os drops mais interessantes"):
 # (bar, beat in bar 0-3, tracks) -> those tracks stop there until their next clip
@@ -310,12 +315,7 @@ def make_files():
     y[-fade:] *= np.linspace(1, 0, fade)[:, None] if y.ndim == 2 else np.linspace(1, 0, fade)
     f["bass"] = loops.write(LIB + "P6_bass_nsl_G1.wav", y)
     loops.write(f["kick"], loops.four_on_floor(KICK_SHOT, BPM))
-    loops.write(f["clap"], loops.from_template({"default": CLAP_SHOT}, T["clap"]["template"], BPM,
-                                               steps=[4, 12], seed=1, swing_pct=SWING))
-    loops.write(f["hats"], loops.from_template({"default": HAT_SHOT}, T["hats"]["template"], BPM,
-                                               steps=[0, 1, 3, 4, 5, 7, 8, 9, 11, 12, 13, 15], seed=1, swing_pct=SWING))
-    loops.write(f["open"], loops.from_template({"default": OPEN_SHOT}, T["hats"]["template"], BPM,
-                                               steps=[2, 6, 10, 14], seed=1, swing_pct=SWING))
+    # (kit A's clap/hat loops are gone: the old open-hat loop overwrote the trimmed one-shot)
     f["riser4"] = loops.stretch_to(RISER, OUT + "P6_Riser_4bars_129.wav", BPM, 4)
     f.update(down=DOWNLIFTER, impact=IMPACT, boom=SUB_BOOM)
     loops.write(f["kick_q"], loops.four_on_floor(KICK_SHOT, BPM, bars=1))
@@ -634,6 +634,20 @@ def vox_env(beat):
     return [{"param": "send:1", "unit": "db", "points": [[0, -40], [13.9, -40], [14.0, -6], [16, -6]]}]
 
 
+def warp_voices():
+    from ableton_claude import server
+    for track, (src, bpm, pre, det, bars) in VOICES.items():
+        clear(track)
+        r = server.rap_phrase(stem=OUT + src, source_bar=1, bars=4, source_bpm=bpm, source_downbeat=pre,
+                              track=track, bar=bars[0], swing_ms=PIANO_SWING_S * 1000, name=track, out_dir=OUT)
+        first = r["placed"]["beat"]
+        for bar in bars[1:]:
+            C("duplicate_clip", {"track": track, "clip": {"at": first}, "beat": (bar - 1) * 4.0 - 0.5})
+        for c in C("get_track", {"track": track, "max_clips": 100})["clips"]:
+            C("set_clip", {"track": track, "clip": {"at": c["start"]}, "detune": det})
+        log(track, "warped per syllable")
+
+
 def build(files):
     for track, (key, beats, warp, ranges) in PLAN.items():
         clear(track)
@@ -652,6 +666,7 @@ def build(files):
             beat = round(beat - CRASH_REV_S / BEAT_S - 0.02, 3)
         C("create_audio_clip", {"track": "CRASH", "path": CRASH_REV if kind == "rev" else CRASH,
                                 "beat": beat, "name": "CRASH " + kind, "warp": False})
+    warp_voices()
     clear("CHORDS")
     for a, b in PIANO_SPANS:
         for bar in range(a, b, 2):
