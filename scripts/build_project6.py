@@ -43,6 +43,9 @@ SWING = 56.0
 
 KICK_SHOT = PACKS + "THE SOUNDS OF BLANC VOL. 2/DRUMS/KICKS/kick hits/SOBV2_KICK_push_hit.wav"
 CLAP_SHOT = PACKS + "THE SOUNDS OF BLANC VOL. 2/DRUMS/CLAPS/clap hits/SOBV2_CLAP_eyup_hit.wav"
+LTR_KIT = os.path.expanduser("~/Music/Ableton/User Library/Samples/Claude/Nobody Kit/")
+LTR_HAT = LTR_KIT + "HL_CH_CLOSED_HAT_SHOT_010.wav"
+LTR_OPEN = LTR_KIT + "SCHT_Hat_Persona.wav"
 HAT_SHOT = PACKS + "Gino Da Koda - Groove Kingz Vol. 4/HATS/GDKGK4_HAT 04.wav"
 OPEN_SHOT = PACKS + "Dropgun_Samples_-_Vocal_UK_House/one_shots/drums/hats/DS_VUKH_hat_one_shot_sunset_open_short.wav"
 BASS = PACKS + "Loopmasters - Ultimate Deep House/WAV_LOOPS/BASS_LOOPS/NSL_122_Gm_Midbass.wav"
@@ -194,7 +197,7 @@ def stab_freq(bar):
 
 
 LEVELS = {"FX RISER": -20.0, "FX DOWN": -18.0, "FX IMPACT": -12.0, "SUB BOOM": -14.0,
-          "CLAP LTR": -11.0, "GHOST SNARE": -15.0, "HAT 2": -17.0, "STAB SS": -16.0, "PIANO GATE": -14.0, "SHAKER": -15.0, "CONGAS": -16.0, "TOM 909": -19.0, "RIDE": -21.0,
+          "CLAP LTR": -11.0, "GHOST SNARE": -12.0, "HAT 2": -17.0, "STAB SS": -16.0, "PIANO GATE": -14.0, "SHAKER": -15.0, "CONGAS": -16.0, "TOM 909": -19.0, "RIDE": -21.0,
           "KICK": -8.0, "KICK HP": -11.0, "HATS": -16.0, "OPEN HAT": -17.0, "CRASH": -20.0,
           "BASS": -3.0, "BASS BREAK": -11.0, "CHORDS": 4.0,
           "VOX": -14.0, "VOX 2": -16.0, "VOX ADLIB": -22.0}
@@ -233,7 +236,9 @@ DEVICES = [
     # v3c: above 6 kHz still 5-16 dB under the references (the hat samples are dark): air on
     # the hats and shaker, the kick's sub at 50 Hz (-4 dB), the chords' 1 kHz (+4) down
     ("HATS", "EQ Eight", {"1 Filter On A": "On", "1 Filter Type A": "High Pass 12dB", "1 Frequency A": "350 Hz",
-                          "8 Filter On A": "On", "8 Filter Type A": "High Shelf", "8 Frequency A": "8.00 kHz", "8 Gain A": "2.0 dB"}),
+                          "8 Filter On A": "On", "8 Filter Type A": "High Shelf", "8 Frequency A": "8.00 kHz", "8 Gain A": "-1.5 dB",
+                          "4 Filter On A": "On", "4 Filter Type A": "Bell", "4 Frequency A": "4.00 kHz", "4 Gain A": "2.5 dB",
+                          "4 Q A": "1.0"}),   # v9: his hat sizzles at 8-10 kHz (+3) and lacks 2-5 kHz (-3..-6)
     ("OPEN HAT", "EQ Eight", {"8 Filter On A": "On", "8 Filter Type A": "High Shelf", "8 Frequency A": "8.00 kHz", "8 Gain A": "4.0 dB"}),
     ("SHAKER", "EQ Eight", {"8 Filter On A": "On", "8 Filter Type A": "High Shelf", "8 Frequency A": "9.00 kHz", "8 Gain A": "4.0 dB"}),
     ("KICK", "EQ Eight", {"2 Filter On A": "On", "2 Filter Type A": "Bell", "2 Frequency A": "50.0 Hz",
@@ -261,7 +266,7 @@ LOW_END = ["KICK", "KICK HP", "BASS", "BASS BREAK", "SUB BOOM"]
 # the drums (references -4) and the highs at 0.6 % (references 2.4)
 # v3b drop render vs the references' 1/3 octaves: 125-200 Hz +2..4 dB (the bass's register),
 # everything above 300 Hz 4-11 dB under: the kick and bass were the mix, the groove was buried
-SIMPLER = {"HAT 2": {"Vol < Vel": "100 %", "Volume": "-6"}, "CLAP LTR": {"Vol < Vel": "40 %", "Volume": "-4"},
+SIMPLER = {"HAT 2": {"Vol < Vel": "100 %", "Volume": "-6", "Transpose": "-3"}, "CLAP LTR": {"Vol < Vel": "40 %", "Volume": "-4"},
            "HATS": {"Vol < Vel": "100 %", "Volume": "-3"}, "OPEN HAT": {"Vol < Vel": "100 %", "Volume": "-6"},
            "SHAKER": {"Volume": "-4"},
            "BASS": {"Vol < Vel": "40 %", "Detune": "12 ct", "Volume": "0"},
@@ -300,13 +305,14 @@ def make_files():
          "kick_q": OUT + "P6_KickHP_quarters_1bar_129.wav", "kick_8": OUT + "P6_KickHP_8ths_1bar_129.wav",
          "vox": VOX, "vox2": VOX2, "chords": CHORDS, "adlib": ADLIB, "stab": STAB}
     os.makedirs(LIB, exist_ok=True)
-    f["hat"] = shot(HAT_SHOT, LIB + "P6_hat_gino04.wav", 0.12)
-    f["open"] = shot(OPEN_SHOT, LIB + "P6_openhat_dropgun.wav", 0.30)
+    # v9 ("os hats tão um pouco destoados do resto"): four hats from four packs never sounded
+    # like one kit. All hats now come from his let_the_rhythm kit: its closed hat (main + the
+    # e/a layer, that one a few semitones down) and its "Persona" open hat.
+    f.update(hat=LTR_HAT, hat2=LTR_HAT, open=LTR_OPEN)
     f.update(make_piano())
     loops.write(LIB + "P6_clap_scht2.wav", loops.read(os.path.expanduser(
         "~/Music/Ableton/User Library/Samples/Claude/Nobody Kit/SCHT_Clap2.wav")))
-    shot((
-        PACKS + "3Q Samples Terrace Tech House 2/3Q_TT2_DRUM_HITS/3Q_TT2_HATS/3Q_TT2_Hat_15.wav"), LIB + "P6_hat2_3q15.wav", 0.10)
+
     # the bass: the NSL Midbass's own G1 (its first note, 0.06-0.48 s), played by a Simpler
     x = loops.read(BASS)
     a, n = int(0.06 * loops.SR), int(0.42 * loops.SR)
@@ -452,8 +458,9 @@ def ensure_tracks():
             C("create_track", {"kind": "midi", "name": t})
         if not C("get_track", {"track": t, "clips": False})["devices"]:
             if SHOTS[key].endswith(".wav"):
-                C("load_device", {"track": t, "path": "user_library/Samples/Claude/Project6/%s"
-                                  % os.path.basename(SHOTS[key])})
+                folder = "Nobody Kit" if SHOTS[key].startswith(LTR_KIT) else "Project6"
+                C("load_device", {"track": t, "path": "user_library/Samples/Claude/%s/%s"
+                                  % (folder, os.path.basename(SHOTS[key]))})
             else:
                 C("load_device", {"track": t, "query": SHOTS[key], "roots": ["drums"]})
     for t in ["KICK HP", "CRASH", "VOX 2", "VOX ADLIB", "CHORDS", "FX RISER", "FX DOWN",
@@ -532,8 +539,8 @@ def cut_at(track, beat):
             C("trim_clip", {"track": track, "clip": {"at": c["start"]}, "end_beat": beat})
 
 
-SHOTS = {"hat": LIB + "P6_hat_gino04.wav", "open": LIB + "P6_openhat_dropgun.wav",
-         "clap": LIB + "P6_clap_scht2.wav", "hat2": LIB + "P6_hat2_3q15.wav", "909": "909 Core Kit",
+SHOTS = {"hat": LTR_HAT, "open": LTR_OPEN, "hat2": LTR_HAT,      # his kit's files (already on the attack)
+         "clap": LIB + "P6_clap_scht2.wav", "909": "909 Core Kit",
          "bass": LIB + "P6_bass_nsl_G1.wav"}
 # the producer's hat accents (let_the_rhythm, measured): on-beat 16ths ~11 dB under the "and"
 HAT_DB = [-10.8, -2.4, -0.5, -2.0, -11.3, -3.4, -0.4, -2.6, -11.9, -3.4, -0.8, -2.4, -10.5, -2.8, -0.8, -1.6]
