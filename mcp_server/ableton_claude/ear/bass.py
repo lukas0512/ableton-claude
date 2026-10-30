@@ -111,7 +111,9 @@ def _add_sustained(y, sr, g, env, dt, notes, loud, rel_db=-30.0):
             continue
         t = G.bar_start(g, 0) + k * g["period"]
         a, b = int(t / dt), int((t + g["period"]) / dt)
-        if b >= len(env) or np.median(env[a:b]) < loud + rel_db:
+        # a beat before the file starts (grid begins at a negative time) or shorter than one
+        # envelope frame has no level: its median is NaN, which passed this test
+        if a < 0 or b <= a or b >= len(env) or np.median(env[a:b]) < loud + rel_db:
             continue
         m, conf = pitch_of(y[int((t + 0.05) * sr): int((t + g["period"] - 0.05) * sr)], sr)
         if m is None:
