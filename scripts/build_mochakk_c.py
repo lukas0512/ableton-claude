@@ -104,8 +104,8 @@ def ensure_tracks():
             C("create_track", {"kind": "midi", "name": t})
         if not C("get_track", {"track": t, "clips": False})["devices"]:
             C("load_device", {"track": t, "path": src})
-            for p, v in (simpler or {}).items():
-                setp(t, 0, p, v)
+        for p, v in (simpler or {}).items():     # every run: a device left from a lost run too
+            setp(t, 0, p, v)
         C("set_track", {"track": t, "volume_db": fader, "pan": pan})
         C("set_send", {"track": t, "send": 0, "db": send if send is not None else -70.0})
     # v1 measured hats 7 dB over the set and brighter (7.4 vs 5.3 kHz), the bass's upper
