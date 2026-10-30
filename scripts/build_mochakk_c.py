@@ -80,15 +80,17 @@ TRACKS = {
     "KICK HP":   (KIT + "SCHT_Kick1.wav", -9.0, 0.0, None, {"Vol < Vel": "100 %"}, ALL),
     # v12 (v11 measured against the set: backbeat 25 dB over the bar where the refs sit ~0, clap
     # tail 46 ms vs 145): the clap down and into the kit's room
-    "CLAP":      (KIT + "SCHT_Clap2.wav", -9.5, 0.0, -14.0, {"Vol < Vel": "40 %"}, ALL),
+    # v13 (his note: "não vamos perder os transients dos samples, preservar a qualidade, sem atraso,
+    # e sem bater fofo"): dry again, velocity barely moves its level
+    "CLAP":      (KIT + "SCHT_Clap2.wav", -9.5, 0.0, -24.0, {"Vol < Vel": "20 %"}, ALL),
     # his v6 note: "faça groove com o snare, não com o clap; o clap pode ter groove mas pouco, o
     # snare vai sempre fazer mais, pra podermos usar ele como fills também, pra puxar a track"
     "SNARE":     (KIT + "AT_Infinite_Space_Snare_One_Shot_Resonate.wav", -8.0, 0.0, -22.0,
-                  {"Vol < Vel": "100 %"}, ALL),
-    "HAT 16":    (KIT + "HL_CH_CLOSED_HAT_SHOT_010.wav", -21.0, 0.0, -22.5, {"Vol < Vel": "100 %"}, ALL),
-    "HAT OFF":   (KIT + "SCHT_Hat_Persona.wav", -14.0, 0.2, -21.0, {"Vol < Vel": "100 %"}, ALL),
-    "HAT LIFT":  (KIT + "SCHT_Hat_Imite.wav", -13.0, -0.2, -21.0, {"Vol < Vel": "100 %"}, ("drop",)),
-    "SHAKER":    (KIT + "KMRBI_AW_Shaker_One_Shot_Chuga.wav", -17.0, 0.35, -21.0, {"Vol < Vel": "100 %"}, ALL),
+                  {"Vol < Vel": "35 %"}, ALL),
+    "HAT 16":    (KIT + "HL_CH_CLOSED_HAT_SHOT_010.wav", -21.0, 0.0, -22.5, {"Vol < Vel": "35 %"}, ALL),
+    "HAT OFF":   (KIT + "SCHT_Hat_Persona.wav", -14.0, 0.2, -21.0, {"Vol < Vel": "35 %"}, ALL),
+    "HAT LIFT":  (KIT + "SCHT_Hat_Imite.wav", -13.0, -0.2, -21.0, {"Vol < Vel": "35 %"}, ("drop",)),
+    "SHAKER":    (KIT + "KMRBI_AW_Shaker_One_Shot_Chuga.wav", -17.0, 0.35, -21.0, {"Vol < Vel": "35 %"}, ALL),
     "CONGAS":    ("drums/Percussion Core Kit.adg", -9.8, 0.3, -21.0, None, ALL),
     "TOM 909":   ("drums/909 Core Kit.adg", -6.0, -0.3, None, None, ("groove", "drop")),
     "RIM 909":   ("drums/909 Core Kit.adg", -4.0, -0.12, -24.0, None, ("groove", "build", "drop")),
@@ -125,7 +127,7 @@ AUDIO = {   # played loops: human timing MIDI does not have (Let The Rhythm's sh
 }
 FX = ["REV CRASH", "SUB BOOM"]
 EQ = {
-    "HAT 16": {"8 Filter On A": "On", "8 Filter Type A": "High Shelf", "8 Frequency A": "7.00 kHz", "8 Gain A": "-6.0 dB"},
+    "HAT 16": {"8 Filter On A": "On", "8 Filter Type A": "High Shelf", "8 Frequency A": "7.00 kHz", "8 Gain A": "-2.0 dB"},
     "SHAKER": {"8 Filter On A": "On", "8 Filter Type A": "High Shelf", "8 Frequency A": "8.00 kHz", "8 Gain A": "-4.0 dB"},
     "BASS": {"8 Filter On A": "On", "8 Filter Type A": "Low Pass 12dB", "8 Frequency A": "650 Hz"},   # v12: harmonics -4 dB vs the set's -12
     # the break/build bass keeps its sub (his rule: the low end never vanishes) but no body
@@ -428,13 +430,16 @@ HUMAN_MS = {"SNARE": 6, "RIM 909": 10, "CONGAS": 9, "TOM 909": 8, "HAT 16": 7, "
 
 
 def _swing(notes, rnd, kind=None):
-    """One pocket: every off-16th SW late, every hit scattered by its part's hands."""
+    """One pocket: every off-16th SW late, every hit scattered by its part's hands. v13 ("sem
+    atraso"): the hands only push ahead, never drag, and the quarters stay on the grid."""
     sc = HUMAN_MS.get(kind, 3) / 1000.0 / BEAT_S
     for n in notes:
         q = n[1] * 4
-        if abs(q - round(q)) < 1e-6 and int(round(q)) % 2 == 1:
+        on_grid = abs(q - round(q)) < 1e-6
+        if on_grid and int(round(q)) % 2 == 1:
             n[1] += SW
-        n[1] = round(max(0.0, n[1] + rnd.uniform(-sc, sc)), 4)
+        if not (on_grid and int(round(q)) % 4 == 0):
+            n[1] = round(max(0.0, n[1] - rnd.uniform(0.0, sc)), 4)
     return notes
 
 
@@ -473,7 +478,7 @@ def notes(kind, bar0, n_bars):
             for st, v in hits:
                 if last and st >= 8:
                     continue
-                out.append([60, o + st * 0.25 + 0.008 / BEAT_S, 0.25, int(v * rnd.uniform(0.94, 1.04))])
+                out.append([60, o + st * 0.25, 0.25, int(v * rnd.uniform(0.94, 1.04))])
         elif kind == "SNARE":               # the groove and the fills: it pulls the track
             hits = list(SNARE_A if pos % 2 == 0 else SNARE_B)
             if sec == "break":
@@ -490,7 +495,7 @@ def notes(kind, bar0, n_bars):
                 hits = [(0, 100), (3, 108), (6, 116)]   # then the breath
             lift = 1.06 if sec == "drop" else 1.0
             for st, v in hits:
-                out.append([60, o + st * 0.25 + 0.006 / BEAT_S, 0.2, int(min(127, v * lift * rnd.uniform(0.9, 1.08)))])
+                out.append([60, o + st * 0.25, 0.2, int(min(127, v * lift * rnd.uniform(0.9, 1.08)))])
         elif kind == "HAT 16":
             brk = sec == "break"
             for st in range(16):
@@ -560,7 +565,7 @@ def notes(kind, bar0, n_bars):
             for st, v in ghosts:
                 if last and st >= 8:
                     continue
-                out.append([38, o + st * 0.25 + 0.004 / BEAT_S, 0.12, int(v * rnd.uniform(0.85, 1.12))])
+                out.append([38, o + st * 0.25, 0.12, int(v * rnd.uniform(0.85, 1.12))])
             if pos == 3:                    # a rim on the "a" of 4 in every 4th bar
                 out.append([37, o + 3.75, 0.1, int(rnd.uniform(70, 84))])
         elif kind == "RIDE":                # the reserved shine: the drop's "&"s
@@ -673,7 +678,7 @@ def place_loop(track, path, src_bpm, a, b):
     clip keeps its file's length; v3's loops covered 2 and 4 of 16 bars)."""
     beats = round(sf.info(path).duration * src_bpm / 60.0)   # auto-warp guesses wrong: pin it
     C("create_audio_clip", {"track": track, "path": path, "bar": a, "name": track, "warp": True,
-                            "beats": beats})
+                            "beats": beats, "warp_mode": "beats"})   # v13: Beats keeps the transients
     loop_bars = max(1, beats // 4)
     if b - a > loop_bars:
         C("fill_range", {"track": track, "src_start_bar": a, "src_end_bar": a + loop_bars,

@@ -703,3 +703,10 @@ whole; it does not find a resonance.
 - With a heavy sub, validate_against_genre's beat-grid swing reads 69-73 % on a straight groove; trust
   listen's hats swing (51 %) instead.
 - Compressor time params: pass units in `display` ("120 ms", "0.50 ms"); a bare "120" set 3 s.
+
+- Humanize must not cost the samples their attack (his note on Mochakk C v12: "não vamos perder
+  os transients dos samples, preservar a qualidade, sem atraso, e sem bater fofo"). Write the
+  backbeat and every quarter on the grid; hands only push ahead, never drag; swing stays on the
+  off-16ths. Keep one-shots' `Vol < Vel` around 20-35 % so ghosts are quieter, not mushy, and keep
+  the clap dry: a room send and a dark shelf on the hats read as "fofo". Warp played loops in
+  Beats mode, which keeps their transients through the stretch.
