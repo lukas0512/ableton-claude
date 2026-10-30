@@ -270,6 +270,15 @@ loops). Start a new track's drums from it; what makes it work:
 
 ## Mixing in Live through this connector
 
+- `get_track` lists devices as dicts ({i, name, class}); `get_song` lists them as names. A build
+  script that tested `"EQ Eight" not in get_track(...)["devices"]` was always True and stacked
+  another EQ Eight on ten tracks every run (Mochakk C, 2026-10-30: up to ten per track). Compare
+  names, and dedupe repeated effects when a script re-runs.
+- Live's API exposes a sidechain input on Compressor (and Auto Filter) but not on Gate. A swung
+  trance gate: a Compressor at inf:1 (Ratio raw value 1.0), attack 0.1 ms, release ~6 ms,
+  keyed Post FX from a hidden Operator sine (fader -70) whose notes are the chop's silences;
+  a synced tremolo would chop straight.
+
 - Buses: Live's API makes no group tracks. Route tracks into an audio track
   (`set_track_output`) that monitors "in". Set a fresh audio track's input to "No Input" first
   (`set_track_input`), or monitoring "in" feeds the interface's mic into the mix.
