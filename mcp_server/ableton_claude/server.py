@@ -5,7 +5,7 @@ from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
-from . import analysis, client, compact, genres, journal, knowledge, library, loops, mixing, references, storage, tension, timbre, validate
+from . import analysis, client, compact, genres, journal, knowledge, library, loops, mixing, references, setcut, storage, tension, timbre, validate
 from .music import club, groove, harmony, melody, pocket, samples, theory
 
 INSTRUCTIONS = """\
@@ -19,6 +19,8 @@ References for the track being made: `study_references(name, paths|folder|from_l
 studies ~5 of them (measured and heard) in the background; `study_status` returns a brief
 (what they share and why, where they disagree, a section plan). The study's name then
 works as `genre` in every genre tool. Propose ideas from it and ask before changing the set.
+A reference inside a DJ set or a YouTube mix: `reference_from_set(link, at="17:10")` cuts
+the stretch where that track plays alone; study that file, never the raw set.
 
 Start with `ableton_status`. Use `ableton_command` for any bridge command and
 `ableton_batch` to run many in one Live tick (much faster for building arrangements).
@@ -773,6 +775,19 @@ def production_review(path: str, prompt: str = "", genre: str | None = None,
     out['section_comparison']['rows'] = rows[:12]
     out['narrow_result'] = 'Use start_bar/end_bar around a reported drop/section for omitted evidence; cached audio analysis is reused.'
     return out
+
+
+@mcp.tool()
+def reference_from_set(source: str, at: str | float | None = None, before_s: float = 90.0,
+                       after_s: float = 600.0, out_dir: str | None = None,
+                       name: str | None = None, bpm: float | None = None) -> dict:
+    """A reference that lives inside a DJ set (a YouTube link or an audio file): fetch the
+    set around `at` (the set time the track comes in, e.g. "17:10"; a link's own t= when
+    omitted) with yt-dlp, find where that track plays alone (kick and hat 16-step patterns
+    and chroma compared with the track's core, per 4-bar block) and write that stretch as
+    a WAV. Analyse the returned `path`, not the set: the mixed edges carry the neighbours'
+    kick and chords. Downloads ~100 MB per 10 minutes; ~1 minute to analyse."""
+    return setcut.reference_from_set(source, at, before_s, after_s, out_dir, name, bpm)
 
 
 @mcp.tool()

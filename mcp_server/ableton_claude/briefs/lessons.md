@@ -316,6 +316,13 @@ loops). Start a new track's drums from it; what makes it work:
 
 ## The ear (what the analysis can and cannot hear)
 
+- A reference inside a DJ set is never the set: cut from the timestamp the listener names, the
+  Mochakk Mixmag set (17:10) held the previous track's tail and, after 22:32, the next track's
+  XX..XX.. kick and new chords, which `listen` read as the reference's own. Use
+  `reference_from_set(link, at=...)`; it keeps the bars where the track plays alone (kick/hat
+  16-step patterns and chroma against its core, per 4-bar block; breaks of up to 32 bars pass).
+  A YouTube link's own `t=` is often not where the track starts: pass `at`.
+
 - Chords are read from spectral peaks in 110-1500 Hz only. Over a bass pedal, read the upper
   chord without the bass and write a slash chord. Chord roots in a busy breakdown are right
   only about half the time: say so.
