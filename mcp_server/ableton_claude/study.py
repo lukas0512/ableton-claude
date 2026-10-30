@@ -41,12 +41,20 @@ def collect(name, paths=None, folder=None):
     if folder:
         files += [p for p in glob.glob(os.path.join(os.path.expanduser(folder), "**", "*"),
                                        recursive=True) if p.lower().endswith(references.AUDIO_EXT)]
+    files = [os.path.abspath(os.path.expanduser(p)) for p in files]
     for p in files:
-        p = os.path.abspath(os.path.expanduser(p))
         if not os.path.isfile(p):
             raise FileNotFoundError(p)
         if not p.lower().endswith(references.AUDIO_EXT):
             raise ValueError("not an audio file: %s" % p)
+    # refuse before linking: a refused call used to leave every file linked in the inbox,
+    # and the next, smaller call was refused for them
+    total = len({os.path.basename(p) for p in audio_files(dest)} |
+                {os.path.basename(p) for p in files})
+    if total > MAX_REFS:
+        raise ValueError("%d files: a study is a handful of references (at most %d). For a "
+                         "whole genre use scripts/build_profile.py" % (total, MAX_REFS))
+    for p in files:
         link = os.path.join(dest, os.path.basename(p))
         if os.path.abspath(link) != p and not os.path.lexists(link):
             os.symlink(p, link)
