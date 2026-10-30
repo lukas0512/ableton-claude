@@ -374,6 +374,11 @@ loops). Start a new track's drums from it; what makes it work:
 
 ## Groove study: repetition, subtraction and evidence
 
+- Check the song tempo after a build, not only when you set it: the Mochakk C block (2026-10-30)
+  was built after `set_tempo(126)` and rendered at 128 (64 beats in 30.05 s), so every
+  beat-relative measure of the render was wrong. Set it last and assert it; a render's
+  duration against `expected_seconds` shows it at once.
+
 - For new house/tech-house 4/4 foundations, `music_pocket_sketch` generates coordinated
   drums/bass and a stripped alternative with the same anchors. Inspect actual BPM,
   key and Drum Rack mapping. Existing material should be inspected, not replaced by default.
