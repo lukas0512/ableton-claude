@@ -641,3 +641,24 @@ found two suspects: the 909 ride (+20 dB at 1.6 kHz, +16 at 2.8 kHz) and the Cit
 in the breaks. Four 8-bar renders (as is / synth notched / ride notched / both) scored within
 0.02 of each other on audiobox: send the files and let him choose. The model guards the
 whole; it does not find a resonance.
+
+## Swing on audio loops: warp markers, not pool grooves (Dont Your Know, 2026-10-30)
+
+- A pool groove assigned to an audio clip through the API (`apply_groove`, even Live's own
+  "Swing 16ths 66" at 100 %) did not move the audio at all: two renders with and without it
+  were identical to the millisecond. MIDI clips follow grooves; audio clips need warp markers.
+- `add_warp_markers(track, clip, markers)` adds up to 600 markers per call to a warped clip
+  without touching the rest, so a long clip gets a marker on every 16th in chunks (a 560-beat
+  perc took four calls of ~0.7 s each). Pin the file first (`set_warp_markers(beats=N)`).
+- Sign: to play the hit that sits at sample s later by D, the marker at its beat points to an
+  EARLIER sample (sample = beat/2.1 - D at 126 BPM). Pointing later compressed the segment
+  and the hit came 25 ms early. Measure a soloed 2-bar render against the source per 16th.
+- Before swinging, map which layer carries the odd 16ths: here the hat loop, hat layer and
+  brilho were 8th-note patterns (nothing on odd 16ths), and the "16th feel" lived in the perc
+  loop (0 dB) and the shaker. Swinging the hats would have changed nothing.
+- Enabling warping on an unwarped clip that already has markers pops Live's modal "keep the
+  current timing?" and freezes the bridge until someone clicks Yes: create a fresh warped clip
+  (`create_audio_clip(warp=True, beats=N)`), set its region, and duplicate it into place.
+- Producer bounces of whole tracks (one 6-minute file sliced into 1-bar clips, 580 kick
+  clips): each slice's marker 0 sits at its own position in the file (start_beat/2.1 s), so
+  one long warped clip with start/end markers replaces hundreds of slices exactly.

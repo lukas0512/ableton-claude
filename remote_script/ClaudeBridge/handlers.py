@@ -706,8 +706,10 @@ def _raw_for_db(param, db):
 
 def _write_envelope(track, clip, spec, resolution=0.25):
     """spec: {"param": "volume"|"pan"|"send:<n>"|<device param>, "device": None|name|index,
-              "points": [[beat_from_clip_start, value], ...], "unit": "raw"|"db"}
+              "points": [[beat_from_clip_start, value], ...], "unit": "raw"|"db",
+              "resolution": beats per step (default 0.25; a stab gate needs ~1/64)}
     Linear ramps between points, drawn as steps of `resolution` beats."""
+    resolution = float(spec.get("resolution", resolution))
     device = spec.get("device")
     pname = spec.get("param", "volume")
     p = _mixer_param(track, pname) if device is None else _param(_device(track, device), pname)
@@ -1956,6 +1958,28 @@ def set_warp_markers(ctx, track, clip, markers=None, beats=None):
         raise ValueError("give markers or beats")
     _replace_warp_markers(c, markers)
     return _warp_info(c)
+
+
+@command
+def add_warp_markers(ctx, track, clip, markers):
+    """Add warp markers to a warped audio clip without touching the existing ones:
+    `markers` = [[beat, seconds], ...] (at most 600 per call, so one call stays short on
+    Live's main thread). Lets a long clip get a marker on every 16th in chunks: a pool
+    groove assigned through the API does not move audio clips (measured 2026-10-30)."""
+    c = _clip(_track(ctx, track), clip)
+    if not c.is_audio_clip or not c.warping:
+        raise ValueError("add_warp_markers needs a warped audio clip")
+    if len(markers) > 600:
+        raise ValueError("at most 600 markers per call; chunk them")
+    import Live
+    end = _sample_seconds(c)
+    added = 0
+    for b, sec in markers:
+        if sec > end + 1e-6:
+            continue
+        c.add_warp_marker(Live.Clip.WarpMarker(float(sec), float(b)))
+        added += 1
+    return {"added": added, "total": len(list(c.warp_markers))}
 
 
 def _sample_seconds(c):
