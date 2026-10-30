@@ -32,6 +32,10 @@ primeiro build up e drop mais forte"):
     the congas thicken, the stab's filter opens, the low end leaves for the last 2 bars, the
     last 2 beats breathe; the drop lands with crash, a C sub boom, the ride and the answer organ.
 
+v7 -> v8 balance, against the set's drop band shares: highs 8.3 % (set 2.75), 2-6 kHz 6.1 % (3.5),
+mids 6.3 % (7.85), 250-500 Hz 8.1 % (4.05): hats/shaker/ride/loops -2 dB, piano +3, stab +3
+(high-pass 250 Hz), keys +2.
+
 Re-running is safe: every managed track's clips are deleted and written again.
 
     cd mcp_server && uv run python ../scripts/build_mochakk_c.py
@@ -50,7 +54,7 @@ C = client.call
 BPM = 126.0
 BEAT_S = 60.0 / BPM
 END = 49                                        # first bar after the written part
-SWING_PCT = 57.0
+SWING_PCT = 58.5                               # v9: "mais balançante", Chicago-MPC feel, inside the set's 56-59
 SW = (SWING_PCT - 50.0) / 100.0 * 0.5          # off-16th delay in beats (0.035 = 16.7 ms)
 SCATTER = 0.003 / BEAT_S                       # +-3 ms, beats
 KIT = "user_library/Samples/Claude/Nobody Kit/"
@@ -79,31 +83,31 @@ TRACKS = {
     # snare vai sempre fazer mais, pra podermos usar ele como fills também, pra puxar a track"
     "SNARE":     (KIT + "AT_Infinite_Space_Snare_One_Shot_Resonate.wav", -11.0, 0.0, -22.0,
                   {"Vol < Vel": "100 %"}, ALL),
-    "HAT 16":    (KIT + "HL_CH_CLOSED_HAT_SHOT_010.wav", -16.0, 0.0, -22.5, {"Vol < Vel": "100 %"}, ALL),
-    "HAT OFF":   (KIT + "SCHT_Hat_Persona.wav", -11.0, 0.2, -21.0, {"Vol < Vel": "100 %"}, ALL),
+    "HAT 16":    (KIT + "HL_CH_CLOSED_HAT_SHOT_010.wav", -18.0, 0.0, -22.5, {"Vol < Vel": "100 %"}, ALL),
+    "HAT OFF":   (KIT + "SCHT_Hat_Persona.wav", -13.0, 0.2, -21.0, {"Vol < Vel": "100 %"}, ALL),
     "HAT LIFT":  (KIT + "SCHT_Hat_Imite.wav", -13.0, -0.2, -21.0, {"Vol < Vel": "100 %"}, ("drop",)),
-    "SHAKER":    (KIT + "KMRBI_AW_Shaker_One_Shot_Chuga.wav", -15.0, 0.35, -21.0, {"Vol < Vel": "100 %"}, ALL),
+    "SHAKER":    (KIT + "KMRBI_AW_Shaker_One_Shot_Chuga.wav", -17.0, 0.35, -21.0, {"Vol < Vel": "100 %"}, ALL),
     "CONGAS":    ("drums/Percussion Core Kit.adg", -9.8, 0.3, -21.0, None, ALL),
     "TOM 909":   ("drums/909 Core Kit.adg", -6.0, -0.3, None, None, ("groove", "drop")),
     "RIM 909":   ("drums/909 Core Kit.adg", -4.0, -0.12, -24.0, None, ("groove", "build", "drop")),
-    "RIDE":      ("drums/909 Core Kit.adg", -14.0, 0.1, -30.0, None, ("drop",)),
+    "RIDE":      ("drums/909 Core Kit.adg", -16.0, 0.1, -30.0, None, ("drop",)),
     "CRASH":     ("drums/909 Core Kit.adg", -10.0, 0.0, -24.0, None, ("break", "drop")),
     "BASS":      ("sounds/Bass/Electric Bass Soft.adg", -6.0, 0.0, None, None, ("groove", "drop")),
     "BASS BREAK": ("sounds/Bass/Electric Bass Soft.adg", -14.0, 0.0, None, None, ("break", "build")),
     # the stab's filter opens with velocity (Live 12.4 dropped its Auto Filter clip envelopes):
     # dark in the break, a velocity ramp through the build, open in the drop
-    "STAB":      (OWN + "stab_organ_warm.wav", -14.0, -0.15, -18.0,
+    "STAB":      (OWN + "stab_organ_warm.wav", -11.0, -0.15, -18.0,
                   {"Vol < Vel": "60 %", "Transpose": "1 st", "Detune": "22 ct", "F On": "On",
                    "Filter Type": "Lowpass", "Filter Slope": "24 dB", "Filter Freq": "700 Hz",
                    "Filt < Vel": "100 %", "Filt < Key": "0.0 %"}, ALL),
     # the theme (his notes on v5: "falta tema, hook... pianos e stabs fortes e aparentes, com keys,
     # alguns fazem um pedalzinho distorcendo"): a piano riff in octaves, and a clav through a
     # guitar Pedal answering it
-    "PIANO":     ("sounds/Piano & Keys/Grand Piano.adg", -10.0, 0.1, -16.0, None, ALL),
+    "PIANO":     ("sounds/Piano & Keys/Grand Piano.adg", -7.0, 0.1, -16.0, None, ALL),
     # v7: the clav read "estranho, quadrado, fora de groove". Held E-piano chords instead, chopped
     # by a Gate keyed from GATE TRIG (a hidden track playing the chop in the set's swing: a synced
     # tremolo would chop straight), then the guitar Pedal: "nota longa picotada"
-    "KEYS CHOP": ("sounds/Piano & Keys/E-Piano Classic.adg", -13.0, -0.25, -20.0, None, ("break", "build", "drop")),
+    "KEYS CHOP": ("sounds/Piano & Keys/E-Piano Classic.adg", -11.0, -0.25, -20.0, None, ("break", "build", "drop")),
     # Live's API routes no Gate sidechain: a Compressor at inf:1 keyed by this track closes the
     # keys wherever it sounds, so it plays the chop's silences (a sine with exact note lengths)
     "GATE TRIG": ("instruments/Operator", -70.0, 0.0, None, None, ("break", "build", "drop")),
@@ -111,9 +115,9 @@ TRACKS = {
                   {"Vol < Vel": "60 %", "Transpose": "-1 st", "Detune": "-1 ct"}, ("build", "drop")),
 }
 AUDIO = {   # played loops: human timing MIDI does not have (Let The Rhythm's shaker and perc)
-    "SHAKER LOOP": (LOOPS + "PMLxSVTxCioz_Shaker_Acti_Black_Far_Away_122bpm.wav", 122, -16.0, -0.35,
+    "SHAKER LOOP": (LOOPS + "PMLxSVTxCioz_Shaker_Acti_Black_Far_Away_122bpm.wav", 122, -18.0, -0.35,
                     [(9, 17), (33, 49)]),
-    "PERC LOOP":   (LOOPS + "SCBB_Perc_120_Perola2.wav", 120, -18.0, -0.3, [(9, 25), (33, 49)]),
+    "PERC LOOP":   (LOOPS + "SCBB_Perc_120_Perola2.wav", 120, -20.0, -0.3, [(9, 25)]),   # the drop's Latin is the congas
 }
 FX = ["REV CRASH", "SUB BOOM"]
 EQ = {
@@ -125,7 +129,7 @@ EQ = {
     # the build's pulse: the kick's click and knock without its sub
     "KICK HP": {"1 Filter On A": "On", "1 Filter Type A": "High Pass 48dB", "1 Frequency A": "180 Hz"},
     "RIDE": {"1 Filter On A": "On", "1 Filter Type A": "High Pass 12dB", "1 Frequency A": "350 Hz"},
-    "STAB": {"1 Filter On A": "On", "1 Filter Type A": "High Pass 12dB", "1 Frequency A": "160 Hz"},
+    "STAB": {"1 Filter On A": "On", "1 Filter Type A": "High Pass 12dB", "1 Frequency A": "250 Hz"},
     "STAB HI": {"1 Filter On A": "On", "1 Filter Type A": "High Pass 12dB", "1 Frequency A": "300 Hz"},
     # house piano: no low end under the bass, less box, more presence
     "PIANO": {"1 Filter On A": "On", "1 Filter Type A": "High Pass 12dB", "1 Frequency A": "180 Hz",
@@ -180,15 +184,22 @@ CHAINS = {
 
 # the snare: 2 and 4 under the clap, ghosts that move between two bars, fills at 4 and 8;
 # (16th step, velocity)
-SNARE_A = [(4, 92), (12, 96), (3, 30), (7, 36), (10, 44), (14, 34)]
-SNARE_B = [(4, 92), (12, 96), (1, 28), (6, 40), (9, 34), (11, 48)]
+SNARE_A = [(4, 92), (12, 96)]                  # v9: its ghosts moved to the 909 (Chicago)
+SNARE_B = [(4, 92), (12, 96), (11, 44)]
+# the 909 ghost snares (old Chicago house), two bars, the "a" of 4 pulling into the next 1
+CHI_A = [(3, 34), (6, 44), (10, 30), (15, 54)]
+CHI_B = [(1, 28), (7, 48), (9, 32), (11, 40), (14, 36)]
 SNARE_FILL_4 = [(13, 50), (14, 62), (15, 74)]
 SNARE_FILL_8 = [(12, 96), (13, 56), (13.5, 62), (14, 70), (14.5, 78), (15, 88), (15.5, 100)]
+
+# conga tumbao, by priority: slap on the "a" of 2, open tones on the "e-a" of 4, bongos, a muted
+# tone; (step, pad, velocity) -- the first four that fall in the bass's holes play
+TUMBAO = [(7, 40, 92), (14, 38, 88), (15, 38, 96), (2, 43, 74), (10, 40, 64), (12, 45, 70), (9, 43, 66), (1, 45, 60)]
 
 # percussion, interlocked: congas right (low slap 38, high muted 40, low bongo 43, high bongo 45)
 CONGA_TRIPLET = [(38, 0.0), (40, 1 / 3), (40, 2 / 3), (43, 2.0), (45, 2 + 1 / 3), (45, 2 + 2 / 3),
                  (38, 3.0), (40, 3.25), (43, 3.5), (45, 3.75)]
-TOM_STEPS = (5, 7, 13)                          # 909 low tom, left: candidates, kept only in the bass's holes
+TOM_STEPS = (5, 13)                             # 909 low tom, left: candidates, kept only in the bass's holes
 
 
 def log(*a):
@@ -246,6 +257,23 @@ def dedupe(track, keep_first=True):
     for i in reversed(drop):
         C("delete_device", {"track": track, "device": i})
     return len(drop)
+
+
+def lead(bar):
+    """Who leads this bar (v9: "ter um lead ou alguns leads mas não tocar ao mesmo tempo"): the
+    stab in the groove's second phrase, the piano's hint at 13-16 and its theme in the break,
+    the chopped keys then the piano's cell in the build; in each 8 of the drop the piano leads
+    bars 1-4 (keys under it) and the organ bars 5-8 (its short answer with it)."""
+    sec = section(bar)
+    if sec == "groove":
+        return None if bar < 9 else "stab" if bar < 13 else "piano"
+    if sec == "break":
+        return "piano"
+    if sec == "build":
+        return "keys" if bar < BUILD_BARS[0] + 4 else "piano"
+    if sec == "drop":
+        return "piano" if (bar - DROP_BARS[0]) % 8 < 4 else "stab"
+    return None
 
 
 def section(bar):
@@ -338,13 +366,19 @@ def ensure_tracks():
             log("room:", p, e)
 
 
-def _swing(notes, rnd):
-    """One pocket: every off-16th SW late, every hit +-3 ms; the kick is the grid."""
+# hands, ms of scatter per part (v9: "dar uma humanizada"): ghosts and congas loosest, the kick the grid
+HUMAN_MS = {"SNARE": 4, "RIM 909": 7, "CONGAS": 6, "TOM 909": 5, "HAT 16": 4, "HAT OFF": 3, "HAT LIFT": 3,
+            "SHAKER": 5, "PIANO": 5, "BASS": 4, "STAB": 3, "STAB HI": 3}
+
+
+def _swing(notes, rnd, kind=None):
+    """One pocket: every off-16th SW late, every hit scattered by its part's hands."""
+    sc = HUMAN_MS.get(kind, 3) / 1000.0 / BEAT_S
     for n in notes:
         q = n[1] * 4
         if abs(q - round(q)) < 1e-6 and int(round(q)) % 2 == 1:
             n[1] += SW
-        n[1] = round(max(0.0, n[1] + rnd.uniform(-SCATTER, SCATTER)), 4)
+        n[1] = round(max(0.0, n[1] + rnd.uniform(-sc, sc)), 4)
     return notes
 
 
@@ -428,11 +462,12 @@ def notes(kind, bar0, n_bars):
                 if (pos == 7 and st == 14) or (last and st >= 8):
                     continue
                 out.append([60, o + st * 0.25, 0.3, int(rnd.uniform(94, 110))])
-        elif kind == "SHAKER":              # the "&" only, ~5 ms early: it pushes
-            for st in (2, 6, 10, 14):
+        elif kind == "SHAKER":              # Latin: the "&" pushes (~5 ms early), the "a" accented
+            for st in (2, 3, 6, 7, 10, 11, 14, 15):
                 if last and st >= 8:
                     continue
-                out.append([60, o + st * 0.25 - 0.005 / BEAT_S, 0.12, int(rnd.uniform(80, 100))])
+                v = rnd.uniform(90, 104) if st % 4 == 3 else rnd.uniform(58, 72)
+                out.append([60, o + st * 0.25 - (0.005 / BEAT_S if st % 4 == 2 else 0.0), 0.12, int(v)])
         elif kind == "CONGAS":
             if sec == "build" and b >= BUILD_BARS[1] - 2:   # the build's last 2 bars: 16ths
                 for st in range(16):
@@ -444,14 +479,11 @@ def notes(kind, bar0, n_bars):
             elif pos in (3, 7):             # a triplet bar every 4
                 for p, t in CONGA_TRIPLET:
                     out.append([p, o + t, 0.2, int(rnd.uniform(64, 86))])
-            else:                           # in the bass's holes: they answer it, bar by bar
-                holes = [st for st in bass_holes(b) if st not in TOM_STEPS and st % 4 != 0]
-                for j, st in enumerate(holes):
-                    if j % 2 and not full:
-                        continue            # the first phrase: half of them
-                    p = 38 if st in (1, 9) else 45 if st in (12, 13) else 43 if st == 15 else 40
-                    v = (84 if st % 2 else 72) * rnd.uniform(0.9, 1.06)
-                    out.append([p, o + st * 0.25, 0.2, int(v)])
+            else:                           # a tumbao, in the bass's holes: Latin, and it answers the bass
+                holes = set(bass_holes(b))
+                hits = [h for h in TUMBAO if h[0] in holes][: (4 if full else 3)]
+                for st, p, v in hits:
+                    out.append([p, o + st * 0.25, 0.2, int(v * rnd.uniform(0.88, 1.08))])
         elif kind == "TOM 909":             # 909 low tom, left, on its own 16ths
             if sec == "groove" and pos < 4:
                 continue                    # toms only in the second half of each groove phrase
@@ -461,15 +493,18 @@ def notes(kind, bar0, n_bars):
                     out.append([44, o + st * 0.25, 0.2, int(rnd.uniform(70, 98))])
             if pos == 7:
                 out += [[44, o + 3.5, 0.1, 74], [44, o + 3.75, 0.1, 88]]
-        elif kind == "RIM 909":             # the rim doubles the stab's rhythm: organ and kit lock
-            if not full:
+        elif kind == "RIM 909":             # Chicago: 909 ghost snares, laid back, never the same two bars
+            if not full and sec == "groove":
                 continue
-            for st in stab_steps(b):
+            ghosts = CHI_A if pos % 2 == 0 else CHI_B
+            if sec == "break":
+                ghosts = ghosts[::2]
+            for st, v in ghosts:
                 if last and st >= 8:
                     continue
-                out.append([37, o + st * 0.25, 0.15, int(rnd.uniform(58, 76))])
-            if pos == 7:                    # a ghost-snare turn closing the phrase
-                out += [[38, o + 3.25, 0.1, 40], [38, o + 3.5, 0.1, 48], [38, o + 3.75, 0.1, 58]]
+                out.append([38, o + st * 0.25 + 0.004 / BEAT_S, 0.12, int(v * rnd.uniform(0.85, 1.12))])
+            if pos == 3:                    # a rim on the "a" of 4 in every 4th bar
+                out.append([37, o + 3.75, 0.1, int(rnd.uniform(70, 84))])
         elif kind == "RIDE":                # the reserved shine: the drop's "&"s
             for st in (2, 6, 10, 14):
                 out.append([51, o + st * 0.25, 0.3, int(rnd.uniform(92, 104))])
@@ -480,16 +515,16 @@ def notes(kind, bar0, n_bars):
                 out.append([49, o, 1.0, 110])
         elif kind in ("BASS", "BASS BREAK"):
             if kind == "BASS BREAK":
-                if sec == "break" and b < BREAK_BARS[0] + 4:
-                    continue                # the break's first half without bass
+                # (v9: no longer out for the break's first half: the break sat 6 LU under the drop
+                # with no sub; his rule, "não pode ficar sem sub, que faz o movimento e o groove")
                 if sec == "build" and b >= BUILD_BARS[1] - 2:
                     continue                # the low end leaves for the build's last 2 bars
             pat = BASS_TURN if pos == 7 else (BASS_A if pos % 2 == 0 else BASS_B)
             for st, p, ln, v in pat:
                 out.append([p, o + st * 0.25, ln * 0.25 * 0.85, int(v * rnd.uniform(0.95, 1.03))])
         elif kind == "STAB":
-            if sec == "groove" and b < 9:
-                continue                    # it enters with the groove's second phrase
+            if lead(b) != "stab":
+                continue                    # it speaks only in its own turn
             if k % 2:
                 continue                    # 2-bar phrases, written from their first bar
             phrase = STAB_ANSWER if (b - 1) % 4 == 2 else STAB_CALL
@@ -504,8 +539,8 @@ def notes(kind, bar0, n_bars):
         elif kind == "PIANO":
             if k % 4:
                 continue                    # 4-bar phrases, written from their first bar
-            if sec == "groove" and b < 13:
-                continue                    # a hint at 13-16 only
+            if lead(b) != "piano" and sec != "build":
+                continue                    # its turns only
             for st, p, ln, v in THEME:
                 t = st * 0.25
                 if b + st // 16 >= END:
@@ -528,15 +563,18 @@ def notes(kind, bar0, n_bars):
                         break
                     if bar0 + bb == BUILD_BARS[1] - 1 and (j % 8) >= 4:
                         continue            # the breath
+                    if lead(bar0 + bb) != "piano":
+                        continue            # the keys have the build's first half
                     p = (76, 79, 80, 79)[j % 4] + (12 if bar0 + bb >= BUILD_BARS[1] - 2 else 0)
                     v = 60 + 50 * j / (n_bars * 8.0)
                     out.append([p, o + bb * 4 + (j % 8) * 0.5, 0.35, int(v * rnd.uniform(0.92, 1.05))])
         elif kind == "KEYS CHOP":           # held: the gate does the rhythm
-            if last:
-                continue
+            if last or (sec == "drop" and lead(b) != "piano"):
+                continue                    # in the drop it accompanies the piano, never the organ
             chord = KEYS[(b - 1) % 4]
             for p in chord:
-                out.append([p, o, 3.98, int((70 if sec == "break" else 92) * rnd.uniform(0.95, 1.03))])
+                # v9: with the stab out of the break it sat 6 LU under the drop (his rule 3.8-5)
+                out.append([p, o, 3.98, int((90 if sec == "break" else 92) * rnd.uniform(0.95, 1.03))])
         elif kind == "GATE TRIG":
             pat = "x" * 16 if sec == "build" and b >= BUILD_BARS[0] + 4 else (CHOP_A if pos % 2 == 0 else CHOP_B)
             for st, c in enumerate(pat):
@@ -545,7 +583,7 @@ def notes(kind, bar0, n_bars):
                 else:                       # a chop: duck its last 30 % so each attack stands apart
                     out.append([60, o + st * 0.25 + 0.175, 0.07, 110])
         elif kind == "STAB HI":
-            if k % 2:
+            if k % 2 or lead(b) != "stab":
                 continue
             if sec == "build":              # one pickup into the drop, then silence
                 if b == BUILD_BARS[1] - 2:
@@ -553,7 +591,7 @@ def notes(kind, bar0, n_bars):
                 continue
             for st, s, ln, v in STAB_HI:
                 out.append([60 + s, o + st * 0.25, ln * 0.25 * 0.6, int(v * rnd.uniform(0.94, 1.04))])
-    return out if kind in ("KICK", "CRASH") else _swing(out, rnd)
+    return out if kind in ("KICK", "CRASH") else _swing(out, rnd, kind)
 
 
 def stab_scale(bar, step):
@@ -611,7 +649,9 @@ def build(files):
     # the written parts carry it in their notes and get no pool groove
     if GROOVE not in [g["name"] for g in C("grooves")["grooves"]]:
         C("load_device", {"track": "SHAKER LOOP", "path": "user_library/Grooves/%s.agr" % GROOVE})
-    C("set_groove", {"name": GROOVE, "timing": 100, "random": 0, "velocity": 0, "groove_amount": 1.0})
+    # the pool's 57 file at 121 % amount = the written parts' 58.5 (50 + 7 x 1.21)
+    C("set_groove", {"name": GROOVE, "timing": 100, "random": 0, "velocity": 0,
+                     "groove_amount": round((SWING_PCT - 50.0) / 7.0, 3)})
     for t in AUDIO:
         C("apply_groove", {"track": t, "groove": GROOVE})
     # Live gives every new MIDI clip its default "Swing 16ths 66" and the API cannot clear a
