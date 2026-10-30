@@ -51,7 +51,7 @@ import numpy as np  # noqa: E402
 import soundfile as sf  # noqa: E402
 
 C = client.call
-BPM = 126.0
+BPM = 128.0                                     # v11: "128, agressiva, bem pista e bem boogie"
 BEAT_S = 60.0 / BPM
 END = 49                                        # first bar after the written part
 SWING_PCT = 58.5                               # v9: "mais balançante", Chicago-MPC feel, inside the set's 56-59
@@ -78,19 +78,19 @@ ALL = ("groove", "break", "build", "drop")
 TRACKS = {
     "KICK":      (KIT + "SCHT_Kick1.wav", -2.3, 0.0, None, {"Vol < Vel": "0.0 %"}, ("groove", "drop")),
     "KICK HP":   (KIT + "SCHT_Kick1.wav", -9.0, 0.0, None, {"Vol < Vel": "100 %"}, ALL),
-    "CLAP":      (KIT + "SCHT_Clap2.wav", -7.0, 0.0, -21.0, {"Vol < Vel": "40 %"}, ALL),
+    "CLAP":      (KIT + "SCHT_Clap2.wav", -6.5, 0.0, -21.0, {"Vol < Vel": "40 %"}, ALL),
     # his v6 note: "faça groove com o snare, não com o clap; o clap pode ter groove mas pouco, o
     # snare vai sempre fazer mais, pra podermos usar ele como fills também, pra puxar a track"
-    "SNARE":     (KIT + "AT_Infinite_Space_Snare_One_Shot_Resonate.wav", -11.0, 0.0, -22.0,
+    "SNARE":     (KIT + "AT_Infinite_Space_Snare_One_Shot_Resonate.wav", -8.0, 0.0, -22.0,
                   {"Vol < Vel": "100 %"}, ALL),
     "HAT 16":    (KIT + "HL_CH_CLOSED_HAT_SHOT_010.wav", -18.0, 0.0, -22.5, {"Vol < Vel": "100 %"}, ALL),
-    "HAT OFF":   (KIT + "SCHT_Hat_Persona.wav", -13.0, 0.2, -21.0, {"Vol < Vel": "100 %"}, ALL),
+    "HAT OFF":   (KIT + "SCHT_Hat_Persona.wav", -11.0, 0.2, -21.0, {"Vol < Vel": "100 %"}, ALL),
     "HAT LIFT":  (KIT + "SCHT_Hat_Imite.wav", -13.0, -0.2, -21.0, {"Vol < Vel": "100 %"}, ("drop",)),
     "SHAKER":    (KIT + "KMRBI_AW_Shaker_One_Shot_Chuga.wav", -17.0, 0.35, -21.0, {"Vol < Vel": "100 %"}, ALL),
     "CONGAS":    ("drums/Percussion Core Kit.adg", -9.8, 0.3, -21.0, None, ALL),
     "TOM 909":   ("drums/909 Core Kit.adg", -6.0, -0.3, None, None, ("groove", "drop")),
     "RIM 909":   ("drums/909 Core Kit.adg", -4.0, -0.12, -24.0, None, ("groove", "build", "drop")),
-    "RIDE":      ("drums/909 Core Kit.adg", -16.0, 0.1, -30.0, None, ("drop",)),
+    "RIDE":      ("drums/909 Core Kit.adg", -14.0, 0.1, -30.0, None, ("drop",)),
     "CRASH":     ("drums/909 Core Kit.adg", -10.0, 0.0, -24.0, None, ("break", "drop")),
     "BASS":      ("sounds/Bass/Electric Bass Soft.adg", -6.0, 0.0, None, None, ("groove", "drop")),
     "BASS BREAK": ("sounds/Bass/Electric Bass Soft.adg", -14.0, 0.0, None, None, ("break", "build")),
@@ -111,6 +111,8 @@ TRACKS = {
     # Live's API routes no Gate sidechain: a Compressor at inf:1 keyed by this track closes the
     # keys wherever it sounds, so it plays the chop's silences (a sine with exact note lengths)
     "GATE TRIG": ("instruments/Operator", -70.0, 0.0, None, None, ("break", "build", "drop")),
+    # v11 ("precisamos de uma atmosfera"): a wide pad on the keys' chords, low, into a long shared tail
+    "PAD":       ("sounds/Ambient & Evolving/Ambiente Pad.adv", -24.0, 0.0, None, None, ("break", "build", "drop")),
     "STAB HI":   (OWN + "stab_organ_short.wav", -19.0, 0.25, -18.0,
                   {"Vol < Vel": "60 %", "Transpose": "-1 st", "Detune": "-1 ct"}, ("build", "drop")),
 }
@@ -136,6 +138,8 @@ EQ = {
               "3 Filter On A": "On", "3 Filter Type A": "Bell", "3 Frequency A": "400 Hz", "3 Gain A": "-2.5 dB",
               "6 Filter On A": "On", "6 Filter Type A": "Bell", "6 Frequency A": "2.50 kHz", "6 Gain A": "2.5 dB"},
     "KEYS CHOP": {"1 Filter On A": "On", "1 Filter Type A": "High Pass 12dB", "1 Frequency A": "220 Hz"},
+    "PAD": {"1 Filter On A": "On", "1 Filter Type A": "High Pass 12dB", "1 Frequency A": "300 Hz",
+            "8 Filter On A": "On", "8 Filter Type A": "Low Pass 12dB", "8 Frequency A": "7.00 kHz"},
 }
 
 # the closed hat's accent map, dB per 16th (his kit, measured): on-beat 16ths ~11 dB under the "&"
@@ -164,10 +168,15 @@ STAB_HI = [(28, 12, 1, 92), (30, 13, 1, 84), (31, 12, 1, 96)]
 # the theme (Live's C3 = 60, so 72 = C4): a 4-bar phrase, call (bars 1-2) and lift (bars 3-4),
 # its notes from the track's colours (E and the b6/b7 Ab-Bb of the stab's planing, Db the push);
 # (step in the 4 bars, MIDI pitch, length in 16ths, velocity)
-THEME = [(2, 76, 2, 100), (4, 79, 1, 88), (7, 80, 2, 108), (10, 79, 1, 90), (12, 76, 2, 96), (15, 72, 1, 84),
-         (18, 73, 3, 104), (23, 72, 1, 86), (25, 70, 2, 94), (28, 72, 4, 100),
-         (34, 76, 2, 100), (36, 79, 1, 88), (39, 80, 2, 108), (42, 79, 1, 90), (44, 76, 2, 96), (47, 72, 1, 84),
-         (50, 73, 2, 104), (53, 76, 1, 92), (55, 79, 2, 104), (58, 82, 2, 108), (62, 84, 2, 112)]
+# v11 ("a melodia ainda não ficou tão boa"): a hook, not a line -- one syncopated cell repeated,
+# G G E Ab G, answered G G E Db C, then a falling turn Bb Ab G E C Bb; off-beat, short
+HOOK = [(3, 79, 1, 96), (6, 79, 2, 104), (8, 76, 1, 84), (11, 80, 2, 110), (14, 79, 1, 92)]
+ANSWER = [(3, 79, 1, 96), (6, 79, 2, 104), (8, 76, 1, 84), (11, 73, 2, 108), (14, 72, 2, 96)]
+TURN = [(2, 82, 1, 100), (4, 80, 1, 92), (7, 79, 2, 104), (10, 76, 1, 90), (12, 72, 2, 98), (15, 70, 1, 86)]
+THEME = ([(st, p, ln, v) for st, p, ln, v in HOOK] + [(st + 16, p, ln, v) for st, p, ln, v in ANSWER]
+         + [(st + 32, p, ln, v) for st, p, ln, v in HOOK] + [(st + 48, p, ln, v) for st, p, ln, v in TURN])
+ATMOS_SENDS = {"PAD": -8.0, "PIANO": -18.0, "STAB": -20.0, "STAB HI": -16.0, "KEYS CHOP": -18.0}
+
 # the keys' held chords, one per bar of the 4-bar phrase: Cadd9, Dbmaj7, Cadd9, C7 (the theme's
 # bar 4 spells C7b9: Db E G Bb C)
 KEYS = [(60, 64, 67, 74), (61, 65, 68, 72), (60, 64, 67, 74), (58, 64, 67, 70)]
@@ -184,13 +193,16 @@ CHAINS = {
 
 # the snare: 2 and 4 under the clap, ghosts that move between two bars, fills at 4 and 8;
 # (16th step, velocity)
-SNARE_A = [(4, 92), (12, 96)]                  # v9: its ghosts moved to the 909 (Chicago)
-SNARE_B = [(4, 92), (12, 96), (11, 44)]
+# v11 ("o snare só aparece numa parte, ele precisa dar o groove"): v10's snare doubled the clap's
+# 2 and 4 and vanished under it; now it plays its own syncopations off the clap, everywhere
+SNARE_A = [(4, 90), (12, 94), (7, 72), (10, 58), (15, 80)]
+SNARE_B = [(4, 90), (12, 94), (2, 56), (7, 74), (13, 62)]
 # the 909 ghost snares (old Chicago house), two bars, the "a" of 4 pulling into the next 1
 CHI_A = [(3, 34), (6, 44), (10, 30), (15, 54)]
 CHI_B = [(1, 28), (7, 48), (9, 32), (11, 40), (14, 36)]
-SNARE_FILL_4 = [(13, 50), (14, 62), (15, 74)]
-SNARE_FILL_8 = [(12, 96), (13, 56), (13.5, 62), (14, 70), (14.5, 78), (15, 88), (15.5, 100)]
+SNARE_FILL_4 = [(13, 70), (15, 86)]
+SNARE_FILL_8 = [(9, 70), (12, 100), (14, 82), (15, 96)]          # a groove, not a roll
+SNARE_BUILD = [0, 3, 6, 8, 11, 14]                                # the last 2 bars: 3-3-2 rising
 
 # conga tumbao, by priority: slap on the "a" of 2, open tones on the "e-a" of 4, bongos, a muted
 # tone; (step, pad, velocity) -- the first four that fall in the bass's holes play
@@ -323,6 +335,25 @@ def ensure_tracks():
         n = dedupe(t)
         if n:
             log(t, "removed", n, "repeated devices")
+    # the atmosphere: one long shared tail (return C) under the melodic parts, high-passed
+    if not any(r["name"].endswith("Atmos") for r in C("get_song")["returns"]):
+        C("create_return", {"name": "Atmos"})
+    atm = [r["name"] for r in C("get_song")["returns"] if r["name"].endswith("Atmos")][0]
+    ret = "return:" + atm
+    if "Hybrid Reverb" not in devs(ret):
+        C("load_device", {"track": ret, "query": "Hybrid Reverb", "roots": ["audio_effects"]})
+    dedupe(ret)
+    if "EQ Eight" not in devs(ret):
+        C("load_device", {"track": ret, "query": "EQ Eight", "roots": ["audio_effects"]})
+    for p, v in {"Decay": "3.50 s", "Predelay": "25.0 ms", "Dry/Wet": "100 %"}.items():
+        setp(ret, "Hybrid Reverb", p, v)
+    for p, v in {"1 Filter On A": "On", "1 Filter Type A": "High Pass 12dB", "1 Frequency A": "350 Hz",
+                 "8 Filter On A": "On", "8 Filter Type A": "Low Pass 12dB", "8 Frequency A": "6.00 kHz"}.items():
+        setp(ret, "EQ Eight", p, v)
+    C("set_track", {"track": ret, "volume_db": -6.0})
+    sends = [r["name"] for r in C("get_song")["returns"]].index(atm)
+    for t, db in ATMOS_SENDS.items():
+        C("set_send", {"track": t, "send": sends, "db": db})
     names = [t["name"] for t in C("get_song")["tracks"]]
     if "KEYS DIST" in names:                 # v6's clav, replaced
         C("delete_track", {"track": "KEYS DIST"})
@@ -421,15 +452,17 @@ def notes(kind, bar0, n_bars):
         elif kind == "SNARE":               # the groove and the fills: it pulls the track
             hits = list(SNARE_A if pos % 2 == 0 else SNARE_B)
             if sec == "break":
-                hits = [(st, v * 0.7) for st, v in hits if st not in (4, 12)]   # ghosts only: the clap holds 2 and 4
+                hits = [(st, v * 0.8) for st, v in hits if st not in (4, 12)]   # its syncopations; the clap holds 2 and 4
             if any(st == 14 and p == Db3 for st, p, _, _ in bass_pattern(b)):
                 hits.append((15, 58))       # answers the bass's Db push
             if pos == 3:
                 hits = [h for h in hits if h[0] < 13] + SNARE_FILL_4
             if pos == 7 and sec != "build":
                 hits = [h for h in hits if h[0] < 12] + SNARE_FILL_8
-            if last:                        # into the drop: 16ths rising for 2 beats, then the breath
-                hits = [(st, 60 + 6 * st) for st in range(8)]
+            if b == BUILD_BARS[1] - 2:      # into the drop: a 3-3-2 groove rising (v10's 16th roll "muito rápido")
+                hits = [(st, 66 + 5 * j) for j, st in enumerate(SNARE_BUILD)]
+            if last:
+                hits = [(0, 100), (3, 108), (6, 116)]   # then the breath
             lift = 1.06 if sec == "drop" else 1.0
             for st, v in hits:
                 out.append([60, o + st * 0.25 + 0.006 / BEAT_S, 0.2, int(min(127, v * lift * rnd.uniform(0.9, 1.08)))])
@@ -565,7 +598,7 @@ def notes(kind, bar0, n_bars):
                         continue            # the breath
                     if lead(bar0 + bb) != "piano":
                         continue            # the keys have the build's first half
-                    p = (76, 79, 80, 79)[j % 4] + (12 if bar0 + bb >= BUILD_BARS[1] - 2 else 0)
+                    p = (79, 79, 76, 80)[j % 4] + (12 if bar0 + bb >= BUILD_BARS[1] - 2 else 0)
                     v = 60 + 50 * j / (n_bars * 8.0)
                     out.append([p, o + bb * 4 + (j % 8) * 0.5, 0.35, int(v * rnd.uniform(0.92, 1.05))])
         elif kind == "KEYS CHOP":           # held: the gate does the rhythm
@@ -582,6 +615,11 @@ def notes(kind, bar0, n_bars):
                     out.append([60, o + st * 0.25, 0.25, 110])
                 else:                       # a chop: duck its last 30 % so each attack stands apart
                     out.append([60, o + st * 0.25 + 0.175, 0.07, 110])
+        elif kind == "PAD":                 # the keys' chords, held a bar each, an octave up
+            if last:
+                continue
+            for p in KEYS[(b - 1) % 4]:
+                out.append([p + 12, o, 3.95, int((64 if sec == "break" else 78) * rnd.uniform(0.95, 1.03))])
         elif kind == "STAB HI":
             if k % 2 or lead(b) != "stab":
                 continue
