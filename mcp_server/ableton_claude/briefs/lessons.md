@@ -662,3 +662,19 @@ whole; it does not find a resonance.
 - Producer bounces of whole tracks (one 6-minute file sliced into 1-bar clips, 580 kick
   clips): each slice's marker 0 sits at its own position in the file (start_beat/2.1 s), so
   one long warped clip with start/end markers replaces hundreds of slices exactly.
+
+## Pick the references before the groove (Dont Your Know, 2026-10-30)
+
+- The first study used the two tracks sitting in the set (Dexter Troy, Angelo Ferreri: 60-67 % swing),
+  so a whole groove block swung the loops to 61 %. The producer then named the real target, indie dance
+  (Adam Ten, Yamagucci, Mita Gami): those references are straight (51 %), sub-heavy (54 % of the energy
+  below 60 Hz, bass rolling off-beat in octave 1), with stabs ~16 dB under the drums and shallow breaks
+  (1.75 LU) that keep clap, hats, bass and vocals. Ask which artists the track should sit next to before
+  the first groove or arrangement move; the refs left in a set are not always the target.
+- Undoing marker swing is cheap: `set_warp_markers(beats=N)` re-pins the file and drops every added
+  marker; set the pool grooves' timing to 0 for the MIDI parts.
+- A sine sub at fader -12 dB took 82 % of the band energy; -19 dB gave 50-57 %. Sidechain it from the kick
+  (Compressor S/C on, S/C EQ off: its 80 Hz high-pass removes the kick body) or kick-over-bass falls to 1-3 dB.
+- With a heavy sub, validate_against_genre's beat-grid swing reads 69-73 % on a straight groove; trust
+  listen's hats swing (51 %) instead.
+- Compressor time params: pass units in `display` ("120 ms", "0.50 ms"); a bare "120" set 3 s.
