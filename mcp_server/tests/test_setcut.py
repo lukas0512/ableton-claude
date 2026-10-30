@@ -48,3 +48,23 @@ def test_times():
     assert setcut.url_start("https://youtu.be/x?t=18m17s") == 1097
     assert setcut.url_start("https://youtu.be/x") is None
     assert setcut.clock(1030) == "17:10"
+
+
+def test_split_walks_a_set_track_by_track():
+    rng = np.random.default_rng(0)
+    a, b, c = (rng.normal(size=40) for _ in range(3))
+    blend = lambda p, q, w: (1 - w) * p + w * q
+    noisy = lambda v: v + rng.normal(scale=0.05, size=40)
+    feats = ([noisy(a) for _ in range(20)]                                  # A alone, 80 bars
+             + [noisy(blend(a, b, w)) for w in np.linspace(0.2, 0.8, 6)]   # mix A -> B
+             + [noisy(b) for _ in range(10)] + [noisy(0.2 * b) * 0 + rng.normal(size=40) * 0.3
+                                               for _ in range(3)]           # B, a 12-bar break
+             + [noisy(b) for _ in range(12)]
+             + [noisy(blend(b, c, w)) for w in np.linspace(0.2, 0.8, 6)]
+             + [noisy(c) for _ in range(16)])
+    tracks = setcut.split(np.arange(len(feats)) * 7.6, np.array(feats), min_bars=48)
+    assert tracks[0]["lo"] <= 1
+    assert len(tracks) == 3
+    b_lo, b_hi = tracks[1]["lo"], tracks[1]["hi"]
+    assert 20 <= b_lo <= 26 and 50 <= b_hi <= 56       # edges fall inside the mixes; the break stays inside B
+    assert tracks[2]["hi"] >= len(feats) - 2

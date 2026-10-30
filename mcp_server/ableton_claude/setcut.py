@@ -103,9 +103,15 @@ def _unit(v):
     return v / (np.linalg.norm(v) + 1e-9)
 
 
+def _shape(pattern):
+    """A 16-step pattern by its rhythm, not its phase: the magnitudes of its 16-step
+    Fourier series stay the same when the grid's bar line falls on another beat."""
+    return _unit(np.abs(np.fft.rfft(pattern))[1:])
+
+
 def block_features(mono, sr, bpm, t0):
-    """Per 4-bar block: kick and hat 16-step attack patterns and chroma, each unit length,
-    so each counts the same whatever its level."""
+    """Per 4-bar block: kick and hat 16-step attack patterns (as rhythm shapes) and chroma,
+    each unit length, so each counts the same whatever its level."""
     hop = 256
     fps = sr / hop
     kick, hats = _flux(mono, sr, 30, 150, hop), _flux(mono, sr, 5000, 11000, hop)
@@ -119,7 +125,7 @@ def block_features(mono, sr, bpm, t0):
         kp = np.array([kick[s: s + 3].max() for s in steps])
         hp = np.array([hats[s: s + 3].max() for s in steps])
         ch = chroma[:, int(a * cfps): max(int(a * cfps) + 1, int((a + bar) * cfps))].mean(axis=1)
-        rows.append(np.r_[_unit(kp), _unit(hp), _unit(ch)] / np.sqrt(3))
+        rows.append(np.r_[_shape(kp), _shape(hp), _unit(ch)] / np.sqrt(3))
     rows = np.array(rows)
     nb = len(rows) // BLOCK
     return np.array([rows[i * BLOCK:(i + 1) * BLOCK].mean(axis=0) for i in range(nb)])
@@ -217,3 +223,125 @@ def reference_from_set(source, at=None, before_s=90.0, after_s=600.0, out_dir=No
                found["in_mix"]["set_start"], found["in_mix"]["set_end"]))
     return {"path": out, "set_audio": path, **found, "summary": note,
             "similarity_by_block": sims}
+
+
+def fetch_full(url, out_dir, name):
+    """The whole set's audio as the site serves it (opus/m4a, ~100 MB for 100 minutes)."""
+    exe = shutil.which("yt-dlp")
+    if not exe:
+        raise RuntimeError("yt-dlp is not installed (brew install yt-dlp)")
+    os.makedirs(out_dir, exist_ok=True)
+    have = [f for f in os.listdir(out_dir) if f.startswith(name + "_full.")]
+    if have:
+        return os.path.join(out_dir, have[0])
+    subprocess.run([exe, "-q", "--no-playlist", "-f", "bestaudio",
+                    "-o", os.path.join(out_dir, name + "_full.%(ext)s"), url],
+                   check=True, capture_output=True, timeout=1800)
+    have = [f for f in os.listdir(out_dir) if f.startswith(name + "_full.")]
+    if not have:
+        raise RuntimeError("yt-dlp finished without writing the set")
+    return os.path.join(out_dir, have[0])
+
+
+def _decode(path, start_s, dur_s, out, sr=references.SR):
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", "%.3f" % start_s, "-t", "%.3f" % dur_s,
+                    "-i", path, "-ac", "2", "-ar", str(sr), out], check=True)
+    return out
+
+
+def _duration(path):
+    r = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                        "-of", "csv=p=0", path], check=True, capture_output=True, text=True)
+    return float(r.stdout.strip())
+
+
+def set_blocks(path, start_s=0.0, end_s=None, chunk_s=480.0, log=print):
+    """Block features over a long set, decoded `chunk_s` at a time (a 100-minute set does
+    not fit in memory as float audio), each chunk on its own tempo and grid. Returns
+    (start times in the set, features, bpm per block)."""
+    import tempfile
+    end_s = end_s or _duration(path)
+    times, feats, bpms = [], [], []
+    with tempfile.TemporaryDirectory() as d:
+        t = start_s
+        while t < end_s - 30:
+            dur = min(chunk_s, end_s - t)
+            x, sr = references.load_audio(_decode(path, t, dur, os.path.join(d, "c.wav")))
+            mono = x.mean(axis=1)
+            tempo = references.refine_tempo(mono, sr, samples.estimate_tempo(
+                mono[: 60 * sr], sr, lo=100.0, hi=140.0))
+            t0 = references.beat_grid(mono[: 90 * sr], sr, tempo)
+            blocks = block_features(mono, sr, tempo, t0)
+            block_s = BLOCK * 240.0 / tempo
+            for k, f in enumerate(blocks):
+                times.append(t + t0 + k * block_s)
+                feats.append(f)
+                bpms.append(tempo)
+            log("blocks %s-%s at %.1f BPM" % (clock(t), clock(t + dur), tempo))
+            t = times[-1] + block_s if len(blocks) else t + dur
+    return np.array(times), np.array(feats), np.array(bpms)
+
+
+def _stable_from(feats, j, span=6):
+    """How much the `span` blocks from j agree with their own median: a track playing
+    alone repeats its loop, a blend of two moves."""
+    if j + span > len(feats):
+        return 0.0
+    return float(np.median(similarity(feats[j:j + span], 0, span)))
+
+
+def split(times, feats, min_bars=48, span=6):
+    """Walk the set: from each stretch that holds its own loop, extend the track as far as
+    it plays alone (breaks pass), record it when long enough, go on after it."""
+    tracks, i, n = [], 0, len(feats)
+    while i < n - span:
+        if _stable_from(feats, i, span) < SOLO:
+            i += 1
+            continue
+        lo, hi = _run(similarity(feats, i, i + span), i, SOLO)
+        # the first stable stretch can be the blend itself: re-centre the core on the
+        # middle of what was found and walk again from there
+        mid = (lo + hi) // 2
+        c0 = max(0, min(mid - span // 2, n - span))
+        lo, hi = _run(similarity(feats, c0, c0 + span), mid, SOLO)
+        lo = max(lo, tracks[-1]["hi"] + 1 if tracks else 0)
+        if (hi + 1 - lo) * BLOCK >= min_bars:
+            # two 4x4 records share most of their rhythm shape, so a blend's edge can still
+            # pass as the track: keep one block clear of each end when there is room
+            if (hi - 1 - lo) * BLOCK >= min_bars:
+                lo, hi = lo + 1, hi - 1
+            tracks.append({"lo": lo, "hi": hi})
+            i = hi + 1
+        else:
+            i += 1
+    return tracks
+
+
+def split_set(source, start=None, end=None, out_dir=None, name="set", min_bars=48, log=print):
+    """Every track of a DJ set (a link or a file), each cut where it plays alone, for
+    study_references(name, folder=<out_dir>)."""
+    out_dir = os.path.expanduser(out_dir or "~/Desktop/Tracks/refs_from_sets/%s" % name)
+    os.makedirs(out_dir, exist_ok=True)
+    is_url = bool(re.match(r"https?://", str(source)))
+    path = fetch_full(source, os.path.dirname(out_dir), name) if is_url else source
+    cache = os.path.join(out_dir, ".blocks_%s_%s.npz" % (seconds(start) or 0, seconds(end) or "end"))
+    if os.path.exists(cache):
+        z = np.load(cache)
+        times, feats, bpms = z["times"], z["feats"], z["bpms"]
+    else:
+        times, feats, bpms = set_blocks(path, seconds(start) or 0.0, seconds(end), log=log)
+        np.savez(cache, times=times, feats=feats, bpms=bpms)
+    found = []
+    for k, tr in enumerate(split(times, feats, min_bars)):
+        a, b = times[tr["lo"]], times[min(tr["hi"] + 1, len(times) - 1)]
+        if tr["hi"] + 1 >= len(times):
+            b = times[-1] + BLOCK * 240.0 / bpms[-1]
+        out = os.path.join(out_dir, "%s_%02d_%s.wav" % (name, k + 1, clock(a).replace(":", "m")))
+        _decode(path, a, b - a, out)
+        found.append({"path": out, "set_start": clock(a), "set_end": clock(b),
+                      "bars": (tr["hi"] + 1 - tr["lo"]) * BLOCK,
+                      "bpm": round(float(np.median(bpms[tr["lo"]: tr["hi"] + 1])), 1)})
+        log("track %d: %s-%s" % (k + 1, clock(a), clock(b)))
+    return {"set_audio": path, "folder": out_dir, "tracks": found,
+            "summary": "%d tracks cut alone from %s; study them with "
+                       "study_references(name, folder=%r)" % (len(found), clock(times[-1]), out_dir)}

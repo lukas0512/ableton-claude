@@ -20,7 +20,8 @@ studies ~5 of them (measured and heard) in the background; `study_status` return
 (what they share and why, where they disagree, a section plan). The study's name then
 works as `genre` in every genre tool. Propose ideas from it and ask before changing the set.
 A reference inside a DJ set or a YouTube mix: `reference_from_set(link, at="17:10")` cuts
-the stretch where that track plays alone; study that file, never the raw set.
+the stretch where that track plays alone; study that file, never the raw set. A whole set of
+one sound: `split_set(link, name)` cuts every track alone into a folder to study.
 
 Start with `ableton_status`. Use `ableton_command` for any bridge command and
 `ableton_batch` to run many in one Live tick (much faster for building arrangements).
@@ -788,6 +789,18 @@ def reference_from_set(source: str, at: str | float | None = None, before_s: flo
     a WAV. Analyse the returned `path`, not the set: the mixed edges carry the neighbours'
     kick and chords. Downloads ~100 MB per 10 minutes; ~1 minute to analyse."""
     return setcut.reference_from_set(source, at, before_s, after_s, out_dir, name, bpm)
+
+
+@mcp.tool()
+def split_set(source: str, name: str, start: str | float | None = None,
+              end: str | float | None = None, out_dir: str | None = None,
+              min_bars: int = 48) -> dict:
+    """Every track of a DJ set (a YouTube link or an audio file), each cut where it plays
+    alone, into one folder: a whole set of one sound is a ready study
+    (`study_references(name, folder=<folder>)`). Downloads the set's audio (~100 MB per
+    100 minutes); a few minutes to walk it; cached per folder. The set's own intro
+    (speech, ambience) can come out at a wrong BPM: leave those files out."""
+    return setcut.split_set(source, start, end, out_dir, name, min_bars, log=lambda *_: None)
 
 
 @mcp.tool()
