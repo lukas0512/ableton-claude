@@ -270,6 +270,10 @@ loops). Start a new track's drums from it; what makes it work:
 
 ## Mixing in Live through this connector
 
+- `solo_levels(one_pass=True)` crashed Live 12.4.6 (EXC_BAD_ACCESS on the main thread inside a
+  Python API call, 2026-10-30 13:35) on a 20-track set; the set was lost back to its last save.
+  Ask the producer to save (Cmd+S) before any solo pass, and prefer the default soloed pass.
+
 - `get_track` lists devices as dicts ({i, name, class}); `get_song` lists them as names. A build
   script that tested `"EQ Eight" not in get_track(...)["devices"]` was always True and stacked
   another EQ Eight on ten tracks every run (Mochakk C, 2026-10-30: up to ten per track). Compare

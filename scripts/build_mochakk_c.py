@@ -78,13 +78,15 @@ ALL = ("groove", "break", "build", "drop")
 TRACKS = {
     "KICK":      (KIT + "SCHT_Kick1.wav", -2.3, 0.0, None, {"Vol < Vel": "0.0 %"}, ("groove", "drop")),
     "KICK HP":   (KIT + "SCHT_Kick1.wav", -9.0, 0.0, None, {"Vol < Vel": "100 %"}, ALL),
-    "CLAP":      (KIT + "SCHT_Clap2.wav", -6.5, 0.0, -21.0, {"Vol < Vel": "40 %"}, ALL),
+    # v12 (v11 measured against the set: backbeat 25 dB over the bar where the refs sit ~0, clap
+    # tail 46 ms vs 145): the clap down and into the kit's room
+    "CLAP":      (KIT + "SCHT_Clap2.wav", -9.5, 0.0, -14.0, {"Vol < Vel": "40 %"}, ALL),
     # his v6 note: "faça groove com o snare, não com o clap; o clap pode ter groove mas pouco, o
     # snare vai sempre fazer mais, pra podermos usar ele como fills também, pra puxar a track"
     "SNARE":     (KIT + "AT_Infinite_Space_Snare_One_Shot_Resonate.wav", -8.0, 0.0, -22.0,
                   {"Vol < Vel": "100 %"}, ALL),
-    "HAT 16":    (KIT + "HL_CH_CLOSED_HAT_SHOT_010.wav", -18.0, 0.0, -22.5, {"Vol < Vel": "100 %"}, ALL),
-    "HAT OFF":   (KIT + "SCHT_Hat_Persona.wav", -11.0, 0.2, -21.0, {"Vol < Vel": "100 %"}, ALL),
+    "HAT 16":    (KIT + "HL_CH_CLOSED_HAT_SHOT_010.wav", -21.0, 0.0, -22.5, {"Vol < Vel": "100 %"}, ALL),
+    "HAT OFF":   (KIT + "SCHT_Hat_Persona.wav", -14.0, 0.2, -21.0, {"Vol < Vel": "100 %"}, ALL),
     "HAT LIFT":  (KIT + "SCHT_Hat_Imite.wav", -13.0, -0.2, -21.0, {"Vol < Vel": "100 %"}, ("drop",)),
     "SHAKER":    (KIT + "KMRBI_AW_Shaker_One_Shot_Chuga.wav", -17.0, 0.35, -21.0, {"Vol < Vel": "100 %"}, ALL),
     "CONGAS":    ("drums/Percussion Core Kit.adg", -9.8, 0.3, -21.0, None, ALL),
@@ -123,9 +125,9 @@ AUDIO = {   # played loops: human timing MIDI does not have (Let The Rhythm's sh
 }
 FX = ["REV CRASH", "SUB BOOM"]
 EQ = {
-    "HAT 16": {"8 Filter On A": "On", "8 Filter Type A": "High Shelf", "8 Frequency A": "8.00 kHz", "8 Gain A": "-4.0 dB"},
+    "HAT 16": {"8 Filter On A": "On", "8 Filter Type A": "High Shelf", "8 Frequency A": "7.00 kHz", "8 Gain A": "-6.0 dB"},
     "SHAKER": {"8 Filter On A": "On", "8 Filter Type A": "High Shelf", "8 Frequency A": "8.00 kHz", "8 Gain A": "-4.0 dB"},
-    "BASS": {"8 Filter On A": "On", "8 Filter Type A": "Low Pass 12dB", "8 Frequency A": "900 Hz"},
+    "BASS": {"8 Filter On A": "On", "8 Filter Type A": "Low Pass 12dB", "8 Frequency A": "650 Hz"},   # v12: harmonics -4 dB vs the set's -12
     # the break/build bass keeps its sub (his rule: the low end never vanishes) but no body
     "BASS BREAK": {"8 Filter On A": "On", "8 Filter Type A": "Low Pass 48dB", "8 Frequency A": "300 Hz"},
     # the build's pulse: the kick's click and knock without its sub
@@ -173,8 +175,30 @@ STAB_HI = [(28, 12, 1, 92), (30, 13, 1, 84), (31, 12, 1, 96)]
 HOOK = [(3, 79, 1, 96), (6, 79, 2, 104), (8, 76, 1, 84), (11, 80, 2, 110), (14, 79, 1, 92)]
 ANSWER = [(3, 79, 1, 96), (6, 79, 2, 104), (8, 76, 1, 84), (11, 73, 2, 108), (14, 72, 2, 96)]
 TURN = [(2, 82, 1, 100), (4, 80, 1, 92), (7, 79, 2, 104), (10, 76, 1, 90), (12, 72, 2, 98), (15, 70, 1, 86)]
-THEME = ([(st, p, ln, v) for st, p, ln, v in HOOK] + [(st + 16, p, ln, v) for st, p, ln, v in ANSWER]
-         + [(st + 32, p, ln, v) for st, p, ln, v in HOOK] + [(st + 48, p, ln, v) for st, p, ln, v in TURN])
+THEMES = {"cell": ([(st, p, ln, v) for st, p, ln, v in HOOK] + [(st + 16, p, ln, v) for st, p, ln, v in ANSWER]
+                   + [(st + 32, p, ln, v) for st, p, ln, v in HOOK] + [(st + 48, p, ln, v) for st, p, ln, v in TURN])}
+
+
+def _montuno():
+    """v12 audition B: a Latin piano montuno, broken chords on the syncopated 16ths, one bar per
+    chord (C, Db, C, C7): the lower voice and the top alternate."""
+    chords = [((64, 72), 67), ((65, 73), 68), ((64, 72), 67), ((64, 70), 67)]
+    out = []
+    for bar, (dyad, mid) in enumerate(chords):
+        for j, st in enumerate((0, 2, 3, 5, 7, 8, 10, 11, 13, 15)):
+            v = 100 if st in (3, 7, 11, 15) else 80
+            notes = dyad if j % 2 == 0 else (mid,)
+            out += [(bar * 16 + st, p, 1, v) for p in notes]
+    return out
+
+
+THEMES["montuno"] = _montuno()
+# v12 audition C: singable, longer notes, a voice's phrase (E G C up, Bb Ab G down)
+THEMES["sung"] = [(2, 76, 3, 100), (6, 79, 2, 96), (9, 84, 5, 110), (18, 82, 2, 100), (21, 80, 2, 96),
+                  (24, 79, 6, 104), (34, 76, 3, 100), (38, 79, 2, 96), (41, 84, 3, 108), (45, 85, 2, 112),
+                  (50, 84, 2, 104), (53, 82, 2, 98), (56, 80, 2, 96), (59, 79, 4, 104)]
+HOOK_NAME = os.environ.get("MOCHAKK_HOOK", "cell")
+THEME = THEMES[HOOK_NAME]
 ATMOS_SENDS = {"PAD": -8.0, "PIANO": -18.0, "STAB": -20.0, "STAB HI": -16.0, "KEYS CHOP": -18.0}
 
 # the keys' held chords, one per bar of the 4-bar phrase: Cadd9, Dbmaj7, Cadd9, C7 (the theme's
@@ -398,8 +422,9 @@ def ensure_tracks():
 
 
 # hands, ms of scatter per part (v9: "dar uma humanizada"): ghosts and congas loosest, the kick the grid
-HUMAN_MS = {"SNARE": 4, "RIM 909": 7, "CONGAS": 6, "TOM 909": 5, "HAT 16": 4, "HAT OFF": 3, "HAT LIFT": 3,
-            "SHAKER": 5, "PIANO": 5, "BASS": 4, "STAB": 3, "STAB HI": 3}
+# v12: the set's timing spread is 26 ms (middle half 20-28), v11's 17.5: looser hands
+HUMAN_MS = {"SNARE": 6, "RIM 909": 10, "CONGAS": 9, "TOM 909": 8, "HAT 16": 7, "HAT OFF": 5, "HAT LIFT": 5,
+            "SHAKER": 8, "PIANO": 6, "BASS": 4, "STAB": 4, "STAB HI": 4}
 
 
 def _swing(notes, rnd, kind=None):
@@ -587,7 +612,7 @@ def notes(kind, bar0, n_bars):
                 vel = v * {"groove": 0.6, "break": 0.95, "drop": 1.0}[sec] * rnd.uniform(0.9, 1.05)
                 dur = ln * 0.25 * (0.9 if sec == "break" else 0.7)
                 out.append([p, o + t + hum, dur, int(min(127, vel))])
-                if sec == "drop":           # house piano: the octave below doubles it
+                if sec == "drop" and HOOK_NAME != "montuno":   # house piano: the octave below doubles it
                     out.append([p - 12, o + t + hum, dur, int(min(127, vel * 0.85))])
             if sec == "build" and k == 0:   # the cell (E-G-Ab) in 8ths, climbing an octave at the end
                 for j in range(n_bars * 8):
