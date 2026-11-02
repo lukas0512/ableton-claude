@@ -56,6 +56,13 @@ section you changed (`transport(action="play", bar=…)`) and say what to listen
   quarters, 8ths, then 16ths up to the 2-beat breath, its velocity rising (Simpler
   Vol<Vel 100 %; leave every normal kick at 127). Passed: -9.6, -8.9, -8.4, -8.1, -8.2 LUFS
   per bar, drop -7.4. Too-loud 8th kicks put the bar before the drop over the drop (-6.2).
+- **A flat break is one you can read in numbers** ("no break falta um movimento, falta tensão no
+  build up", TECHNO #8 v3). 16 bars within -14.0..-14.4 RMS with the bass's sub on, centroid 520-545 Hz,
+  highs moving 1 dB over the build; the reference's 2nd break sat 7-10 dB under its drop with
+  its centroid at 1.8-3.5 kHz. v4: bass and loop out, the drop's riff dissolving through a low-pass,
+  a filter arc opening further each 4 bars, harmony over the riff's pedal, the build's highs +2.8 dB,
+  the last bar the voice alone. Measured only, not yet heard.
+
 - **Ear candies at the turns**, from the track's own material: its vocal phrase reversed
   through a reverb into each drop, a reverse cymbal, an F# sub boom on the drop downbeat, the
   phrase's last syllable thrown into a baked 3/16 ping-pong echo at phrase ends and before
@@ -205,6 +212,14 @@ section you changed (`transport(action="play", bar=…)`) and say what to listen
   is usually the DJ's scratch: use the verses instead.
 - Story: the voice far (radio band) in the intro, real and close in the break (its filter
   opening over 2 bars), the title a cappella before the drop.
+
+- **Find the record's own tempo and pocket before cutting a voice** ("o chop ficou meio quadrado,
+  meio sem groove, fora de warp alguns, não tão alinhado com o groove e o bounce do projeto", TECHNO
+  #8 v3). Unwarped chops of a 123.6 BPM voice placed one by one in a 128 track slid and read square,
+  though each attack was on the grid. Read the source's onsets on its pinned beat grid: this voice's
+  4-beat cell (0, .75, 1.25, 1.75, 2.25, 3) already shared the riff's off-16ths. Warp every piece
+  and keep it on its own beat phase; let the riff and its audio double leave room where the voice
+  answers, so the voice continues the riff. Not yet heard at the time of writing.
 
 - **Voices enter and leave like a record, not a cut** ("cortados na forma certa... entrando
   e saindo mais na boa... pra não parecer que foi cortado"). Phrases cut on the source's bar

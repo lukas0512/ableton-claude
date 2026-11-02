@@ -723,3 +723,10 @@ measure what a move does. A build carried only by a filter opening stays flat (-
 -13.5 break) because the bass's sub dominates: 2 dB off the bass in its first half, the opening synth
 climbing +9 dB and the sub leaving only in the last bar passed (-13.7, -13.3, -11.8, -11.9, breath
 -15.9, drop -9.8). Not yet heard by him.
+
+Also from TECHNO #8 v3 to v4: a `groove` on every clip proves nothing. His clips carried "Swing 16ths 66"
+but the Song's Global Groove Amount was 0 % (`grooves` shows it; the saved `.als` agrees), so the drums
+were straight and the bounce came from the top loop's off-16ths and the riff. Check it before assuming a
+pocket. A MIDI riff lifted from an audio loop that also plays means two riffs: cut both to leave room for
+an answer. `onset_chop` and unwarped chops assume the source's speed fits: compare its tempo with the
+song first.
