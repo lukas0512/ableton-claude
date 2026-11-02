@@ -710,3 +710,16 @@ whole; it does not find a resonance.
   off-16ths. Keep one-shots' `Vol < Vel` around 20-35 % so ghosts are quieter, not mushy, and keep
   the clap dry: a room send and a dark shelf on the hats read as "fofo". Warp played loops in
   Beats mode, which keeps their transients through the stretch.
+
+## Finishing a sketch he started: read his template and his arrangement first (TECHNO #8, 2026-11-02)
+
+A new audio track in his set arrives with his template's EQ Eight (high-pass 12 dB at 31.6 Hz), so
+"no devices yet" is false: check for the device by name before loading, and set the filter type
+you need. A `listen` or `production_review` on a render whose last bars are near silent fails with
+"cannot convert float NaN to integer": cut the render before the silence. `quality_gate` can pass
+the MCP client's timeout on a 28-track set: call `server.quality_gate()` from a script. The God
+Particle's "Limiter Input Gain" shows an unlabelled number (raw 0.494 = 5.000, 0.56 = 5.784), not dB:
+measure what a move does. A build carried only by a filter opening stays flat (-13.3 LUFS against a
+-13.5 break) because the bass's sub dominates: 2 dB off the bass in its first half, the opening synth
+climbing +9 dB and the sub leaving only in the last bar passed (-13.7, -13.3, -11.8, -11.9, breath
+-15.9, drop -9.8). Not yet heard by him.
