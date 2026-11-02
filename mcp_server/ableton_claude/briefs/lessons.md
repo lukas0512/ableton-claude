@@ -730,3 +730,11 @@ were straight and the bounce came from the top loop's off-16ths and the riff. Ch
 pocket. A MIDI riff lifted from an audio loop that also plays means two riffs: cut both to leave room for
 an answer. `onset_chop` and unwarped chops assume the source's speed fits: compare its tempo with the
 song first.
+
+TECHNO #8 v5 to v8. `shift_clips` says it keeps clip envelopes, but after a 24-bar cut a render showed a
+high-passed kick and a rising Utility playing their stale values (build low band +6 dB, was -18): check a
+render after any shift and rebuild device-envelope clips at the new bars. Live's Audio to MIDI can name a
+note whose patch then speaks somewhere else: this riff's D5 accents rang A6 (1758 Hz, the patch's 3rd partial)
+where the source loop had D5 and G5 (581, 778 Hz). Compare each note's partials with the source (he hears
+this as "agudinho estranho", no EQ fixes it, the notes must move). Numeric `display` on time params is
+read in seconds (1 became 1000 ms): pass "1.00 ms" and read back.

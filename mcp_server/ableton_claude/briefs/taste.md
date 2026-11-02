@@ -63,6 +63,17 @@ section you changed (`transport(action="play", bar=…)`) and say what to listen
   a filter arc opening further each 4 bars, harmony over the riff's pedal, the build's highs +2.8 dB,
   the last bar the voice alone. Measured only, not yet heard.
 
+- **A build is a climb to just under the drop** ("fazer mesmo pressão, subir bem a energia no build up pra
+  cair num drop forte", TECHNO #8 v4). Both drops get the same arc, shorter for drop 1: sub out, the
+  high-passed kick gaining weight through 8ths and 16ths, the opening synth pumping from that kick, the riff
+  climbing the scale, one bar of voice alone. Measured v8, not yet heard: -14.1 to -11.9 RMS, highs +4 dB,
+  breath -23.8, drop -9.7 with the low band up 16 dB and a sub falling onto the root.
+
+- **Melodies must sit in the track's timbres** ("agudinho estranho... os acentos uma oitava muito acima...
+  noção dessas melodias", TECHNO #8 v5). Solo every melody against the loop it belongs with, band by band
+  and note by note; move a note that rings outside the track's register before reaching for EQ. "Duro" was
+  the same part: a resonance 13 dB over the rest, nearly mono, full-length notes.
+
 - **Ear candies at the turns**, from the track's own material: its vocal phrase reversed
   through a reverb into each drop, a reverse cymbal, an F# sub boom on the drop downbeat, the
   phrase's last syllable thrown into a baked 3/16 ping-pong echo at phrase ends and before
@@ -219,7 +230,8 @@ section you changed (`transport(action="play", bar=…)`) and say what to listen
   though each attack was on the grid. Read the source's onsets on its pinned beat grid: this voice's
   4-beat cell (0, .75, 1.25, 1.75, 2.25, 3) already shared the riff's off-16ths. Warp every piece
   and keep it on its own beat phase; let the riff and its audio double leave room where the voice
-  answers, so the voice continues the riff. Not yet heard at the time of writing.
+  answers, so the voice continues the riff. He then asked for delay and reverb, light with moments
+  of more: the chops stay dry-ish and the calls carry the echo.
 
 - **Voices enter and leave like a record, not a cut** ("cortados na forma certa... entrando
   e saindo mais na boa... pra não parecer que foi cortado"). Phrases cut on the source's bar
