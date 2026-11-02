@@ -67,7 +67,14 @@ section you changed (`transport(action="play", bar=…)`) and say what to listen
   cair num drop forte", TECHNO #8 v4). Both drops get the same arc, shorter for drop 1: sub out, the
   high-passed kick gaining weight through 8ths and 16ths, the opening synth pumping from that kick, the riff
   climbing the scale, one bar of voice alone. Measured v8, not yet heard: -14.1 to -11.9 RMS, highs +4 dB,
-  breath -23.8, drop -9.7 with the low band up 16 dB and a sub falling onto the root.
+  breath -23.8, drop -9.7 with the low band up 16 dB.
+- **The drop's first kick must be the strongest, alone and in phase** ("o primeiro kick parece que não bate
+  forte... um cancelamento... fora de tempo", TECHNO #8 v8). An added sub on the downbeat bent its waveform
+  (correlation with later kicks .89 -> .53), an FX hit a 16th early rang over its click, and the bass loop
+  left it 2.2 dB under the third kick. Passed the measure, not yet heard: no layer on that hit, nothing ringing
+  into it, its own note at velocity 127 (low band +3.5 dB over the second kick, correlation .92). A climb must
+  not dwarf the drop: a synth 12-13 dB over it at 250-1000 Hz made drop 1 "mudar drasticamente"; thin it
+  with a rising high-pass so the body is what returns.
 
 - **Melodies must sit in the track's timbres** ("agudinho estranho... os acentos uma oitava muito acima...
   noção dessas melodias", TECHNO #8 v5). Solo every melody against the loop it belongs with, band by band

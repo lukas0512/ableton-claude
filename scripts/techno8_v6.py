@@ -2,7 +2,7 @@
 
 Soloed against the loop it came from, the riff had one resonance at 1.6-1.8 kHz 13 dB over everything,
 a nearly mono image (-21 dB side, loop -8) and notes held to their full 16th (loop decays in 18 ms).
-Stages: python techno8_v6.py timbre | notes | thin | cut | restore | riff | drops | final (each once: notes shortens what it reads)
+Stages: python techno8_v6.py timbre | notes | thin | cut | restore | riff | drops | final | landing | first_kick (each once: notes shortens what it reads)
 """
 from pathlib import Path
 import random
@@ -13,7 +13,8 @@ import soundfile as sf
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'mcp_server'))
 from ableton_claude import client
-from techno8_arrange import (_ensure, _hp_kick, B, BASS, BASS_B, BASS_FILE, C, CH, KICK_HP, LOOP, LOOP_FILE, RIFF, SYNTH_B)
+from techno8_arrange import (_ensure, _hp_kick, B, BASS, BASS_B, BASS_FILE, C, CH, CLAP13, CLAP15, HAT, KICK_HP, LOOP, LOOP_FILE,
+                             PERC, RIFF, SYNTH_B, V_CALL)
 from techno8_v4 import PAD, TOP_B, TOP_FILE
 
 EQ = 'EQ Eight'
@@ -272,6 +273,38 @@ def stage_final():
     C('set_param', track=LOOP, device=EQ, param='3 Gain A', display=-4)
 
 
+def stage_landing():
+    # the synth stood 12-13 dB over the drop at 250-1000 Hz and all of it vanished on the downbeat: it now
+    # thins out as it opens, so the drop's body is what returns. Drop 1's last two bars also match drop 2's:
+    # drums carry on through bar 55, then bar 56 is the voice alone
+    C('delete_clips_in_range', track=SYNTH_B, start_bar=49, end_bar=57)
+    C('delete_clips_in_range', track=SYNTH_B, start_bar=105, end_bar=113)
+    for bar, (a, m, z), (g0, g1), hp in ((49, (700, 1500, 1200), (-1, 3), (40, 120)), (53, (1200, 4000, 9000), (3, 11), (120, 650)),
+                                         (105, (1500, 2500, 3500), (4, 7), (40, 150)), (109, (3500, 7000, 12000), (7, 13), (150, 800))):
+        C('create_audio_clip', track=SYNTH_B, path=str(LOOP_FILE), bar=bar, warp=True, beats=16, name='synth opening', envelopes=[
+            _param_env('Frequency', 'Auto Filter', [[0, a], [10, m], [16, z]]), _param_env('Output', 'Utility', [[0, g0], [16, g1]], 'db'),
+            _param_env('1 Frequency A', EQ, [[0, hp[0]], [16, hp[1]]])])
+    for bar in (53, 109):
+        C('trim_clip', track=SYNTH_B, clip={'at': B(bar)}, end_beat=B(bar + 3))
+    for t in (HAT, CLAP15):
+        C('mute_clips_in_range', track=t, muted=False, start_bar=55, end_bar=56)
+        C('mute_clips_in_range', track=t, muted=True, start_bar=56, end_bar=57)
+    C('mute_clips_in_range', track=CLAP13, muted=True, start_bar=56, end_bar=57)
+    C('set_clip', track=V_CALL, clip={'at': B(56) + .47}, gain_db=4)
+
+
+def stage_first_kick():
+    # his notes: the first kick lands wrong. Three causes: an FX hit a 16th early ringing over it, the baked
+    # sub bending its waveform (correlation with the next kicks .89 -> .53), and no bass under that kick
+    for bar in (57, 113):
+        C('delete_clip', track=20, clip={'at': B(bar) - .25})
+        C('delete_clips_in_range', track=BOOM, start_bar=bar, end_bar=bar + 1)
+        r = client.call('get_notes', {'track': 1, 'clip': {'at': B(bar)}})
+        ns = r['notes'] if isinstance(r, dict) else r
+        C('add_notes', track=1, clip={'at': B(bar)}, replace=True,
+          notes=[[n[0], n[1], n[2], 127 if n[1] < .01 else n[3]] for n in ns])
+
+
 if __name__ == '__main__':
-    {'final': stage_final, 'drops': stage_drops, 'riff': stage_riff, 'timbre': stage_timbre, 'notes': stage_notes, 'thin': stage_thin, 'cut': stage_cut,
+    {'first_kick': stage_first_kick, 'landing': stage_landing, 'final': stage_final, 'drops': stage_drops, 'riff': stage_riff, 'timbre': stage_timbre, 'notes': stage_notes, 'thin': stage_thin, 'cut': stage_cut,
      'restore': stage_restore}[sys.argv[1]]()
