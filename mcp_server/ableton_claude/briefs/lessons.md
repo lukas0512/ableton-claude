@@ -738,3 +738,8 @@ note whose patch then speaks somewhere else: this riff's D5 accents rang A6 (175
 where the source loop had D5 and G5 (581, 778 Hz). Compare each note's partials with the source (he hears
 this as "agudinho estranho", no EQ fixes it, the notes must move). Numeric `display` on time params is
 read in seconds (1 became 1000 ms): pass "1.00 ms" and read back.
+
+The bridge cannot reorder tracks (Live's API has no move), and background `app_drag` on a track title does not
+move it either: name and colour by API, give him the order to drag. Check returns by index (`return:0`): Live
+renames a return when a device is added ("A-Reverb | Compressor"). `solo_levels` runs through a plugin master
+(it only switches off what it recognises): for headroom render with the plugin off.

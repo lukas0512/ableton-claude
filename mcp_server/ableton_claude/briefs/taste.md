@@ -76,6 +76,11 @@ section you changed (`transport(action="play", bar=…)`) and say what to listen
   not dwarf the drop: a synth 12-13 dB over it at 250-1000 Hz made drop 1 "mudar drasticamente"; thin it
   with a rising high-pass so the body is what returns.
 
+- **The theme carries the drop** ("o tema tem que ser mais forte, não pode ter contido", TECHNO #8 v9): measured
+  against the kick, the synth loop sat at -19.8 LU and the riff at -21.6 under top layers at -4 to -6, so the
+  track read as drums with a theme somewhere. v10: -12.1 and -15.4, tops -6.6 to -8.6, 1 kHz cleared in the top
+  loop. Check this before the limiter gets blamed for a weak drop. Not yet heard.
+
 - **Melodies must sit in the track's timbres** ("agudinho estranho... os acentos uma oitava muito acima...
   noção dessas melodias", TECHNO #8 v5). Solo every melody against the loop it belongs with, band by band
   and note by note; move a note that rings outside the track's register before reaching for EQ. "Duro" was
