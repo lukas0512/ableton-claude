@@ -1,0 +1,8 @@
+.hyperframes/
+.thumbnails/
+.waveform-cache/
+.media/
+renders/
+build/
+node_modules/
+check.json
