@@ -2,182 +2,179 @@
 <style>
 @font-face{font-family:"Patrick Hand";src:url("assets/fonts/PatrickHand.woff2") format("woff2");font-display:block}
 #root{position:absolute;inset:0;background:#181C19;overflow:hidden;font-family:"Patrick Hand",sans-serif}
-#cam{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0}
+#pump,#cam{position:absolute;left:0;top:0;width:1920px;height:1080px}
+#cam{transform-origin:0 0}
 #world{position:absolute;left:0;top:0;width:1920px;height:1080px;overflow:visible}
 #world text{font-family:"Patrick Hand",sans-serif}
 .g{fill:none;stroke:#F2F3EA;stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
 .gt{stroke-width:3.5}
 .bubble,.placa{position:absolute}
-.bubble .in{background:#F2F3EA;color:#121413;border-radius:46px 58px 50px 62px;padding:26px 44px;font-size:64px;line-height:1.02;text-align:center;position:relative}
+.bubble .in{background:#F2F3EA;color:#121413;border-radius:46px 58px 50px 62px;padding:26px 44px;font-size:68px;line-height:1.02;text-align:center;position:relative}
 .bubble .tail{position:absolute;width:0;height:0;border-left:26px solid transparent;border-right:26px solid transparent;border-top:44px solid #F2F3EA;bottom:-38px}
 .placa .in{background:#1B1E1C;border:5px solid #F2F3EA;border-radius:18px;overflow:hidden}
 .placa img{display:block;width:100%}
 #cursor{position:absolute;left:0;top:0;width:58px;height:74px;z-index:30}
 #end{position:absolute;inset:0;background:#D0FA5E;color:#121413;z-index:40}
-#end-title{position:absolute;left:144px;top:120px;width:800px;font-size:226px;line-height:.92;letter-spacing:-3px}
-#end-mark{position:absolute;left:144px;top:610px;display:flex;align-items:center;gap:30px}
+#end-title{position:absolute;left:144px;top:96px;width:800px;font-size:226px;line-height:.92;letter-spacing:-3px}
+#end-mark{position:absolute;left:144px;top:570px;display:flex;align-items:center;gap:30px}
 #end-mark img{width:118px;height:118px;border-radius:26px;background:#121413}
 #end-name{font-family:Inter,sans-serif;font-weight:800;font-size:92px;letter-spacing:6px}
-#end-tag{position:absolute;left:144px;top:770px;font-size:76px}
+#end-tag{position:absolute;left:144px;top:716px;font-size:76px}
+#end-cred{position:absolute;left:144px;top:836px;font-size:46px}
 </style>
-<div data-hf-id="hf-tse6" id="root" data-composition-id="studio" data-width="1920" data-height="1080" data-layout-allow-overflow data-layout-allow-overlap>
-<div data-hf-id="hf-ftaq" id="cam">
-<svg data-hf-id="hf-ihfs" id="world" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
-  <defs data-hf-id="hf-mh0t">
-    <filter data-hf-id="hf-nxxk" id="boil" x="-15%" y="-15%" width="130%" height="130%"><feTurbulence data-hf-id="hf-jgux" id="turb" type="fractalNoise" baseFrequency="0.018" numOctaves="2" seed="1"/><feDisplacementMap data-hf-id="hf-h6tg" in="SourceGraphic" scale="6"/></filter>
-    <pattern data-hf-id="hf-fk4v" id="ticks" width="56" height="80" patternUnits="userSpaceOnUse"><rect data-hf-id="hf-lwp9" x="8" y="18" width="30" height="44" rx="5" fill="#121413"/></pattern>
+<div id="root" data-composition-id="studio" data-width="1920" data-height="1080" data-layout-allow-overflow data-layout-allow-overlap>
+<div id="pump"><div id="cam">
+<svg id="world" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="boil" x="-15%" y="-15%" width="130%" height="130%"><feTurbulence id="turb" type="fractalNoise" baseFrequency="0.018" numOctaves="2" seed="1"/><feDisplacementMap in="SourceGraphic" scale="6"/></filter>
+    <pattern id="ticks" width="56" height="80" patternUnits="userSpaceOnUse"><rect x="8" y="18" width="30" height="44" rx="5" fill="#121413"/></pattern>
+    <clipPath id="tela"><rect x="725" y="145" width="1060" height="590" rx="12"/></clipPath>
   </defs>
-  <!-- quarto -->
-  <rect data-hf-id="hf-fix6" x="-200" y="-400" width="2320" height="1200" fill="#181C19"/>
-  <g data-hf-id="hf-xqor" filter="url(#boil)">
-    <g data-hf-id="hf-erfy" class="g gt">
-      <rect data-hf-id="hf-awda" x="96" y="82" width="300" height="250" rx="8"/><path data-hf-id="hf-1hiu" d="M246 82V332M96 207H396"/>
-    </g>
-    <circle data-hf-id="hf-8p34" cx="316" cy="146" r="38" fill="#F2F3EA"/><circle data-hf-id="hf-h5ox" cx="332" cy="136" r="34" fill="#181C19"/>
-    <g data-hf-id="hf-j2vg" id="bilhete">
-      <rect data-hf-id="hf-iyb4" x="470" y="96" width="196" height="172" fill="#2A302B" stroke="#F2F3EA" stroke-width="3.5"/>
-      <text data-hf-id="hf-shqc" x="568" y="146" text-anchor="middle" font-size="38" fill="#F2F3EA">TERMINAR</text>
-      <text data-hf-id="hf-6cbo" x="568" y="192" text-anchor="middle" font-size="38" fill="#F2F3EA">ATÉ SEXTA</text>
-      <path data-hf-id="hf-i3zd" class="g gt" d="M498 180H638"/>
-      <text data-hf-id="hf-qchc" x="568" y="244" text-anchor="middle" font-size="38" fill="#F2F3EA">sexta!!</text>
+  <rect x="-200" y="-500" width="2320" height="1300" fill="#181C19"/>
+  <g id="eqwall" opacity="0"><rect class="eq" x="-60" y="-500" width="66" height="1300" fill="#D0FA5E"/><rect class="eq" x="32" y="-500" width="66" height="1300" fill="#D0FA5E"/><rect class="eq" x="124" y="-500" width="66" height="1300" fill="#D0FA5E"/><rect class="eq" x="216" y="-500" width="66" height="1300" fill="#D0FA5E"/><rect class="eq" x="308" y="-500" width="66" height="1300" fill="#D0FA5E"/><rect class="eq" x="400" y="-500" width="66" height="1300" fill="#D0FA5E"/><rect class="eq" x="492" y="-500" width="66" height="1300" fill="#D0FA5E"/><rect class="eq" x="584" y="-500" width="66" height="1300" fill="#D0FA5E"/><rect class="eq" x="676" y="-500" width="66" height="1300" fill="#D0FA5E"/><rect class="eq" x="768" y="-500" width="66" height="1300" fill="#D0FA5E"/><rect class="eq" x="860" y="-500" width="66" height="1300" fill="#D0FA5E"/><rect class="eq" x="952" y="-500" width="66" height="1300" fill="#D0FA5E"/><rect class="eq" x="1044" y="-500" width="66" height="1300" fill="#D0FA5E"/><rect class="eq" x="1136" y="-500" width="66" height="1300" fill="#D0FA5E"/><rect class="eq" x="1228" y="-500" width="66" height="1300" fill="#D0FA5E"/><rect class="eq" x="1320" y="-500" width="66" height="1300" fill="#D0FA5E"/><rect class="eq" x="1412" y="-500" width="66" height="1300" fill="#D0FA5E"/><rect class="eq" x="1504" y="-500" width="66" height="1300" fill="#D0FA5E"/><rect class="eq" x="1596" y="-500" width="66" height="1300" fill="#D0FA5E"/><rect class="eq" x="1688" y="-500" width="66" height="1300" fill="#D0FA5E"/><rect class="eq" x="1780" y="-500" width="66" height="1300" fill="#D0FA5E"/><rect class="eq" x="1872" y="-500" width="66" height="1300" fill="#D0FA5E"/><rect class="eq" x="1964" y="-500" width="66" height="1300" fill="#D0FA5E"/></g>
+  <g filter="url(#boil)">
+    <rect id="janela-ceu" x="96" y="82" width="300" height="250" rx="8" fill="#181C19"/>
+    <g class="g gt"><rect x="96" y="82" width="300" height="250" rx="8"/><path d="M246 82V332M96 207H396"/></g>
+    <g id="lua"><circle cx="316" cy="146" r="38" fill="#F2F3EA"/><circle id="lua-sombra" cx="332" cy="136" r="34" fill="#181C19"/>
+      <g id="lua-oculos" opacity="0"><rect x="272" y="130" width="38" height="24" rx="6" fill="#121413"/><rect x="318" y="130" width="38" height="24" rx="6" fill="#121413"/><path d="M310 138H318" stroke="#121413" stroke-width="5"/></g></g>
+    <g id="bilhete">
+      <rect x="470" y="96" width="196" height="172" fill="#2A302B" stroke="#F2F3EA" stroke-width="3.5"/>
+      <text x="568" y="146" text-anchor="middle" font-size="38" fill="#F2F3EA">TERMINAR</text>
+      <text x="568" y="192" text-anchor="middle" font-size="38" fill="#F2F3EA">ATÉ SEXTA</text>
+      <path class="g gt" d="M498 180H638"/>
+      <text id="sx1" x="568" y="244" text-anchor="middle" font-size="38" fill="#F2F3EA">sexta!!</text>
+      <text id="sx2" x="568" y="244" text-anchor="middle" font-size="44" fill="#D0FA5E" opacity="0">HOJE!</text>
     </g>
   </g>
-  <!-- monitor -->
-  <g data-hf-id="hf-m6cz" id="monitor">
-    <path data-hf-id="hf-04mx" class="g" d="M1195 760L1175 800H1335L1315 760" fill="#232824"/>
-    <rect data-hf-id="hf-9zx4" x="700" y="120" width="1110" height="640" rx="28" fill="#232824" stroke="#F2F3EA" stroke-width="5"/>
-    <rect data-hf-id="hf-rb0b" x="725" y="145" width="1060" height="590" rx="12" fill="#0F1110"/>
-    <g data-hf-id="hf-lvv1" font-size="42">
-      <text data-hf-id="hf-cxsv" id="st1" x="748" y="196" fill="#D0FA5E">1 · Loop</text><text data-hf-id="hf-vqo8" x="890" y="196" fill="#F2F3EA" opacity=".5">›</text>
-      <text data-hf-id="hf-x33q" id="st2" x="920" y="196" fill="#F2F3EA" opacity=".5">2 · Groove</text><text data-hf-id="hf-vfab" x="1098" y="196" fill="#F2F3EA" opacity=".5">›</text>
-      <text data-hf-id="hf-clt6" id="st3" x="1128" y="196" fill="#F2F3EA" opacity=".5">3 · Arranjo</text>
+  <g id="monitor">
+    <path class="g" d="M1195 760L1175 800H1335L1315 760" fill="#232824"/>
+    <rect x="700" y="120" width="1110" height="640" rx="28" fill="#232824" stroke="#F2F3EA" stroke-width="5"/>
+    <rect x="725" y="145" width="1060" height="590" rx="12" fill="#0F1110"/>
+    <g id="desenho">
+      <g font-size="46" fill="#F2F3EA" text-anchor="end"><text x="1600" y="200">LOOP Nº</text>
+        <text id="n0" x="1764" y="200" fill="#D0FA5E">4.812</text><text id="n1" x="1764" y="200" fill="#D0FA5E" opacity="0">4.813</text></g>
+      <g class="g gt" opacity=".2"><path d="M760 340H1766M760 440H1766M760 540H1766M760 640H1766"/></g>
+      <g id="c1"><rect x="760" y="240" width="300" height="92" rx="10" fill="#D0FA5E"/><rect x="760" y="240" width="300" height="92" fill="url(#ticks)"/></g>
+      <rect id="ph" x="760" y="230" width="6" height="410" rx="3" fill="#F2F3EA"/>
+      <rect x="1190" y="656" width="430" height="70" rx="20" fill="#232824"/>
+      <g class="g gt"><rect x="1214" y="668" width="46" height="46" rx="11"/><rect x="1278" y="668" width="46" height="46" rx="11"/><rect x="1342" y="668" width="46" height="46" rx="11"/><rect x="1486" y="668" width="46" height="46" rx="11"/><rect x="1550" y="668" width="46" height="46" rx="11"/></g>
+      <image id="dockicon" href="assets/motra-icon.png" x="1408" y="660" width="62" height="62"/>
     </g>
-    <g data-hf-id="hf-iim2" id="contador" font-size="46" fill="#F2F3EA" text-anchor="end">
-      <text data-hf-id="hf-zd3l" x="1600" y="196">LOOP Nº</text>
-      <text data-hf-id="hf-sz7d" id="n0" x="1764" y="196" fill="#D0FA5E">4.812</text>
-      <text data-hf-id="hf-hsrz" id="n1" x="1764" y="196" fill="#D0FA5E" opacity="0">4.813</text>
-      <text data-hf-id="hf-kfbt" id="n2" x="1764" y="196" fill="#D0FA5E" opacity="0">4.814</text>
-      <text data-hf-id="hf-souv" id="n3" x="1764" y="196" fill="#D0FA5E" opacity="0">4.815</text>
-      <text data-hf-id="hf-6kod" id="n4" x="1764" y="196" fill="#D0FA5E" opacity="0">4.816</text>
+    <g clip-path="url(#tela)">
+      <image id="app" href="assets/app-proposta.png" x="725" y="145" width="1060" height="590" preserveAspectRatio="xMidYMin slice" opacity="0"/>
+      <g id="daw" opacity="0"><rect x="725" y="145" width="1060" height="590" fill="#2B2B2B"/><image href="assets/live-arranjo.png" x="725" y="145" width="1171" height="590" preserveAspectRatio="xMinYMin meet"/>
+        <rect id="ph2" x="735" y="190" width="5" height="370" fill="#F2F3EA"/></g>
     </g>
-    <g data-hf-id="hf-jw66" font-size="34" fill="#F2F3EA" id="rotulos">
-      <text data-hf-id="hf-wnx4" x="744" y="298">Bateria</text>
-      <text data-hf-id="hf-y4em" id="r2" x="744" y="398" opacity=".28">Baixo</text>
-      <text data-hf-id="hf-9abm" id="r3" x="744" y="498" opacity=".28">Acordes</text>
-      <text data-hf-id="hf-9x22" id="r4" x="744" y="598" opacity=".28">Pluck</text>
-    </g>
-    <g data-hf-id="hf-vpm2" class="g gt" opacity=".2"><path data-hf-id="hf-2cs6" d="M870 340H1766M870 440H1766M870 540H1766M870 640H1766"/></g>
-    <g data-hf-id="hf-j437" id="c1"><rect data-hf-id="hf-6s9l" x="870" y="248" width="224" height="80" rx="10" fill="#D0FA5E"/><rect data-hf-id="hf-bd3q" x="870" y="248" width="224" height="80" fill="url(#ticks)"/></g>
-    <g data-hf-id="hf-7i8z" id="c1f" opacity="0"><rect data-hf-id="hf-lygo" x="870" y="248" width="896" height="80" rx="10" fill="#D0FA5E"/><rect data-hf-id="hf-4g03" x="870" y="248" width="896" height="80" fill="url(#ticks)"/></g>
-    <g data-hf-id="hf-ag7c" id="c2"><rect data-hf-id="hf-3xjd" x="870" y="348" width="896" height="80" rx="10" fill="#D0FA5E"/><rect data-hf-id="hf-u3g2" x="870" y="348" width="896" height="80" fill="url(#ticks)"/></g>
-    <g data-hf-id="hf-b7v5" id="c3"><rect data-hf-id="hf-p71q" x="870" y="448" width="896" height="80" rx="10" fill="#D0FA5E"/><rect data-hf-id="hf-6q85" x="870" y="448" width="896" height="80" fill="url(#ticks)"/></g>
-    <g data-hf-id="hf-0cdi" id="c4"><rect data-hf-id="hf-xr9r" x="870" y="548" width="896" height="80" rx="10" fill="#D0FA5E"/><rect data-hf-id="hf-ed10" x="870" y="548" width="896" height="80" fill="url(#ticks)"/></g>
-    <g data-hf-id="hf-gyfh" fill="#0F1110">
-      <rect data-hf-id="hf-tsyg" class="gap" id="g1" x="870" y="442" width="224" height="192"/>
-      <rect data-hf-id="hf-sr9d" class="gap" id="g2" x="980" y="342" width="114" height="92"/>
-      <rect data-hf-id="hf-jugg" class="gap" id="g3" x="1318" y="242" width="224" height="192"/>
-      <rect data-hf-id="hf-85sy" class="gap" id="g4" x="1430" y="542" width="112" height="92"/>
-    </g>
-    <g data-hf-id="hf-pxiw" id="secoes" font-size="32" fill="#F2F3EA" opacity="0"><text data-hf-id="hf-twgi" x="876" y="238">Intro</text><text data-hf-id="hf-mlw0" x="1100" y="238">Drop</text><text data-hf-id="hf-1vt8" x="1324" y="238">Break</text><text data-hf-id="hf-2yzk" x="1548" y="238">Drop</text></g>
-    <rect data-hf-id="hf-jskw" id="ph" x="870" y="238" width="6" height="400" rx="3" fill="#F2F3EA"/>
-    <!-- Dock -->
-    <rect data-hf-id="hf-rspn" x="1190" y="656" width="430" height="70" rx="20" fill="#232824"/>
-    <g data-hf-id="hf-wepe" class="g gt"><rect data-hf-id="hf-t8rn" x="1214" y="668" width="46" height="46" rx="11"/><rect data-hf-id="hf-4hol" x="1278" y="668" width="46" height="46" rx="11"/><rect data-hf-id="hf-kb9r" x="1342" y="668" width="46" height="46" rx="11"/><rect data-hf-id="hf-my6s" x="1486" y="668" width="46" height="46" rx="11"/><rect data-hf-id="hf-a54g" x="1550" y="668" width="46" height="46" rx="11"/></g>
-    <image data-hf-id="hf-4jd4" id="dockicon" href="assets/motra-icon.png" x="1408" y="660" width="62" height="62"/>
   </g>
-  <!-- produtor -->
-  <g data-hf-id="hf-nzta" id="p-fig" filter="url(#boil)">
-    <path data-hf-id="hf-3mup" d="M180 820C170 690 210 610 300 590C390 580 450 640 470 820Z" fill="#2F3631" stroke="#F2F3EA" stroke-width="5" stroke-linejoin="round"/>
-    <path data-hf-id="hf-k191" class="g gt" d="M278 650C310 690 370 690 400 655"/>
-    <g data-hf-id="hf-u7cg" id="p-head">
-      <path data-hf-id="hf-jir8" d="M262 500C262 430 320 400 372 408C430 416 462 470 448 530C466 540 466 556 444 566C430 610 360 626 310 600C276 584 262 550 262 500Z" fill="#E8DCC8" stroke="#F2F3EA" stroke-width="5"/>
-      <g data-hf-id="hf-lrki" id="p-hair"><path data-hf-id="hf-cu2c" d="M252 500C232 430 280 372 352 384C400 362 470 408 458 462C430 430 380 424 340 440C310 452 300 480 296 512C280 500 262 504 252 500Z" fill="#121413" stroke="#F2F3EA" stroke-width="5" stroke-linejoin="round"/></g>
-      <g data-hf-id="hf-ks6f" id="eye-closed"><path data-hf-id="hf-ybhf" d="M388 498Q406 512 424 498" fill="none" stroke="#121413" stroke-width="6" stroke-linecap="round"/></g>
-      <g data-hf-id="hf-5hz3" id="eye-open" opacity="0"><circle data-hf-id="hf-9wiw" cx="406" cy="496" r="22" fill="#F2F3EA" stroke="#121413" stroke-width="5"/><circle data-hf-id="hf-e6u6" id="p-pupil" cx="412" cy="497" r="9" fill="#121413"/></g>
-      <path data-hf-id="hf-fga6" d="M382 470Q406 456 430 468" fill="none" stroke="#121413" stroke-width="6" stroke-linecap="round"/>
-      <circle data-hf-id="hf-mr32" id="mo-snore" cx="398" cy="574" r="12" fill="#121413"/>
-      <ellipse data-hf-id="hf-jwc3" id="mo-shock" cx="398" cy="574" rx="18" ry="26" fill="#121413" opacity="0"/>
-      <path data-hf-id="hf-vgzu" id="mo-flat" d="M380 574H418" stroke="#121413" stroke-width="7" stroke-linecap="round" opacity="0"/>
-      <ellipse data-hf-id="hf-crcs" id="mo-talk" cx="398" cy="574" rx="20" ry="13" fill="#121413" opacity="0"/>
-      <path data-hf-id="hf-p8dw" id="mo-smile" d="M372 562Q400 604 434 556Z" fill="#121413" opacity="0"/>
-      <g data-hf-id="hf-k0qs" id="phones">
-        <path data-hf-id="hf-7y5y" class="g" d="M312 402C260 410 240 470 262 520" stroke-width="12"/>
-        <rect data-hf-id="hf-aayk" x="244" y="496" width="62" height="96" rx="26" fill="#121413" stroke="#F2F3EA" stroke-width="5"/>
+  <g id="p-fig" filter="url(#boil)">
+    <path d="M180 820C170 690 210 610 300 590C390 580 450 640 470 820Z" fill="#2F3631" stroke="#F2F3EA" stroke-width="5" stroke-linejoin="round"/>
+    <path class="g gt" d="M278 650C310 690 370 690 400 655"/>
+    <g id="p-head">
+      <path d="M262 500C262 430 320 400 372 408C430 416 462 470 448 530C466 540 466 556 444 566C430 610 360 626 310 600C276 584 262 550 262 500Z" fill="#E8DCC8" stroke="#F2F3EA" stroke-width="5"/>
+      <g id="p-hair"><path d="M252 500C232 430 280 372 352 384C400 362 470 408 458 462C430 430 380 424 340 440C310 452 300 480 296 512C280 500 262 504 252 500Z" fill="#121413" stroke="#F2F3EA" stroke-width="5" stroke-linejoin="round"/></g>
+      <g id="eye-closed"><path d="M388 498Q406 512 424 498" fill="none" stroke="#121413" stroke-width="6" stroke-linecap="round"/></g>
+      <g id="eye-open" opacity="0"><circle cx="406" cy="496" r="22" fill="#F2F3EA" stroke="#121413" stroke-width="5"/><circle id="p-pupil" cx="412" cy="497" r="9" fill="#121413"/></g>
+      <path d="M382 470Q406 456 430 468" fill="none" stroke="#121413" stroke-width="6" stroke-linecap="round"/>
+      <circle id="mo-snore" cx="398" cy="574" r="12" fill="#121413"/>
+      <ellipse id="mo-shock" cx="398" cy="574" rx="18" ry="26" fill="#121413" opacity="0"/>
+      <path id="mo-flat" d="M380 574H418" stroke="#121413" stroke-width="7" stroke-linecap="round" opacity="0"/>
+      <ellipse id="mo-talk" cx="398" cy="574" rx="20" ry="13" fill="#121413" opacity="0"/>
+      <path id="mo-smile" d="M372 562Q400 604 434 556Z" fill="#121413" opacity="0"/>
+      <g id="p-oculos" opacity="0"><rect x="360" y="470" width="96" height="52" rx="10" fill="#121413"/><path d="M360 490L270 476" stroke="#121413" stroke-width="7"/></g>
+      <path id="p-suor" d="M292 420C278 444 284 456 294 456C304 456 310 444 292 420Z" fill="#F2F3EA" opacity="0"/>
+      <g id="phones"><path class="g" d="M312 402C260 410 240 470 262 520" stroke-width="12"/><rect x="244" y="496" width="62" height="96" rx="26" fill="#121413" stroke="#F2F3EA" stroke-width="5"/></g>
+    </g>
+  </g>
+  <rect x="-200" y="800" width="2320" height="600" fill="#232824"/>
+  <path class="g" d="M-200 800H2120"/>
+  <rect x="470" y="772" width="238" height="28" rx="7" fill="#2F3631" stroke="#F2F3EA" stroke-width="4"/>
+  <g id="canecas" filter="url(#boil)">
+    <g id="cn1"><path class="g" d="M930 700H1010L1004 800H936Z" fill="#2F3631"/><path class="g" d="M1010 722C1042 722 1042 770 1006 772"/></g>
+    <g id="cn2"><path class="g" d="M1040 720H1112L1106 800H1046Z" fill="#2F3631"/></g>
+    <g id="cn3"><path class="g" d="M944 620H1006L1002 700H948Z" fill="#2F3631"/></g>
+  </g>
+  <g id="b1" class="mini" filter="url(#boil)"><g class="mini-b" id="b1-b">
+<path d="M-36 -34V-4M36 -34V-4" stroke="#F2F3EA" stroke-width="9" stroke-linecap="round"/><path d="M-44 -3H-20M28 -3H52" stroke="#F2F3EA" stroke-width="11" stroke-linecap="round"/>
+<path class="mini-a" d="M-78 -105L-128 -150M78 -105L128 -150" stroke="#F2F3EA" stroke-width="9" stroke-linecap="round"/>
+<rect x="-84" y="-196" width="168" height="166" rx="32" fill="#D0FA5E"/>
+<circle cx="-34" cy="-150" r="23" fill="#F2F3EA" stroke="#121413" stroke-width="5"/><circle class="mini-p" cx="-34" cy="-150" r="11" fill="#121413"/>
+<circle cx="34" cy="-150" r="23" fill="#F2F3EA" stroke="#121413" stroke-width="5"/><circle class="mini-p" cx="34" cy="-150" r="11" fill="#121413"/>
+<g class="oculos" opacity="0"><rect x="-66" y="-170" width="60" height="38" rx="9" fill="#121413"/><rect x="6" y="-170" width="60" height="38" rx="9" fill="#121413"/><path d="M-6 -158H6" stroke="#121413" stroke-width="7"/></g>
+<text x="0" y="-62" text-anchor="middle" font-size="42" fill="#121413">Bateria</text></g></g>
+<g id="b2" class="mini" filter="url(#boil)"><g class="mini-b" id="b2-b">
+<path d="M-36 -34V-4M36 -34V-4" stroke="#F2F3EA" stroke-width="9" stroke-linecap="round"/><path d="M-44 -3H-20M28 -3H52" stroke="#F2F3EA" stroke-width="11" stroke-linecap="round"/>
+<path class="mini-a" d="M-78 -105L-128 -150M78 -105L128 -150" stroke="#F2F3EA" stroke-width="9" stroke-linecap="round"/>
+<rect x="-84" y="-196" width="168" height="166" rx="32" fill="#D0FA5E"/>
+<circle cx="-34" cy="-150" r="23" fill="#F2F3EA" stroke="#121413" stroke-width="5"/><circle class="mini-p" cx="-34" cy="-150" r="11" fill="#121413"/>
+<circle cx="34" cy="-150" r="23" fill="#F2F3EA" stroke="#121413" stroke-width="5"/><circle class="mini-p" cx="34" cy="-150" r="11" fill="#121413"/>
+<g class="oculos" opacity="0"><rect x="-66" y="-170" width="60" height="38" rx="9" fill="#121413"/><rect x="6" y="-170" width="60" height="38" rx="9" fill="#121413"/><path d="M-6 -158H6" stroke="#121413" stroke-width="7"/></g>
+<text x="0" y="-62" text-anchor="middle" font-size="42" fill="#121413">Baixo</text></g></g>
+<g id="b3" class="mini" filter="url(#boil)"><g class="mini-b" id="b3-b">
+<path d="M-36 -34V-4M36 -34V-4" stroke="#F2F3EA" stroke-width="9" stroke-linecap="round"/><path d="M-44 -3H-20M28 -3H52" stroke="#F2F3EA" stroke-width="11" stroke-linecap="round"/>
+<path class="mini-a" d="M-78 -105L-128 -150M78 -105L128 -150" stroke="#F2F3EA" stroke-width="9" stroke-linecap="round"/>
+<rect x="-84" y="-196" width="168" height="166" rx="32" fill="#D0FA5E"/>
+<circle cx="-34" cy="-150" r="23" fill="#F2F3EA" stroke="#121413" stroke-width="5"/><circle class="mini-p" cx="-34" cy="-150" r="11" fill="#121413"/>
+<circle cx="34" cy="-150" r="23" fill="#F2F3EA" stroke="#121413" stroke-width="5"/><circle class="mini-p" cx="34" cy="-150" r="11" fill="#121413"/>
+<g class="oculos" opacity="0"><rect x="-66" y="-170" width="60" height="38" rx="9" fill="#121413"/><rect x="6" y="-170" width="60" height="38" rx="9" fill="#121413"/><path d="M-6 -158H6" stroke="#121413" stroke-width="7"/></g>
+<text x="0" y="-62" text-anchor="middle" font-size="42" fill="#121413">Acordes</text></g></g>
+<g id="b4" class="mini" filter="url(#boil)"><g class="mini-b" id="b4-b">
+<path d="M-36 -34V-4M36 -34V-4" stroke="#F2F3EA" stroke-width="9" stroke-linecap="round"/><path d="M-44 -3H-20M28 -3H52" stroke="#F2F3EA" stroke-width="11" stroke-linecap="round"/>
+<path class="mini-a" d="M-78 -105L-128 -150M78 -105L128 -150" stroke="#F2F3EA" stroke-width="9" stroke-linecap="round"/>
+<rect x="-84" y="-196" width="168" height="166" rx="32" fill="#D0FA5E"/>
+<circle cx="-34" cy="-150" r="23" fill="#F2F3EA" stroke="#121413" stroke-width="5"/><circle class="mini-p" cx="-34" cy="-150" r="11" fill="#121413"/>
+<circle cx="34" cy="-150" r="23" fill="#F2F3EA" stroke="#121413" stroke-width="5"/><circle class="mini-p" cx="34" cy="-150" r="11" fill="#121413"/>
+<g class="oculos" opacity="0"><rect x="-66" y="-170" width="60" height="38" rx="9" fill="#121413"/><rect x="6" y="-170" width="60" height="38" rx="9" fill="#121413"/><path d="M-6 -158H6" stroke="#121413" stroke-width="7"/></g>
+<text x="0" y="-62" text-anchor="middle" font-size="42" fill="#121413">Pluck</text></g></g>
+  <g id="p-arm" filter="url(#boil)"><path d="M340 626L532 780" fill="none" stroke="#F2F3EA" stroke-width="52" stroke-linecap="round"/><path d="M340 626L532 780" fill="none" stroke="#2F3631" stroke-width="42" stroke-linecap="round"/><circle cx="548" cy="792" r="28" fill="#E8DCC8" stroke="#F2F3EA" stroke-width="5"/></g>
+  <g id="tecla" opacity="0" filter="url(#boil)">
+    <rect x="-180" y="-210" width="360" height="210" rx="38" fill="#D0FA5E" stroke="#F2F3EA" stroke-width="6"/>
+    <g fill="none" stroke="#121413" stroke-width="12"><rect x="-108" y="-132" width="48" height="48"/><circle cx="-124" cy="-148" r="15"/><circle cx="-44" cy="-148" r="15"/><circle cx="-124" cy="-68" r="15"/><circle cx="-44" cy="-68" r="15"/></g>
+    <text x="72" y="-58" text-anchor="middle" font-size="168" fill="#121413">S</text>
+  </g>
+  <g id="m" filter="url(#boil)"><g id="m-b">
+      <g id="m-legs" opacity="0">
+        <path d="M-36 -34V-6M36 -34V-6" stroke="#F2F3EA" stroke-width="9" stroke-linecap="round"/><path d="M-42 -3H-18M30 -3H54" stroke="#F2F3EA" stroke-width="11" stroke-linecap="round"/>
       </g>
-    </g>
-  </g>
-  <!-- mesa -->
-  <rect data-hf-id="hf-z1l3" x="-200" y="800" width="2320" height="500" fill="#232824"/>
-  <path data-hf-id="hf-zd0z" class="g" d="M-200 800H2120"/>
-  <rect data-hf-id="hf-2ci7" x="470" y="772" width="238" height="28" rx="7" fill="#2F3631" stroke="#F2F3EA" stroke-width="4"/>
-  <g data-hf-id="hf-e6p1" id="canecas" filter="url(#boil)">
-    <path data-hf-id="hf-o4sj" class="g" d="M930 700H1010L1004 800H936Z" fill="#2F3631"/><path data-hf-id="hf-hmld" class="g" d="M1010 722C1042 722 1042 770 1006 772"/>
-    <path data-hf-id="hf-82q1" class="g" d="M1040 720H1112L1106 800H1046Z" fill="#2F3631"/>
-    <path data-hf-id="hf-5fa8" class="g" d="M944 620H1006L1002 700H948Z" fill="#2F3631"/>
-    <path data-hf-id="hf-3bfg" class="g gt" d="M968 610C958 590 980 584 970 566M1076 708C1066 690 1088 684 1078 668"/>
-  </g>
-  <g data-hf-id="hf-21u6" id="p-arm" filter="url(#boil)"><path data-hf-id="hf-7rj5" d="M340 626L532 780" fill="none" stroke="#F2F3EA" stroke-width="52" stroke-linecap="round"/><path data-hf-id="hf-68gy" d="M340 626L532 780" fill="none" stroke="#2F3631" stroke-width="42" stroke-linecap="round"/><circle data-hf-id="hf-b1z9" cx="548" cy="792" r="28" fill="#E8DCC8" stroke="#F2F3EA" stroke-width="5"/></g>
-  <!-- tecla -->
-  <g data-hf-id="hf-kgsi" id="tecla" opacity="0" filter="url(#boil)">
-    <rect data-hf-id="hf-i5eb" x="-160" y="-190" width="320" height="190" rx="36" fill="#D0FA5E" stroke="#F2F3EA" stroke-width="6"/>
-    <g data-hf-id="hf-ho4n" fill="none" stroke="#121413" stroke-width="11"><rect data-hf-id="hf-dq7u" x="-96" y="-120" width="44" height="44"/><circle data-hf-id="hf-1i07" cx="-110" cy="-134" r="14"/><circle data-hf-id="hf-m5ww" cx="-38" cy="-134" r="14"/><circle data-hf-id="hf-93u1" cx="-110" cy="-62" r="14"/><circle data-hf-id="hf-sgsc" cx="-38" cy="-62" r="14"/></g>
-    <text data-hf-id="hf-ai20" x="62" y="-54" text-anchor="middle" font-size="148" fill="#121413">S</text>
-  </g>
-  <!-- bichinho: o icone do app -->
-  <g data-hf-id="hf-wnea" id="m" filter="url(#boil)">
-    <g data-hf-id="hf-t60d" id="m-b">
-      <g data-hf-id="hf-g8oi" id="m-legs" opacity="0">
-        <g data-hf-id="hf-tlzx" id="m-ll"><path data-hf-id="hf-q2w8" d="M-36 -34V-6" stroke="#F2F3EA" stroke-width="9" stroke-linecap="round"/><path data-hf-id="hf-081n" d="M-42 -3H-18" stroke="#F2F3EA" stroke-width="11" stroke-linecap="round"/></g>
-        <g data-hf-id="hf-su83" id="m-lr"><path data-hf-id="hf-muqv" d="M36 -34V-6" stroke="#F2F3EA" stroke-width="9" stroke-linecap="round"/><path data-hf-id="hf-6owm" d="M30 -3H54" stroke="#F2F3EA" stroke-width="11" stroke-linecap="round"/></g>
+      <g id="m-al" opacity="0"><path d="M-78 -105H-140" stroke="#F2F3EA" stroke-width="9" stroke-linecap="round"/><circle cx="-146" cy="-105" r="11" fill="#D0FA5E" stroke="#F2F3EA" stroke-width="4"/></g>
+      <g id="m-ar" opacity="0"><path d="M78 -105H140" stroke="#F2F3EA" stroke-width="9" stroke-linecap="round"/><circle cx="146" cy="-105" r="11" fill="#D0FA5E" stroke="#F2F3EA" stroke-width="4"/></g>
+      <rect x="-80" y="-190" width="160" height="160" rx="32" fill="#D0FA5E"/>
+      <g id="m-mouth" fill="#121413">
+        <rect class="bar" x="-49.75" y="-123.5" width="6.5" height="27" rx="3"/><rect class="bar" x="-34.25" y="-136" width="6.5" height="52" rx="3"/><rect class="bar" x="-18.75" y="-152.5" width="6.5" height="85" rx="3"/><rect class="bar" x="-3.25" y="-166" width="6.5" height="112" rx="3"/><rect class="bar" x="12.25" y="-145" width="6.5" height="70" rx="3"/><rect class="bar" x="27.75" y="-130" width="6.5" height="40" rx="3"/><rect class="bar" x="43.25" y="-121" width="6.5" height="22" rx="3"/>
       </g>
-      <g data-hf-id="hf-vrza" id="m-al" opacity="0"><path data-hf-id="hf-x86g" d="M-78 -105H-140" stroke="#F2F3EA" stroke-width="9" stroke-linecap="round"/><circle data-hf-id="hf-rryc" cx="-146" cy="-105" r="11" fill="#D0FA5E" stroke="#F2F3EA" stroke-width="4"/></g>
-      <g data-hf-id="hf-0pjs" id="m-ar" opacity="0"><path data-hf-id="hf-r0qa" d="M78 -105H140" stroke="#F2F3EA" stroke-width="9" stroke-linecap="round"/><circle data-hf-id="hf-oq3b" cx="146" cy="-105" r="11" fill="#D0FA5E" stroke="#F2F3EA" stroke-width="4"/></g>
-      <rect data-hf-id="hf-jd8k" x="-80" y="-190" width="160" height="160" rx="32" fill="#D0FA5E"/>
-      <g data-hf-id="hf-c9at" id="m-mouth" fill="#121413">
-        <rect data-hf-id="hf-cpyg" class="bar" x="-49.75" y="-123.5" width="6.5" height="27" rx="3"/>
-        <rect data-hf-id="hf-76p8" class="bar" x="-34.25" y="-136" width="6.5" height="52" rx="3"/>
-        <rect data-hf-id="hf-5ty2" class="bar" x="-18.75" y="-152.5" width="6.5" height="85" rx="3"/>
-        <rect data-hf-id="hf-9yc2" class="bar" x="-3.25" y="-166" width="6.5" height="112" rx="3"/>
-        <rect data-hf-id="hf-yzr3" class="bar" x="12.25" y="-145" width="6.5" height="70" rx="3"/>
-        <rect data-hf-id="hf-d633" class="bar" x="27.75" y="-130" width="6.5" height="40" rx="3"/>
-        <rect data-hf-id="hf-3v7q" class="bar" x="43.25" y="-121" width="6.5" height="22" rx="3"/>
-      </g>
-      <g data-hf-id="hf-achs" class="m-eye" id="m-el"><circle data-hf-id="hf-qlh0" cx="-36" cy="-150" r="24" fill="#F2F3EA" stroke="#121413" stroke-width="5"/><circle data-hf-id="hf-ccsi" class="m-pup" cx="-36" cy="-150" r="11" fill="#121413"/></g>
-      <g data-hf-id="hf-8t2e" class="m-eye" id="m-er"><circle data-hf-id="hf-7qm1" cx="36" cy="-150" r="24" fill="#F2F3EA" stroke="#121413" stroke-width="5"/><circle data-hf-id="hf-rjo7" class="m-pup" cx="36" cy="-150" r="11" fill="#121413"/></g>
-      <path data-hf-id="hf-5pji" id="m-suor" d="M92 -176C80 -156 86 -146 96 -146C106 -146 110 -156 92 -176Z" fill="#F2F3EA" opacity="0"/>
-    </g>
-  </g>
-  <g data-hf-id="hf-kfdm" id="zs" font-size="60" fill="#F2F3EA"><text data-hf-id="hf-30yd" id="z1" x="470" y="452" opacity="0">z</text><text data-hf-id="hf-ogg3" id="z2" x="492" y="430" font-size="76" opacity="0">z</text><text data-hf-id="hf-hlmz" id="z3" x="520" y="400" font-size="92" opacity="0">Z</text></g>
+      <g class="m-eye" id="m-el"><circle cx="-36" cy="-150" r="24" fill="#F2F3EA" stroke="#121413" stroke-width="5"/><circle class="m-pup" cx="-36" cy="-150" r="11" fill="#121413"/></g>
+      <g class="m-eye" id="m-er"><circle cx="36" cy="-150" r="24" fill="#F2F3EA" stroke="#121413" stroke-width="5"/><circle class="m-pup" cx="36" cy="-150" r="11" fill="#121413"/></g>
+      <g id="m-oculos" opacity="0"><rect x="-68" y="-172" width="62" height="40" rx="9" fill="#121413"/><rect x="6" y="-172" width="62" height="40" rx="9" fill="#121413"/><path d="M-6 -158H6" stroke="#121413" stroke-width="7"/></g>
+      <path id="m-suor" d="M92 -176C80 -156 86 -146 96 -146C106 -146 110 -156 92 -176Z" fill="#F2F3EA" opacity="0"/>
+  </g></g>
+  <g id="zs" fill="#F2F3EA"><text id="z1" x="470" y="452" font-size="60" opacity="0">z</text><text id="z2" x="492" y="430" font-size="76" opacity="0">z</text><text id="z3" x="520" y="400" font-size="92" opacity="0">Z</text></g>
 </svg>
-<div data-hf-id="hf-54o2" id="f1" class="bubble clip" data-start="10" data-duration="1.85" style="left:530px;top:400px;width:800px"><div data-hf-id="hf-sz59" class="in"><span data-hf-id="hf-sxlo" data-var-text="pergunta">Que som você quer criar?</span><div data-hf-id="hf-1pvi" class="tail" style="left:90px"></div></div></div>
-<div data-hf-id="hf-3fnb" id="f2" class="bubble clip" data-start="11.9" data-duration="1.75" style="left:150px;top:150px;width:720px"><div data-hf-id="hf-jyai" class="in" style="background:#2F3631;color:#F2F3EA;border:5px solid #F2F3EA"><span data-hf-id="hf-65i1" data-var-text="resposta">Qualquer coisa menos ISSO.</span><div data-hf-id="hf-gmcv" class="tail" style="left:230px;border-top-color:#F2F3EA"></div></div></div>
-<div data-hf-id="hf-xo9t" id="p1" class="placa clip" data-start="13.75" data-duration="1.4" style="left:480px;top:452px;width:720px"><div data-hf-id="hf-1v35" class="in"><img data-hf-id="hf-o8yf" src="assets/card-aplicar.png" alt="Aplicar proposta ou Descartar, botões reais do MOTRA"></div></div>
-<div data-hf-id="hf-9572" id="p2" class="placa clip" data-start="16.875" data-duration="1.1" style="left:900px;top:492px;width:712px"><div data-hf-id="hf-3208" class="in"><img data-hf-id="hf-p2yr" src="assets/card-aprovar.png" alt="Ouvi e aprovo, avançar, botão real do MOTRA"></div></div>
-<div data-hf-id="hf-f0ij" id="p3" class="placa clip" data-start="18.75" data-duration="1.1" style="left:900px;top:492px;width:712px"><div data-hf-id="hf-2np7" class="in"><img data-hf-id="hf-fwh2" src="assets/card-aprovar-2.png" alt="Ouvi e aprovo, avançar, botão real do MOTRA"></div></div>
-<div data-hf-id="hf-otz7" id="f3" class="bubble clip" data-start="21.75" data-duration="0.72" data-hold style="left:800px;top:410px;width:400px"><div data-hf-id="hf-423z" class="in" style="background:#D0FA5E"><span data-hf-id="hf-7rq8" data-var-text="grito">SALVA!</span></div></div>
-<svg data-hf-id="hf-usu5" id="cursor" viewBox="0 0 58 74"><path data-hf-id="hf-ntrm" d="M6 4L6 60L20 47L30 70L42 65L32 42L52 42Z" fill="#F2F3EA" stroke="#121413" stroke-width="5" stroke-linejoin="round"/></svg>
-</div>
-<div data-hf-id="hf-tvzb" id="end" class="clip" data-start="23.45" data-duration="2.8">
-  <div data-hf-id="hf-z209" id="end-title"><span data-hf-id="hf-8rfc" data-var-text="convite">Bora sair do loop?</span></div>
-  <div data-hf-id="hf-d956" id="end-mark"><img data-hf-id="hf-crm8" src="assets/motra-icon.png" alt="Ícone do MOTRA"><div data-hf-id="hf-e6dd" id="end-name">MOTRA</div></div>
-  <div data-hf-id="hf-qr7n" id="end-tag"><span data-hf-id="hf-bfc3" data-var-text="assinatura">Sua ideia. Em movimento.</span></div>
-  <svg data-hf-id="hf-ina1" id="end-face" viewBox="0 0 620 700" style="position:absolute;left:1250px;top:190px;width:620px;height:700px">
-    <g data-hf-id="hf-1fm6" id="ee1"><circle data-hf-id="hf-pqwx" cx="170" cy="170" r="118" fill="#F2F3EA" stroke="#121413" stroke-width="12"/><circle data-hf-id="hf-e13g" id="ep1" cx="170" cy="190" r="54" fill="#121413"/></g>
-    <g data-hf-id="hf-xhi5" id="ee2"><circle data-hf-id="hf-catk" cx="450" cy="170" r="118" fill="#F2F3EA" stroke="#121413" stroke-width="12"/><circle data-hf-id="hf-md3a" id="ep2" cx="450" cy="190" r="54" fill="#121413"/></g>
-    <g data-hf-id="hf-5vgk" fill="#121413">
-      <rect data-hf-id="hf-sxs2" class="eb" x="100" y="450" width="32" height="90" rx="16"/><rect data-hf-id="hf-vtlv" class="eb" x="170" y="400" width="32" height="190" rx="16"/><rect data-hf-id="hf-r0u3" class="eb" x="240" y="360" width="32" height="270" rx="16"/><rect data-hf-id="hf-aw7i" class="eb" x="310" y="340" width="32" height="310" rx="16"/><rect data-hf-id="hf-de7n" class="eb" x="380" y="375" width="32" height="240" rx="16"/><rect data-hf-id="hf-9dqq" class="eb" x="450" y="420" width="32" height="150" rx="16"/><rect data-hf-id="hf-cuns" class="eb" x="520" y="455" width="32" height="80" rx="16"/>
-    </g>
+<div id="f1" class="bubble clip" data-start="4" data-duration="1.75" style="left:530px;top:400px;width:820px"><div class="in"><span data-var-text="pergunta">Que som você quer criar?</span><div class="tail" style="left:90px"></div></div></div>
+<div id="f2" class="bubble clip" data-start="5.75" data-duration="1.7" style="left:150px;top:120px;width:720px"><div class="in" style="background:#2F3631;color:#F2F3EA;border:5px solid #F2F3EA"><span data-var-text="resposta">Qualquer coisa menos ISSO.</span><div class="tail" style="left:230px"></div></div></div>
+<div id="p2" class="placa clip" data-start="13.6" data-duration="1.55" style="left:880px;top:300px;width:760px"><div class="in"><img src="assets/card-aprovar.png" alt="Ouvi e aprovo, avançar, botão real do MOTRA"></div></div>
+<div id="f3" class="bubble clip" data-start="19" data-duration="1.55" style="left:640px;top:330px;width:560px"><div class="in"><span data-var-text="grito">Alguém salvou?</span><div class="tail" style="left:90px"></div></div></div>
+<svg id="cursor" viewBox="0 0 58 74"><path d="M6 4L6 60L20 47L30 70L42 65L32 42L52 42Z" fill="#F2F3EA" stroke="#121413" stroke-width="5" stroke-linejoin="round"/></svg>
+</div></div>
+<div id="end" class="clip" data-start="21.6" data-duration="2.775">
+  <div id="end-title"><span data-var-text="convite">Bora sair do loop?</span></div>
+  <div id="end-mark"><img src="assets/motra-icon.png" alt="Ícone do MOTRA"><div id="end-name">MOTRA</div></div>
+  <div id="end-tag"><span data-var-text="assinatura">Sua ideia. Em movimento.</span></div>
+  <div id="end-cred"><span data-var-text="credito">A música deste filme foi feita com o MOTRA.</span></div>
+  <svg id="end-face" viewBox="0 0 620 700" style="position:absolute;left:1190px;top:190px;width:620px;height:700px">
+    <g id="ee1"><circle cx="170" cy="170" r="118" fill="#F2F3EA" stroke="#121413" stroke-width="12"/><circle id="ep1" cx="170" cy="190" r="54" fill="#121413"/></g>
+    <g id="ee2"><circle cx="450" cy="170" r="118" fill="#F2F3EA" stroke="#121413" stroke-width="12"/><circle id="ep2" cx="450" cy="190" r="54" fill="#121413"/></g>
+    <g fill="#121413"><rect class="eb" x="100" y="450" width="32" height="90" rx="16"/><rect class="eb" x="170" y="400" width="32" height="190" rx="16"/><rect class="eb" x="240" y="360" width="32" height="270" rx="16"/><rect class="eb" x="310" y="340" width="32" height="310" rx="16"/><rect class="eb" x="380" y="375" width="32" height="240" rx="16"/><rect class="eb" x="450" y="420" width="32" height="150" rx="16"/><rect class="eb" x="520" y="455" width="32" height="80" rx="16"/></g>
   </svg>
 </div>
 </div>
 <script>
 (function(){
-const BAR=1.875,BEAT=.46875,K1=15,K2=38*BEAT,K3=42*BEAT,KEY=22.5;
+const BAR=1.875,BEAT=.46875,BONK=3.75,DROP=9.375,CLUB=15,GELO=18.75,VOLTA=20.625,MUNDO=21.09;
+const WIDE={scale:1,x:0,y:90},FULL={scale:1.8113,x:-1313,y:-263};
 const tl=gsap.timeline({paused:true});
-let seed=7;const R=(a,b)=>{seed=(seed*16807)%2147483647;return a+(b-a)*(seed/2147483647)};
+let seed=11;const R=(a,b)=>{seed=(seed*16807)%2147483647;return a+(b-a)*(seed/2147483647)};
 const T=(s,v,t)=>tl.to(s,v,t),S=(s,v,t)=>tl.set(s,v,t);
-// estado inicial
-gsap.set('#cam',{scale:1.9,x:-1560,y:-210});
+gsap.set('#cam',{scale:1.75,x:-1290,y:-235});
+gsap.set('#pump',{transformOrigin:'50% 55%'});
 gsap.set('#m',{svgOrigin:'0 0',x:1439,y:729,scale:.35,opacity:0});
 gsap.set('#m-b',{svgOrigin:'0 0'});
 gsap.set('.m-eye',{scaleY:0,transformOrigin:'50% 50%'});
@@ -185,225 +182,188 @@ gsap.set('.bar',{transformOrigin:'50% 50%'});
 gsap.set('#m-mouth',{svgOrigin:'0 -110'});
 gsap.set('#m-al',{svgOrigin:'-78 -105',rotation:-50});
 gsap.set('#m-ar',{svgOrigin:'78 -105',rotation:50});
-gsap.set('#m-ll',{svgOrigin:'-36 -34'});gsap.set('#m-lr',{svgOrigin:'36 -34'});
 gsap.set('#p-head',{svgOrigin:'330 590',rotation:14});
 gsap.set('#p-hair',{svgOrigin:'350 460'});
 gsap.set('#p-arm',{svgOrigin:'340 626'});
 gsap.set('#phones',{svgOrigin:'290 500'});
-gsap.set('#canecas',{svgOrigin:'1020 800'});
 gsap.set('#dockicon',{svgOrigin:'1439 722'});
-gsap.set('#c1',{svgOrigin:'870 288'});
-['c2','c3','c4'].forEach((c,i)=>gsap.set('#'+c,{svgOrigin:'870 '+(388+100*i),scaleX:0}));
-gsap.set('.gap',{scaleX:0,transformOrigin:'0% 50%'});
-gsap.set('#tecla',{svgOrigin:'0 0',x:625,y:-260});
+gsap.set('#tecla',{svgOrigin:'0 0',x:640,y:-300});
 gsap.set('#cursor',{x:2000,y:1160,opacity:0});
-['#f1 .in','#f2 .in','#f3 .in','#p1 .in','#p2 .in','#p3 .in'].forEach(s=>gsap.set(s,{scale:.5,opacity:0}));
+['b1','b2','b3','b4'].forEach((b,i)=>{gsap.set('#'+b,{svgOrigin:'0 0',x:760+i*250,y:1400,scale:.92});gsap.set('#'+b+'-b',{svgOrigin:'0 0'})});
+['#f1 .in','#f2 .in','#f3 .in','#p2 .in'].forEach(s=>gsap.set(s,{scale:.5,opacity:0}));
 gsap.set('#ee1',{svgOrigin:'170 170'});gsap.set('#ee2',{svgOrigin:'450 170'});
 gsap.set('.eb',{transformOrigin:'50% 50%'});
-gsap.set(['#end-title','#end-mark','#end-tag'],{opacity:0,filter:'blur(8px)'});
+gsap.set(['#end-title','#end-mark','#end-tag','#end-cred'],{opacity:0,filter:'blur(8px)'});
+gsap.set('.eq',{transformOrigin:'50% 100%',scaleY:.3,opacity:.14});
 
-// giz vibrando a 12 fps
-for(let i=0;i<315;i++)S('#turb',{attr:{seed:i%6+1}},i/12);
+for(let i=0;i<294;i++)S('#turb',{attr:{seed:i%6+1}},i/12);
 
-// helpers do personagem
 const face=(n,t)=>{['mo-snore','mo-shock','mo-flat','mo-talk','mo-smile'].forEach(k=>S('#'+k,{opacity:k===n?1:0},t))};
 const eyes=(o,t)=>{S('#eye-open',{opacity:o?1:0},t);S('#eye-closed',{opacity:o?0:1},t)};
 const pup=(x,y,t)=>T('.m-pup',{x,y,duration:.12,ease:'power2.out'},t);
-const mouthSmall=t=>T('#m-mouth',{y:44,scale:.42,duration:.14,ease:'power3.out'},t);
-const talk=(a,b)=>{for(let t=a;t<b;t+=.1)tl.to('.bar',{scaleY:()=>R(.35,1.7),duration:.08,ease:'none'},t);T('.bar',{scaleY:1,duration:.1},b)};
-const squash=(t,sx,sy,d=.09)=>{T('#m-b',{scaleX:sx,scaleY:sy,duration:d,ease:'power2.out'},t);T('#m-b',{scaleX:1,scaleY:1,duration:.42,ease:'elastic.out(1,.45)'},t+d)};
-const walk=(a,b,step=.15)=>{let s=1;for(let t=a;t<b;t+=step){T('#m-ll',{rotation:22*s,duration:step,ease:'none'},t);T('#m-lr',{rotation:-22*s,duration:step,ease:'none'},t);s=-s}T(['#m-ll','#m-lr'],{rotation:0,duration:.06},b+step)};
-const armP=(rot,t,d=.25,e='back.out(1.6)')=>T('#p-arm',{rotation:rot,duration:d,ease:e},t);
+const talk=(a,b)=>{for(let t=a;t<b;t+=.1)tl.to('.bar',{scaleY:()=>R(.35,1.7),duration:.08,ease:'none'},t);T('.bar',{scaleY:1,duration:.08},b)};
+const squash=(t,sx,sy,d=.09)=>{T('#m-b',{scaleX:sx,scaleY:sy,duration:d,ease:'power2.out'},t);T('#m-b',{scaleX:1,scaleY:1,duration:.34,ease:'elastic.out(1,.45)'},t+d)};
+const armP=(r,t,d=.2,e='back.out(1.6)')=>T('#p-arm',{rotation:r,duration:d,ease:e},t);
 
 // ── o loop eterno ──
-for(let b=0;b<5;b++){const t=b*BAR;
-  tl.fromTo('#ph',{x:0},{x:218,duration:BAR,ease:'none',immediateRender:false},t);
-  if(b){S('#n'+(b-1),{opacity:0},t);S('#n'+b,{opacity:1},t)}
-  T('#p-head',{rotation:b>3?34:(b?30:22),duration:b?1.55:1.6,ease:'power1.in'},t);
-  if(b<4)T('#p-head',{rotation:10,duration:.2,ease:'back.out(3)'},t+1.66);
-  if(b>0&&b<4)['#z1','#z2','#z3'].forEach((z,i)=>(tl.fromTo(z,{x:0,y:0},{x:34+i*10,y:-54-i*10,duration:1.25,ease:'none',immediateRender:false},t+.15+i*.2),tl.fromTo(z,{opacity:1},{opacity:0,duration:.3,immediateRender:false},t+1.1+i*.2)));
-}
-// câmera recua e revela
-T('#cam',{scale:1,x:0,y:90,duration:1.7,ease:'power2.inOut'},BAR);
-// ícone chama no Dock
-[0,1].forEach(i=>{const t=5.2+i*BEAT;T('#dockicon',{y:-58,duration:.2,ease:'power2.out'},t);T('#dockicon',{y:0,duration:.22,ease:'bounce.out'},t+.2)});
-S('#m',{opacity:1},6.13);S('#dockicon',{opacity:0},6.13);
-T('.m-eye',{scaleY:1,duration:.16,ease:'back.out(3)'},6.16);
-mouthSmall(6.16);
-T('#m-b',{scaleY:1.12,duration:.08},6.13);T('#m-b',{scaleY:1,duration:.3,ease:'elastic.out(1,.45)'},6.21);
-pup(-13,3,6.42);
-pup(0,0,6.98);       // olha para a câmera
-T('.m-eye',{scaleY:.1,duration:.05},7.12);T('.m-eye',{scaleY:1,duration:.07},7.17); // pisca
-T('#m-mouth',{scaleY:.3,duration:.12},7.05);
-// salta para a mesa
-squash(7.3,1.2,.72,.16);
-S('#m-legs',{opacity:1},7.5);S(['#m-al','#m-ar'],{opacity:1},7.5);
-T('#m',{x:1090,duration:.6,ease:'power1.inOut'},7.5);
-T('#m',{y:520,duration:.3,ease:'power2.out'},7.5);T('#m',{y:800,duration:.3,ease:'power2.in'},7.8);
-T('#m',{scale:1,duration:.6,ease:'power2.inOut'},7.5);
-T('#m-al',{rotation:40,duration:.2},7.5);T('#m-ar',{rotation:-40,duration:.2},7.5);
-T('#m-al',{rotation:-50,duration:.2},7.95);T('#m-ar',{rotation:50,duration:.2},7.95);
-squash(8.1,1.25,.78);
-// anda até o produtor, olhos nele
-pup(-13,4,8.2);
-T('#m',{x:640,duration:.65,ease:'power1.inOut'},8.28);walk(8.28,8.93);
-// pula e cutuca o nariz
-squash(8.95,1.2,.75,.1);
-T('#m',{x:610,y:716,duration:.3,ease:'power3.out'},9.08);
-T('#m-al',{rotation:0,duration:.14,ease:'power3.in'},9.23);
-T('#m-al',{scaleX:1.05,duration:.04},9.34);
+[0,1].forEach(b=>{const t=b*BAR;
+  tl.fromTo('#ph',{x:0},{x:294,duration:BAR,ease:'none',immediateRender:false},t);
+  T('#p-head',{rotation:b?36:24,duration:1.55,ease:'power1.in'},t);
+  if(!b)T('#p-head',{rotation:8,duration:.16,ease:'back.out(3)'},t+1.68);
+});
+S('#n0',{opacity:0},BAR);S('#n1',{opacity:1},BAR);
+T('#cam',{...WIDE,duration:.8,ease:'power2.inOut'},.95);
+['#z1','#z2','#z3'].forEach((z,i)=>{tl.fromTo(z,{x:0,y:0},{x:30+i*10,y:-50-i*10,duration:1.3,ease:'none',immediateRender:false},1.9+i*.16);tl.fromTo(z,{opacity:1},{opacity:0,duration:.2,immediateRender:false},3.2+i*.1)});
+[0,1].forEach(i=>{const t=2.1+i*.24;T('#dockicon',{y:-58,duration:.11,ease:'power2.out'},t);T('#dockicon',{y:0,duration:.12,ease:'power2.in'},t+.11)});
+S('#m',{opacity:1},2.58);S('#dockicon',{opacity:0},2.58);
+T('.m-eye',{scaleY:1,duration:.1,ease:'back.out(3)'},2.6);
+T('#m-mouth',{y:44,scale:.42,duration:.1,ease:'power3.out'},2.6);
+pup(-13,3,2.72);
+pup(0,0,2.98);T('.m-eye',{scaleY:.1,duration:.04},3.06);T('.m-eye',{scaleY:1,duration:.05},3.1);
+squash(3.14,1.2,.72,.1);
+S('#m-legs',{opacity:1},3.26);S(['#m-al','#m-ar'],{opacity:1},3.26);
+pup(-13,4,3.26);
+T('#m',{x:600,scale:1,rotation:-22,duration:.49,ease:'power1.in'},3.26);
+T('#m',{y:430,duration:.25,ease:'power2.out'},3.26);T('#m',{y:712,duration:.24,ease:'power2.in'},3.51);
+T('#m-al',{rotation:0,duration:.14},3.5);T('#m-ar',{rotation:-30,duration:.14},3.5);
 
-// ── cutucão: tudo para ──
-S('#ph',{x:218},9.375);
-eyes(1,9.375);face('mo-shock',9.375);
-T('#p-head',{rotation:-12,duration:.1,ease:'power3.out'},9.375);
-T('#p-head',{rotation:0,duration:.55,ease:'elastic.out(1,.5)'},9.5);
-T('#p-fig',{y:-34,duration:.1,ease:'power3.out'},9.375);T('#p-fig',{y:0,duration:.34,ease:'bounce.out'},9.475);
-T('#p-arm',{y:-20,duration:.1},9.375);T('#p-arm',{y:0,duration:.3,ease:'bounce.out'},9.475);
-T('#p-hair',{scaleY:1.28,duration:.08},9.375);T('#p-hair',{scaleY:1,duration:.5,ease:'elastic.out(1,.4)'},9.46);
-T('#phones',{x:-120,y:-170,rotation:-90,duration:.26,ease:'power2.out'},9.39);
-T('#phones',{x:-200,y:520,rotation:-230,duration:.4,ease:'power2.in'},9.65);
-T('#canecas',{rotation:-3,duration:.06},9.4);T('#canecas',{rotation:0,duration:.4,ease:'elastic.out(1.2,.3)'},9.46);
-T('#m',{x:640,y:800,duration:.34,ease:'bounce.out'},9.45);
-T('#m-al',{rotation:-50,duration:.14},9.45);
-squash(9.74,1.15,.85);
-// fala do bichinho
-T('#cam',{scale:1.1,x:0,y:-30,duration:.7,ease:'power2.inOut'},9.8);
-face('mo-flat',10);pup(-8,-4,10);
-T('#f1 .in',{scale:1,opacity:1,duration:.24,ease:'back.out(2.2)'},10);
-talk(10.05,11.4);
-T('#m-ar',{rotation:-70,duration:.16,ease:'back.out(2)'},10.1);T('#m-ar',{rotation:-40,duration:.12},10.3);T('#m-ar',{rotation:-70,duration:.12},10.45);T('#m-ar',{rotation:50,duration:.2},10.7);
-T('#f1 .in',{opacity:0,duration:.1},11.72);
-// produtor responde, aponta o loop
-face('mo-talk',11.9);face('mo-flat',12.05);face('mo-talk',12.2);face('mo-flat',12.35);face('mo-talk',12.5);face('mo-flat',12.7);
-T('#p-pupil',{x:6,duration:.1},11.9);
-T('#f2 .in',{scale:1,opacity:1,duration:.22,ease:'back.out(2.2)'},11.9);
-armP(-46,11.98,.28);
-T('#m-b',{rotation:-5,duration:.2},12.4);pup(13,-3,12.15);
-T('#f2 .in',{opacity:0,duration:.1},13.5);
-// bate continência, vai buscar a proposta
-T('#m-b',{rotation:0,duration:.1},13.08);
-T('#m-ar',{rotation:-120,duration:.1},13.08);squash(13.1,1.1,.85);T('#m-ar',{rotation:50,duration:.12},13.32);
-armP(0,13.4,.3,'power2.inOut');
-T('#m',{x:1440,y:460,scale:.45,duration:.18,ease:'power3.in'},13.45);
-T('#m-b',{scaleX:1.5,scaleY:.7,duration:.18,ease:'power3.in'},13.45);
-T('#m',{x:840,y:800,scale:1,duration:.2,ease:'power3.out'},13.65);
-T('#m-b',{scaleX:1,scaleY:1,duration:.3,ease:'elastic.out(1,.45)'},13.85);
-T('#m-al',{rotation:60,duration:.12},13.8);T('#m-ar',{rotation:-60,duration:.12},13.8);
-T('#p1 .in',{scale:1,opacity:1,duration:.22,ease:'back.out(1.8)'},13.78);
-pup(0,-4,14.0);
-T('.m-pup',{scale:1.45,transformOrigin:'50% 50%',duration:.2,ease:'back.out(2)'},14.35); // olhos pidões
-T('#m-mouth',{scaleY:.22,duration:.14},14.3);
-face('mo-smile',14.1);T('#p-pupil',{x:0,y:-5,duration:.1},14.1);
-// cursor e clique
-S('#cursor',{opacity:1},14.2);
-T('#cursor',{x:696,y:528,duration:.62,ease:'expo.out'},14.2);
-T('#cursor',{scale:.82,duration:.06},14.93);T('#p1 .in',{scale:.965,duration:.06},14.93);
+// ── bonk ──
+S('#ph',{x:294},BONK);eyes(1,BONK);face('mo-shock',BONK);
+T('#p-head',{rotation:-14,duration:.1,ease:'power3.out'},BONK);T('#p-head',{rotation:0,duration:.5,ease:'elastic.out(1,.5)'},BONK+.11);
+T('#p-fig',{y:-34,duration:.09},BONK);T('#p-fig',{y:0,duration:.3,ease:'bounce.out'},BONK+.09);
+T('#p-arm',{y:-20,duration:.09},BONK);T('#p-arm',{y:0,duration:.26,ease:'bounce.out'},BONK+.09);
+T('#p-hair',{scaleY:1.3,duration:.07},BONK);T('#p-hair',{scaleY:1,duration:.4,ease:'elastic.out(1,.4)'},BONK+.08);
+T('#phones',{x:-120,y:-170,rotation:-90,duration:.24,ease:'power2.out'},BONK+.01);T('#phones',{x:-200,y:560,rotation:-230,duration:.4,ease:'power2.in'},BONK+.26);
+T('#m',{x:660,y:800,rotation:0,duration:.3,ease:'bounce.out'},BONK+.04);
+T('#m-al',{rotation:-50,duration:.1},BONK+.04);squash(BONK+.32,1.15,.85);
+T('#cam',{scale:1.14,x:0,y:-50,duration:.5,ease:'power2.inOut'},3.85);
 
-// ── o clique: a música abre ──
-T('#cursor',{scale:1,duration:.1},K1);
-T('#p1 .in',{y:-90,opacity:0,scale:1.08,duration:.14,ease:'power3.in'},K1);
-T('#cam',{scale:1,x:0,y:90,duration:.46,ease:'power2.inOut'},K1);
-T('.m-pup',{scale:1,duration:.1},K1);
-T('#m-mouth',{scaleY:1,y:30,scale:.6,duration:.12},K1);
-S('#contador',{opacity:0},K1);
-T('#m',{x:1094,scale:.45,duration:.42,ease:'power2.inOut'},K1+.04);
-T('#m',{y:250,duration:.22,ease:'power2.out'},K1+.04);T('#m',{y:338,duration:.2,ease:'power2.in'},K1+.26);
-T('#cursor',{x:2000,y:1160,duration:.4,ease:'power2.inOut'},K1+.1);
-// puxa o clip
-T('#m-al',{rotation:0,duration:.1},K1+.44);T('#m-ar',{rotation:50,duration:.1},K1+.44);
-T('#m-b',{rotation:14,duration:.14},K1+.44);
-T('#c1',{scaleX:4.04,duration:1,ease:'power3.inOut'},K1+.45);
-T('#m',{x:1775,duration:1,ease:'power3.inOut'},K1+.45);walk(K1+.45,K1+1.45,.09);
-// entram as outras faixas
-[['#c2','#r2',15.9375],['#c3','#r3',16.17],['#c4','#r4',16.406]].forEach(([c,r,t])=>{T(c,{scaleX:1,duration:.34,ease:'expo.out'},t);T(r,{opacity:1,duration:.1},t)});
-// solta: o clip assenta, o bichinho é arremessado
-S('#c1',{opacity:0},16.46);S('#c1f',{opacity:1},16.46);
-T('#m-b',{rotation:0,duration:.05},16.46);
-T('#m',{x:1256,scale:.6,rotation:-360,duration:.42,ease:'power1.out'},16.46);
-T('#m',{y:210,duration:.2,ease:'power2.out'},16.46);T('#m',{y:748,duration:.22,ease:'power2.in'},16.66);
-S('#m',{rotation:0},16.89);squash(16.88,1.25,.78);
-T('#m-al',{rotation:60,duration:.1},16.87);T('#m-ar',{rotation:-60,duration:.1},16.87);
-T('#p2 .in',{scale:1,opacity:1,duration:.2,ease:'back.out(1.8)'},16.875);
-pup(0,-5,16.9);
-T('#cursor',{x:1250,y:552,duration:.55,ease:'expo.out'},17.05);
-T('#cursor',{scale:.82,duration:.06},K2-.07);T('#p2 .in',{scale:.965,duration:.06},K2-.07);
-T('#cursor',{scale:1,duration:.1},K2);T('#p2 .in',{y:-80,opacity:0,duration:.13,ease:'power3.in'},K2);
-S('#st1',{fill:'#F2F3EA',opacity:.5},K2);S('#st2',{fill:'#D0FA5E',opacity:1},K2);
-// groove: as faixas balançam no tempo
-for(let i=0;i<10;i++){const t=K2+i*BEAT,s=i%2?1:-1;
-  T('#c1f',{x:10*s,duration:BEAT*.9,ease:'sine.inOut'},t);
-  T('#c2',{x:-8*s,duration:BEAT*.9,ease:'sine.inOut'},t+.05);
-  T('#c3',{x:8*s,duration:BEAT*.9,ease:'sine.inOut'},t+.1);
-  T('#c4',{x:-10*s,duration:BEAT*.9,ease:'sine.inOut'},t+.03);
-}
-// segundo aprovar: nem olha
-T('#p3 .in',{scale:1,opacity:1,duration:.2,ease:'back.out(1.8)'},18.75);
-T('#cursor',{x:1120,y:700,duration:.3,ease:'power2.out'},K2+.25);
-T('#cursor',{x:1250,y:552,duration:.34,ease:'expo.out'},19.2);
-T('#cursor',{scale:.82,duration:.06},K3-.07);T('#p3 .in',{scale:.965,duration:.06},K3-.07);
-T('#cursor',{scale:1,duration:.1},K3);T('#p3 .in',{y:-80,opacity:0,duration:.13,ease:'power3.in'},K3);
-T('#cursor',{opacity:0,duration:.2},K3+.3);
-S('#st2',{fill:'#F2F3EA',opacity:.5},K3);S('#st3',{fill:'#D0FA5E',opacity:1},K3);
-// arranjo: buracos abrem as seções, no tempo
-['#g1','#g2','#g3','#g4'].forEach((g,i)=>T(g,{scaleX:1,duration:.2,ease:'expo.out'},K3+.05+i*BEAT*.5));
-T('#secoes',{opacity:1,duration:.12},K3+.3);
-T('#m-al',{rotation:-50,duration:.12},K3);T('#m-ar',{rotation:50,duration:.12},K3);
-// bichinho dança até cansar
-for(let i=0;i<7;i++){const t=K2+.1+i*BEAT; if(t>18.65&&t<K3)continue;T('#m-b',{rotation:i%2?-10:10,duration:BEAT*.8,ease:'sine.inOut'},t)}
-T('#m-al',{rotation:60,duration:.1},18.72);T('#m-ar',{rotation:-60,duration:.1},18.72);
-// desaba
-T('#m-b',{rotation:0,duration:.06},21.11);
-T('#m',{rotation:82,y:738,x:1200,duration:.26,ease:'bounce.out'},21.1);
-T('.m-eye',{scaleY:.4,duration:.1},21.1);S('#m-suor',{opacity:1},21.2);
-// percebe
-S('#m-suor',{opacity:0},21.55);
-T('.m-eye',{scaleY:1.3,duration:.08,ease:'power3.out'},21.56);
-T('#m-mouth',{y:34,scale:.62,duration:.1},21.56);
-T('#m',{rotation:0,x:900,y:800,scale:1,duration:.26,ease:'power2.inOut'},21.58);
-pup(-11,-2,21.6);squash(21.84,1.2,.8);
-T('#tecla',{opacity:1,duration:.01},21.62);
-T('#tecla',{y:800,duration:.26,ease:'bounce.out'},21.63);
-T('#m-al',{rotation:0,duration:.1},21.84);
-T('#f3 .in',{scale:1,opacity:1,duration:.14,ease:'back.out(2.4)'},21.75);talk(21.8,22.42);
+// ── conversa ──
+face('mo-flat',4);pup(-8,-4,4);
+T('#f1 .in',{scale:1,opacity:1,duration:.2,ease:'back.out(2.2)'},4);talk(4.04,5.3);
+T('#m-ar',{rotation:-70,duration:.12,ease:'back.out(2)'},4.05);T('#m-ar',{rotation:-40,duration:.1},4.2);T('#m-ar',{rotation:-70,duration:.1},4.33);T('#m-ar',{rotation:50,duration:.14},4.5);
+T('#f1 .in',{opacity:0,duration:.08},5.65);
+face('mo-talk',5.75);face('mo-flat',5.9);face('mo-talk',6.05);face('mo-flat',6.2);face('mo-talk',6.35);face('mo-flat',6.6);
+T('#p-pupil',{x:6,duration:.1},5.75);
+T('#f2 .in',{scale:1,opacity:1,duration:.2,ease:'back.out(2.2)'},5.75);
+armP(-46,5.82,.24);pup(13,-3,6);
+T('#m-b',{rotation:-6,duration:.16},6.2);
+T('#f2 .in',{opacity:0,duration:.08},7.35);
 
-// ── produtor dança ──
-face('mo-smile',K1);eyes(0,17.2);eyes(1,20.8);eyes(0,K2+.7);
-for(let i=0;i<16;i++){const t=K1+i*BEAT,s=i%2?1:-1;
-  if(t+BEAT*.85>22.19)break;
-  T('#p-head',{rotation:9*s,duration:BEAT*.85,ease:'sine.inOut'},t);
-  T('#p-fig',{y:s>0?-16:6,duration:BEAT*.85,ease:'sine.inOut'},t);
-}
-armP(-50,15.5,.26);armP(-26,16,.2);armP(-50,16.4,.2);armP(0,16.9,.24,'power2.inOut');
-armP(-50,K2+.2,.24);armP(0,18.62,.2,'power2.inOut');
-armP(-50,K3+.2,.24);armP(-26,20.4,.2);armP(-50,20.8,.2);
-// bate na tecla
-T('#p-head',{rotation:6,duration:.2},22.2);T('#p-fig',{y:0,duration:.2},22.2);
-eyes(1,22.2);face('mo-shock',22.2);S('#p-pupil',{x:8,y:6},22.2);
-armP(-64,22.2,.16,'power2.out');
-armP(-20,KEY-.1,.1,'power3.in');
-T('#tecla',{scaleY:.62,duration:.06,ease:'power3.out'},KEY);T('#tecla',{scaleY:1,duration:.4,ease:'elastic.out(1,.4)'},KEY+.07);
-T('#f3 .in',{opacity:0,duration:.06},KEY-.04);
-T('#cam',{y:104,duration:.04},KEY);T('#cam',{y:82,duration:.05},KEY+.04);T('#cam',{y:90,duration:.12},KEY+.09);
-face('mo-smile',KEY+.1);
-T('#m-al',{rotation:70,duration:.08},KEY+.05);T('#m-ar',{rotation:-70,duration:.08},KEY+.05);
-T('#m',{y:690,duration:.16,ease:'power2.out'},KEY+.05);T('#m',{y:800,duration:.14,ease:'power2.in'},KEY+.21);
-T('#m-mouth',{y:44,scale:.5,duration:.1},KEY+.05);
-pup(0,0,KEY+.05);
-T('.m-eye',{scaleY:1,duration:.08},KEY+.05);
-squash(KEY+.34,1.18,.82);
-// o bichinho vira o quadro
-S('#m',{attr:{filter:'none'}},22.92);
-T('#m',{x:960,y:450+110*24,scale:24,duration:.5,ease:'power3.in'},22.95);
+// ── mergulha no app de verdade ──
+T('#m-ar',{rotation:-120,duration:.08},6.85);T('#m-b',{rotation:0,duration:.08},6.85);squash(6.88,1.1,.85);T('#m-ar',{rotation:50,duration:.1},7.1);
+squash(7.3,1.25,.7,.14);
+armP(0,7.3,.2,'power2.inOut');
+T('#m',{x:975,y:584,scale:.55,rotation:-360,duration:.42,ease:'power2.inOut'},7.46);
+S('#canecas',{opacity:0},7.6);
+T('#cam',{scale:2.9,x:-1650,y:-968,duration:.34,ease:'power2.inOut'},8.0);
+T('#cam',{...FULL,duration:.56,ease:'power3.inOut'},7.46);
+S('#desenho',{opacity:0},7.6);S('#app',{opacity:1},7.6);
+S('#m',{rotation:0},7.89);squash(7.9,1.2,.8);
+// o cursor vai para Descartar; ele não deixa
+pup(0,-4,8);
+S('#cursor',{opacity:1},8);
+T('#cursor',{x:1090,y:640,duration:.16,ease:'power2.out'},8.0);T('#cursor',{x:1030,y:590,duration:.2,ease:'expo.out'},8.2);
+T('.m-pup',{x:8,y:4,duration:.08},8.26);
+T('.m-eye',{scaleY:1.3,duration:.06},8.3);
+T('#m-al',{rotation:30,duration:.07},8.36);T('#m-ar',{rotation:-30,duration:.07},8.36);
+for(let i=0;i<5;i++)T('#m-b',{rotation:i%2?9:-9,duration:.07,ease:'none'},8.45+i*.07);
+T('#m-b',{rotation:0,duration:.06},8.8);
+T('#cursor',{x:883,y:556,duration:.28,ease:'expo.out'},8.74);
+T('.m-pup',{x:-14,y:6,scale:1.4,transformOrigin:'50% 50%',duration:.1},8.86);
+T('#m-al',{rotation:-8,duration:.1},8.86);
+T('.m-eye',{scaleY:1,duration:.08},8.86);
+T('#m-mouth',{scaleY:.2,duration:.1},8.86);
+T('#cursor',{scale:.8,duration:.05},DROP-.06);
 
-// ── fechamento ──
-T('#end-title',{opacity:1,filter:'blur(0px)',duration:.2,ease:'power4.out'},23.5);
-T('#end-mark',{opacity:1,filter:'blur(0px)',duration:.18,ease:'power4.out'},23.95);
-T('#end-tag',{opacity:1,filter:'blur(0px)',duration:.18,ease:'power4.out'},24.1);
-T(['#ep1','#ep2'],{x:-34,y:12,duration:.16,ease:'power2.out'},23.9);
-for(let i=0;i<6;i++){const t=23.4375+i*BEAT;tl.to('.eb',{scaleY:()=>R(.45,1.1),duration:BEAT*.8,ease:'sine.inOut'},t)}
-T('#ee2',{scaleY:.06,duration:.07},25.1);T('#ee2',{scaleY:1,duration:.1,ease:'back.out(2)'},25.42);
-S('#cam',{opacity:0},23.45);
+// ── clique: a música abre ──
+T('#cursor',{scale:1,duration:.06},DROP);T('#cursor',{x:2000,y:1160,duration:.3,ease:'power2.in'},DROP+.1);
+T('#cam',{...WIDE,duration:.5,ease:'expo.out'},DROP);
+S('#app',{opacity:0},DROP);S('#daw',{opacity:1},DROP);S('#canecas',{opacity:1},DROP);S('#lua-sombra',{opacity:0},DROP);
+T('#ph2',{x:800,duration:GELO-DROP,ease:'none'},DROP);
+T('.m-pup',{x:0,y:0,scale:1,duration:.08},DROP);T('#m-mouth',{y:30,scaleY:1,scale:.62,duration:.08},DROP);
+T('#m',{x:640,y:800,scale:1,duration:.34,ease:'power2.out'},DROP);
+S('#eqwall',{opacity:1},DROP);S('#lua-oculos',{opacity:1},DROP);
+eyes(1,DROP);face('mo-smile',DROP);S('#p-pupil',{x:4,y:-3},DROP);
+['#b1','#b2','#b3','#b4'].forEach((b,i)=>{const t=DROP+i*BEAT;T(b,{y:1010,duration:.3,ease:'back.out(2.2)'},t)});
+
+const dance=(a,b,forte)=>{let n=0;for(let t=a;t<b-.01;t+=BEAT,n++){const s=n%2?1:-1;
+  T('#pump',{scale:forte?1.024:1.014,duration:.03},t);T('#pump',{scale:1,duration:.3,ease:'power2.out'},t+.03);
+  ['#cn1','#cn2','#cn3'].forEach((c,i)=>{T(c,{y:forte?-28:-16,duration:.09,ease:'power2.out'},t+i*.012);T(c,{y:0,duration:.12,ease:'power2.in'},t+.09+i*.012)});
+  tl.to('.eq',{scaleY:()=>R(.2,forte?1.05:.8),opacity:forte?(n%2?.5:.22):.2,duration:.05},t);tl.to('.eq',{scaleY:()=>R(.1,.3),duration:.3,ease:'power2.out'},t+.05);
+  T('#p-head',{rotation:(forte?13:9)*s,duration:BEAT*.8,ease:'sine.inOut'},t);
+  T('#p-fig',{y:s>0?-18:6,duration:BEAT*.8,ease:'sine.inOut'},t);
+  ['b1','b2','b3','b4'].forEach((id,i)=>{if(t<DROP+i*BEAT+.3)return;const off=i%2?s:-s;
+    T('#'+id+'-b',{y:forte?-70:-44,rotation:(forte?10:7)*off,duration:.13,ease:'power2.out'},t+i*.012);
+    T('#'+id+'-b',{y:0,duration:.14,ease:'power2.in'},t+.13+i*.012);});
+  if(t>DROP+.4){T('#m-b',{y:-40,rotation:9*s,duration:.12,ease:'power2.out'},t+.02);T('#m-b',{y:0,duration:.14,ease:'power2.in'},t+.14)}
+}};
+dance(DROP,CLUB,false);
+armP(-50,DROP+.47);armP(-26,DROP+.94);armP(-50,DROP+1.41);armP(-26,DROP+1.88);armP(-50,DROP+2.35);armP(-26,DROP+2.82);
+// bichinho traz o segundo botão
+T('#m-al',{rotation:70,duration:.1},13.5);T('#m-ar',{rotation:-70,duration:.1},13.5);
+T('#m',{x:1260,y:604,scale:.8,duration:.26,ease:'power2.out'},13.36);
+T('#p2 .in',{scale:1,opacity:1,duration:.18,ease:'back.out(1.8)'},13.6);
+armP(0,14.04,.2,'power2.inOut');
+S('#cursor',{opacity:1},14.1);T('#cursor',{x:1254,y:352,duration:.42,ease:'expo.out'},14.14);
+T('.m-pup',{y:-5,scale:1.3,transformOrigin:'50% 50%',duration:.1},14.2);
+T('#cursor',{scale:.8,duration:.05},CLUB-.06);
+
+// ── TECHNO #8: vira clube ──
+T('#cursor',{scale:1,duration:.05},CLUB);T('#cursor',{x:2000,y:1160,duration:.25,ease:'power2.in'},CLUB+.08);
+T('#p2 .in',{y:-90,opacity:0,duration:.1,ease:'power3.in'},CLUB);
+T('.m-pup',{y:0,scale:1,duration:.06},CLUB);
+T('#m',{x:660,y:800,scale:1,duration:.24,ease:'power2.out'},CLUB);
+S('.oculos',{opacity:1},CLUB);S('#m-oculos',{opacity:1},CLUB);S('#p-oculos',{opacity:1},CLUB);
+S('#sx1',{opacity:0},CLUB);S('#sx2',{opacity:1},CLUB);
+dance(CLUB,GELO-.3,true);
+armP(-52,CLUB+.2,.16);armP(-26,CLUB+.47,.14);armP(-52,CLUB+.94,.14);armP(-26,CLUB+1.41,.14);
+S('#cam',{scale:1.75,x:-150,y:-430},16.875);
+S('#cam',{scale:1.4,x:-850,y:-500},17.8125);
+S('#cam',{...WIDE},18.28);
+armP(-52,18.28,.14);
+
+// ── gelo: a música corta, todo mundo no ar ──
+S('#eqwall',{opacity:.25},GELO);S('.oculos',{opacity:0},GELO+.28);S('#m-oculos',{opacity:0},GELO+.28);S('#p-oculos',{opacity:0},GELO+.28);
+S('#p-head',{rotation:6},GELO);
+['b1','b2','b3','b4'].forEach((id,i)=>S('#'+id+'-b',{y:-80-i*14,rotation:i%2?8:-8},GELO));
+S('#m-b',{y:-70,rotation:0},GELO);
+S('#p-fig',{y:0},GELO);
+face('mo-flat',GELO+.3);
+T('#cam',{scale:1.28,x:-160,y:-160,duration:1.5,ease:'power1.inOut'},GELO+.1);
+T('.mini-p',{x:-9,duration:.1},GELO+.36);
+pup(-12,0,GELO+.36);
+T('#f3 .in',{scale:1,opacity:1,duration:.18,ease:'back.out(2.2)'},19);talk(19.05,19.5);
+T('#p-pupil',{x:-3,y:2,duration:.08},19.6);S('#p-suor',{opacity:1},19.6);T('#p-suor',{y:130,duration:.7,ease:'power1.in'},19.62);
+S('#tecla',{opacity:1},19.68);T('#tecla',{y:800,duration:.14,ease:'power3.in'},19.68);
+T('#tecla',{scaleY:.8,duration:.04},19.82);T('#tecla',{scaleY:1,duration:.3,ease:'elastic.out(1,.4)'},19.86);
+T('#m',{x:880,duration:.18,ease:'power2.out'},19.72);T('#m-b',{y:0,duration:.14,ease:'power2.in'},19.72);
+armP(-58,20.1,.3,'power2.out');
+T('#f3 .in',{opacity:0,duration:.08},VOLTA-.12);
+armP(-22,VOLTA-.1,.1,'power3.in');
+
+// ── ⌘S: volta tudo ──
+T('#tecla',{scaleY:.58,duration:.05,ease:'power3.out'},VOLTA);T('#tecla',{scaleY:1,duration:.34,ease:'elastic.out(1,.4)'},VOLTA+.06);
+S('#cam',{...WIDE},VOLTA);S('#p-suor',{opacity:0},VOLTA);
+face('mo-smile',VOLTA);
+S('#eqwall',{opacity:1},VOLTA);
+T('.mini-p',{x:0,duration:.05},VOLTA);pup(0,0,VOLTA);
+T('#m-al',{rotation:70,duration:.08},VOLTA);T('#m-ar',{rotation:-70,duration:.08},VOLTA);
+T('#m',{y:640,duration:.2,ease:'power2.out'},VOLTA);T('#m',{y:800,duration:.18,ease:'power2.in'},VOLTA+.2);
+['b1','b2','b3','b4'].forEach((id,i)=>T('#'+id+'-b',{y:0,rotation:0,duration:.16,ease:'power2.in'},VOLTA+i*.015));
+T('#pump',{scale:1.03,duration:.03},VOLTA);T('#pump',{scale:1,duration:.3,ease:'power2.out'},VOLTA+.03);
+S('#m',{attr:{filter:'none'}},MUNDO-.01);
+T('#m',{x:960,y:540-90+110*24,scale:24,duration:.48,ease:'power3.in'},MUNDO+.01);
+S('#pump',{opacity:0},21.6);
+
+// ── fechamento, no bumbo ──
+T('#end-title',{opacity:1,filter:'blur(0px)',duration:.16,ease:'power4.out'},21.62);
+T('#end-mark',{opacity:1,filter:'blur(0px)',duration:.16,ease:'power4.out'},22.03);
+T('#end-tag',{opacity:1,filter:'blur(0px)',duration:.16,ease:'power4.out'},22.15);
+T('#end-cred',{opacity:1,filter:'blur(0px)',duration:.16,ease:'power4.out'},22.3);
+T(['#ep1','#ep2'],{x:-34,y:12,duration:.14,ease:'power2.out'},22);
+for(let i=0;i<6;i++){const t=21.5625+i*BEAT;tl.to('.eb',{scaleY:()=>R(.75,1.12),duration:.04},t);tl.to('.eb',{scaleY:()=>R(.3,.5),duration:.34,ease:'power2.out'},t+.04)}
+T('#ee2',{scaleY:.06,duration:.06},23.4);T('#ee2',{scaleY:1,duration:.1,ease:'back.out(2)'},23.68);
 window.__timelines=window.__timelines||{};window.__timelines["studio"]=tl;
 })();
 </script>

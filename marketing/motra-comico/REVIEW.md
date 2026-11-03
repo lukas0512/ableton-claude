@@ -1,11 +1,13 @@
-# Revisão: O Loop Eterno
+# Revisão: O Loop Eterno, v2
 
-**Decisões.** Rota escolhida pelo Lukas entre três (STORYLINES.md). Tomada única de 26,25 s, 14 compassos a 128 BPM. O bichinho é o ícone real com olhos; a timeline e o quarto são desenho. Os botões são recortes de capturas reais. As falas usam o texto do app quando existe ("Que som você quer criar?"); "Qualquer coisa menos ISSO.", "SALVA!", o "loop nº 4.812" e "Bora sair do loop?" são piada ou convite, criados para o filme.
+**Pedido.** O Lukas achou a v1 fraca e pediu trilha com as últimas tracks feitas no software.
 
-**Medido.** `check`: ok, sem erros. Render: 26,27 s; −19,2 LUFS integrados e pico −1,5 dBFS. O LRA de 18,4 LU vem do silêncio de propósito entre 9,4 e 15 s. Vistos: folhas de frames, folha de celular e três frames do MP4.
+**O que mudou.** A música entra em 9,4 s (antes 15 s). Filme com 24,4 s. Mochakk C v13 e TECHNO #8 v10 no lugar da trilha antiga, trocando no clique. O app real aparece em tela cheia e a captura real do Live toca no monitor. Piadas novas: voadora no nariz, bichinho cobrindo "Descartar", a banda de faixas, todos de óculos, o gelo com "Alguém salvou?" e a tecla caindo do céu.
 
-**Não verificado.** Ninguém ouviu: o som foi medido, não ouvido. O tape stop e o loop de um compasso precisam da orelha do produtor. A fluidez entre os frames só aparece assistindo.
+**Medido.** `check`: ok, sem erros. Render: −16 LUFS integrados, pico −1,5 dBFS. Drops de −14 a −18 dB de média; silêncio em −91 dB. Vistos: folhas de frames, tira de movimento e frames do MP4.
 
-**Mais fraco.** "SALVA!" fica só 0,7 s e passa rápido para quem não usa o Live. O clipe esticado em 16,2 s é o ponto a conferir no movimento. Com mais tempo: versão 9:16 e um fundo menos vazio na frente da mesa.
+**Não verificado.** Ninguém ouviu. A Mochakk C recebeu +9 dB e limiter por estar sem master: conferir se os transientes aguentaram. Faltou assistir em tempo real.
 
-**Avisos mantidos.** `composition_file_too_large`: é uma tomada única, então fica em um só arquivo. `line_unread` nos "z": são decoração, não texto de leitura.
+**Direitos.** Conferir antes de publicar: amostras e vocais das duas tracks. From The Streets e Murder ficaram de fora por terem vocais de terceiros.
+
+**Avisos mantidos.** `composition_file_too_large`: uma peça só. `line_unread` nos "z": decoração. Crédito final com cerca de 2 s, abaixo dos 2,4 s pedidos: o filme termina no compasso.
