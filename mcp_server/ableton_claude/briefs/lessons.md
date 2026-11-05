@@ -746,3 +746,11 @@ The bridge cannot reorder tracks (Live's API has no move), and background `app_d
 move it either: name and colour by API, give him the order to drag. Check returns by index (`return:0`): Live
 renames a return when a device is added ("A-Reverb | Compressor"). `solo_levels` runs through a plugin master
 (it only switches off what it recognises): for headroom render with the plugin off.
+
+In the City, the pad under a sampled guitar. htdemucs_6s left the guitar 8 dB under a mixed 'other'; vocal and
+karaoke models took nothing; BS-Roformer-SW (audio-separator `BS-Roformer-SW.ckpt`, 6 stems, 0.7 GB) pulled the
+guitar chords out clean (-66 dB between hits) and left the held pad in 'other' (v5 minus the pad: -14.6 dB of
+the mix at 329 Hz). Re-create the clips from the stems with `elements.place` and feed the old track as their bus
+(it keeps its chain). Check free disk before separating: six stems are written per file and a full disk stops
+the run. Poll `solo_levels_status` with wait_s 50 at most: a longer wait timed the MCP call out, the server
+restarted and left Live mid-pass (a track soloed, the master limiter off, a tap track): restore those by hand.
