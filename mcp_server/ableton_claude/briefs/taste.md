@@ -29,6 +29,13 @@ fader he had pulled to -26), so a hat's peak sat 4 dB under the kick's.
   master added ~2 dB each without changing the balance, and a limiter driven 17 dB took the mix
   from crest 14 to 8.6: the mix itself peaked at a clean -10 dBFS.
 
+**A running 16th is a shaker, not a hat tick** (2026-11-05: "hat 16ths muito estranho, parece fora da track ...
+era pra funcionar tipo um shaker, dar velocidade, movimento ... por isso tinha desativado"). Fixing its velocity did not
+save it: the sample was the brightest part (centroid 8.0 kHz), almost mono (correlation .98) and a 58 ms tick, one
+identical hit 16 times a bar. Offer a played shaker loop warped per 16th onto the pocket, or a one-shot with a longer
+body. And a fader pulled far down or a part switched off may be his verdict on it: ask before bringing it back. A
+perc loop reading as too much texture: less room send, less auto-pan, 2 dB out of its mids, level.
+
 **Polish by group, not the whole cake (2026-11-05, "ficou bom, segue", then: "colar, mais macio, nada muito
 pontudo, mais pressão e tensão nos drops, compressão em grupo e paralela, com carinho nos detalhes").**
 Find the pointy parts by crest, soloed: congas 21.8 dB, perc loop 20.2, shaker 18.4. Two sub-buses into
