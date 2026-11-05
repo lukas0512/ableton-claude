@@ -754,3 +754,10 @@ the mix at 329 Hz). Re-create the clips from the stems with `elements.place` and
 (it keeps its chain). Check free disk before separating: six stems are written per file and a full disk stops
 the run. Poll `solo_levels_status` with wait_s 50 at most: a longer wait timed the MCP call out, the server
 restarted and left Live mid-pass (a track soloed, the master limiter off, a tap track): restore those by hand.
+
+The separated guitar alone sounded "picotado" to him: it read 5.4 dB under the sample (the held notes went to the
+pad stem). For "the MIDI of it, exactly": a sampled loop that repeats exactly (repeats correlate 1.00) is read best
+folded, the CQT averaged per 16th over all repeats on the clip's warp markers, with the CQT tuned to the sample
+(`librosa.estimate_tuning`; City 2 City sits -27 cents, so the set had played it 27 cents flat of the bass).
+basic-pitch on the raw file mixed the pad's harmonics into the line. Check the MIDI by peak matching (57 of 58)
+and in context: render the set with the part muted, subtract, and compare onsets (lag 0) and chroma (0.89).
