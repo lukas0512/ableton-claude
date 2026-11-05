@@ -437,8 +437,9 @@ loops). Start a new track's drums from it; what makes it work:
 - Live 12.4 drops a Session clip's envelopes when it copies the clip into the Arrangement:
   a filter sweep and a kick volume ramp built with `create_*_clip(envelopes=...)` played
   flat (`has_envelopes` False). The bridge now returns `envelopes_lost`. Shape tension
-  without envelopes: velocity ramps on a dedicated track (Simpler Vol<Vel 100 %), a track
-  with fixed filter settings per stage, or separate clips per stage.
+  without envelopes: velocity ramps on a dedicated build-only track (Simpler Vol<Vel 100 %
+  adds up to ~20 dB at top velocities: re-check its peak, and never use it on a running part),
+  a track with fixed filter settings per stage, or separate clips per stage.
 - A low-pass at 320 Hz does not "filter" a bass: its body (~100 Hz) passes and the break
   read as full. The references' break bass has no low end (-35 dB in the bass band): use a
   high-pass (~280 Hz) and bring the full bass and sub back on the drop.
@@ -511,9 +512,11 @@ loops). Start a new track's drums from it; what makes it work:
   drums", "scratch stealing the drop", phasing). Strip names before matching, and list the
   set's tracks after every measurement pass.
 - Neutralising the pool groove (to avoid double swing on notes with swing baked in) also
-  removes its velocity accents: the Let The Rhythm hats went "muito retos". Bake the kit's
-  measured accent map into the velocities (on-beat 16ths ~-11 dB under the off-beat 8ths)
-  and set the Simpler's Vol < Vel to 100 % so velocity is level.
+  removes its velocity accents: the Let The Rhythm hats went "muito retos". The first fix, an
+  accent map with on-beat 16ths ~-11 dB at Simpler Vol < Vel 100 %, was wrong: neighbouring
+  16ths ended up 33 dB apart, top velocities added ~20 dB inside the channel, and he rejected it
+  (2026-11-05: "não existe", "clipando"). Bake a small accent into the velocities instead (the
+  kit's own hat is 78-105) at Vol < Vel 35 %, and measure the channel's peak after.
 - The producer's club form, asked for explicitly ("não é um pop"): intro A drums (16, DJ),
   intro B layers one by one (16), groove (16), break 1 (8) + build 1 (8) with a 2-beat
   breath, DROP 1 (32, its lead layer entering in the 2nd 8), main break (16) + a bigger

@@ -42,7 +42,8 @@ def caller(s):
         if cmd == "get_device":
             if args["track"] == "master":
                 return {"params": [{"name": k, "display": v} for k, v in s["limiter"].items()]}
-            return {"params": [{"name": "Volume", "value": s["simpler_db"]}]}
+            return {"params": [{"name": "Volume", "value": s["simpler_db"]},
+                               {"name": "Vol < Vel", "value": s.get("vel_sens", 0.35)}]}
         if cmd == "transport_state":
             return s["transport"]
         raise AssertionError(cmd)
@@ -91,3 +92,14 @@ def test_the_producer_brief_carries_his_quality_bar():
     from ableton_claude import server
     brief = server._brief("producer") + server._brief("taste")
     assert "quality bar" in brief and "One pocket" in brief and "DROP 2" in brief
+
+
+def test_a_steep_velocity_hat_is_caught():
+    s, _ = fake_set()
+    wild = [[60, k / 4 + (0.0225 if k % 2 else 0), .1, 30 if k % 4 == 0 else 120] for k in range(32)]
+    s["notes"][0] = wild
+    s["vel_sens"] = 0.995
+    found = [f for f in gate.run(caller(s))["findings"] if "Vol<Vel" in f["detail"]]
+    assert found and found[0]["track"] == "HATS"
+    s["vel_sens"] = 0.35       # the same notes at a gentle curve are a choice, not a mistake
+    assert not [f for f in gate.run(caller(s))["findings"] if "Vol<Vel" in f["detail"]]

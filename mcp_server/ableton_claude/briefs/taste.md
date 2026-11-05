@@ -11,6 +11,24 @@ measure, and run `quality_gate(render=…, previous=…, study=…)` once more: 
 scores worse than the previous version (audiobox CE/PQ) is a warning to listen to. He listens in Live while you work: after each pass start playback for him at the
 section you changed (`transport(action="play", bar=…)`) and say what to listen for.
 
+## Explicit priority: a running hat is played, not graphed (2026-11-05)
+
+"O que você fez com o velocity não existe ... subindo até 125, 127 ... tem que ser mais reto,
+mais orgânico, parecer um hat, um shaker ... clipando ... por isso que tô sentindo dificuldade
+pra fazer a mix ... sempre da forma mais simples possível, escolher bem os samples, não amassar."
+This overrides the accent map in section 3 for running hats. From The Streets / In the City carried
+velocity 19-125 (89 distinct values) at Simpler Vol<Vel 100 %: neighbouring 16ths read -53 / -31 /
+-20 / -27 dBFS, and the top velocities added ~20 dB inside the channel (about +9 dBFS before a
+fader he had pulled to -26), so a hat's peak sat 4 dB under the kick's.
+
+- Vol<Vel 35 %, every note under 100, one steady map (80 / 76 / 92 / 80 on the four 16ths),
+  +-2 scatter. Passed: the same loudness (-18 LU against the kick) with the peak 7 dB lower.
+- Never use Vol<Vel above 35 % on a hat or shaker: `quality_gate` should catch it.
+- Before any mix work, read the chain top down: Simpler, channel, bus, master, and take away what
+  is only there to recover something earlier. There, soft-sine saturators on four buses and the
+  master added ~2 dB each without changing the balance, and a limiter driven 17 dB took the mix
+  from crest 14 to 8.6: the mix itself peaked at a clean -10 dBFS.
+
 ## 1. It is a club track ("não é um pop", "pensa em alto-falantes")
 
 - **Form**: intro A drums only (16, DJ) → intro B, layers entering one by one (16) → groove
@@ -151,9 +169,9 @@ section you changed (`transport(action="play", bar=…)`) and say what to listen
 - **One pocket**: every 16th part swings the same (kit: off-16ths +10.8 ms at 125); a hat
   at +15.7 ms against congas/bass at +10.8 and a shaker at -10.4 read as "bateria desconexa,
   os hats perdidos". The clap leans 5 ms late, the shaker shot 5 ms early, nothing else.
-- Hats carry the kit's accent map (on-beat 16ths ~11 dB under the off-beat 8ths; Simpler
-  Vol<Vel 100 %); flat velocities read "muito retos". Vary them: a pocket every 2nd bar, a
-  32nd flutter at phrase ends.
+- Hats: he first called dead-flat velocities "muito retos", then rejected the fix (an 11 dB accent
+  map at Vol<Vel 100 %) as impossible: see the 2026-11-05 priority at the top. Keep a small steady
+  accent (about 3 dB). Vary with a pocket every 2nd bar and a 32nd flutter at phrase ends.
 - The clap is the anchor, the continuous hats sit behind it ("hi-hat contínuo alto"): clap
   ~-9 LU vs the kick, hat 16ths ~-16, off-beat hat ~-15.
 - Clap: 2 and 4, one pickup every 4th bar, a short tail (Classic Simpler, short notes,

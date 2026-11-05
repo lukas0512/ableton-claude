@@ -10,6 +10,8 @@ import statistics
 
 LEFTOVER_PREFIXES = ("lvl", "spec", "cal", "chk", "gs", "bb", "vx", "pol", "claude render")
 HOT_SIMPLER_DB = -6.0
+STEEP_VEL_SENS = 0.6       # Simpler Vol<Vel above this ...
+WIDE_VEL_RANGE = 40        # ... with a velocity spread above this
 POCKET_TOLERANCE_MS = 3.0
 SEND_TOLERANCE_DB = 3.0
 
@@ -47,6 +49,36 @@ def _hot_simplers(tracks, details, call):
                 out.append(_finding("warn", "gain staging", t["name"],
                                     f"Simpler volume {vol:+.1f} dB drives the chain hot",
                                     "Simpler at -12 dB, raise the fader instead"))
+    return out
+
+
+def _steep_velocity(tracks, details, call):
+    """A Simpler at a steep Vol<Vel playing a wide velocity range: neighbouring notes jump tens of
+    dB and top velocities add ~20 dB inside the channel (his "não existe", "clipando")."""
+    out = []
+    for t in tracks:
+        for d in details[t["i"]].get("devices", []):
+            if d.get("class") != "OriginalSimpler":
+                continue
+            dev = call("get_device", {"track": t["i"], "device": d["i"]})
+            sens = next((p.get("value") for p in dev["params"] if p["name"] == "Vol < Vel"), None)
+            if sens is None or sens <= STEEP_VEL_SENS:
+                continue
+            vels = [n[3] for n in call_notes(t, details, call)]
+            if vels and max(vels) - min(vels) > WIDE_VEL_RANGE:
+                out.append(_finding("warn", "gain staging", t["name"],
+                                    f"Vol<Vel {sens:.0%} with velocities {min(vels):.0f}-{max(vels):.0f}: "
+                                    "hits jump tens of dB and the top ones overload the channel",
+                                    "Vol<Vel 35 %, a small accent under 100 (the kit's hat is 78-105)"))
+    return out
+
+
+def call_notes(t, details, call):
+    """Each note with its velocity, every MIDI clip of the track."""
+    out = []
+    for c in details[t["i"]].get("clips", []):
+        if c.get("type") == "midi":
+            out += call("get_notes", {"track": t["i"], "clip": {"at": c["start"]}})
     return out
 
 
@@ -226,6 +258,7 @@ def run(call):
                                  "wanted (junk recorded during a render must stay overridden)"))
     findings += _state(tracks, call)
     findings += _hot_simplers(tracks, details, call)
+    findings += _steep_velocity(tracks, details, call)
     findings += _empty_pads(tracks, details, notes_of, call)
     findings += _pocket(tracks, notes_of, song.get("tempo", 120.0))
     findings += _voices(tracks, details)
