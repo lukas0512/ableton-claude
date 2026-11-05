@@ -117,11 +117,30 @@ def expected_seconds(n_elements, start_bar, end_bar, tempo, one_pass=False):
     return round((1 if one_pass else n_elements) * ((end_bar - start_bar) * 4 * 60.0 / tempo + 6))
 
 
+def stereo_of(path):
+    """Left/right correlation and side-vs-mid dB of a render, or None. A played loop at correlation
+    -0.1 and side/mid +0.7 dB, in a mix at .98 and -19 dB, read as "fora da track" every time it entered."""
+    try:
+        x, _ = sf.read(path, dtype="float64", always_2d=True)
+    except Exception:
+        return None
+    if x.shape[1] < 2 or x[:, 0].std() == 0 or x[:, 1].std() == 0:
+        return None
+    mid, side = (x[:, 0] + x[:, 1]) / 2, (x[:, 0] - x[:, 1]) / 2
+    return {"correlation": round(float(np.corrcoef(x[:, 0], x[:, 1])[0, 1]), 2),
+            "side_vs_mid_db": round(float(10 * np.log10(((side ** 2).sum() + 1e-20) / ((mid ** 2).sum() + 1e-20))), 1)}
+
+
 def _element(path, measure_fn, spectra):
     lufs, peak, third = measure_fn(path)
     if not np.isfinite(lufs):     # nothing played in these bars
         return {"lufs": None, "silent": True, "file": path}
     e = {"lufs": round(lufs, 1), "peak_db": round(peak, 1), "file": path}
+    stereo = stereo_of(path)
+    if stereo:
+        e["stereo"] = stereo
+        if stereo["correlation"] < 0.2:
+            e["warning"] = "nearly out of phase: sits outside the mix's stereo image; narrow it or replace it"
     if spectra:
         e["third_octave_db"] = [round(v, 1) for v in third]
     return e

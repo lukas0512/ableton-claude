@@ -36,6 +36,8 @@ identical hit 16 times a bar. Offer a played shaker loop warped per 16th onto th
 body. And a fader pulled far down or a part switched off may be his verdict on it: ask before bringing it back. A
 perc loop reading as too much texture: less room send, less auto-pan, 2 dB out of its mids, level.
 
+**"Fora da track" can be phase, and he hears it before the meters do** (2026-11-05: "toda vez que o shaker entra dá uma sensação estranha"). A played loop named "Far Away" had correlation -0.10 and side/mid +0.7 dB in a mix at .98 and -19 dB. Check `stereo` per element in `solo_levels` before choosing a sample, and when he rejects a part, take it out rather than level it. **Turn on old tech house** (same day: "muito percussiva, menos corneta, tensão e alívio por ausência"): the record's riff and voice carry, one running hat and one off-beat, no rolls or risers; kick-outs and a closing bass filter make the tension. Drums without the kick -7.6 -> -9.5 LU, music -14.9 -> -11.3, riff -25.5 -> -15. "Vazio" there was not sub (share above the refs) but bass harmonics (-15 dB, refs -10..-7), noise and high-mids: read `validate_against_genre` before adding low end. Measured, not yet heard.
+
 **A project he can open and read** (2026-11-05: "tirar canais não utilizados, organizar por cor, separar low end, synths,
 drums, fx, vox ... mesmo elemento no mesmo canal, sem duplicar canal à toa"). Delete a track that is muted or has no active clip.
 All low-end parts through LOW END, buses named as buses, one colour per family (section 8). Merge a duplicate when the

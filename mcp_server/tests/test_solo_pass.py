@@ -190,3 +190,18 @@ def test_two_limiters_are_each_restored():
     live = TwoLimiters()
     run(live)
     assert live.on == {"Limiter#0": True, "Limiter#1": True}
+
+
+def test_an_out_of_phase_element_is_flagged(tmp_path):
+    import numpy as np
+    import soundfile as sf
+    rng = np.random.default_rng(1)
+    noise = rng.standard_normal(4800) * 0.1
+    wide, centred = tmp_path / "wide.wav", tmp_path / "centred.wav"
+    sf.write(wide, np.column_stack([noise, -noise]), 48000)
+    sf.write(centred, np.column_stack([noise, noise]), 48000)
+    fake = lambda path: (-20.0, -6.0, [])
+    assert "warning" in sp._element(str(wide), fake, False)
+    good = sp._element(str(centred), fake, False)
+    assert "warning" not in good and good["stereo"]["correlation"] == 1.0
+
