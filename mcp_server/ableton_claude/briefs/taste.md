@@ -36,6 +36,18 @@ identical hit 16 times a bar. Offer a played shaker loop warped per 16th onto th
 body. And a fader pulled far down or a part switched off may be his verdict on it: ask before bringing it back. A
 perc loop reading as too much texture: less room send, less auto-pan, 2 dB out of its mids, level.
 
+**A project he can open and read** (2026-11-05: "tirar canais não utilizados, organizar por cor, separar low end, synths,
+drums, fx, vox ... mesmo elemento no mesmo canal, sem duplicar canal à toa"). Delete a track that is muted or has no active clip.
+All low-end parts through LOW END, buses named as buses, one colour per family (section 8). Merge a duplicate when the
+treatment can move with the clip; say which ones stayed separate and why.
+
+**Bass "vazio" is measurable** (same day: "mais presença, mais algumas notas, encaixe no kick"). The riff left the bass silent
+from beat 2.75 to 4 of every bar, about 3 notes a bar against the references' 5.4. Keep the riff and timbre; add off-kick notes in
+the key, rotating over 8 bars, in the drops only so they have something to arrive with; leave planned rests empty. The two
+sources' voices: measure them soloed band by band. Undoing my own EQ matched them (Murder 6-8 kHz +7 dB, 400 Hz -15):
+shelf 3 kHz +6 -> +3.5, -3 @7k, 400 -5 -> -2.5, within 0.3 LU of City. A build tail in the spirit of Endless Smile: the build's own
+render, 2.5 s wide reverb, high-pass rising 300 Hz -> 5 kHz, +24 dB, dead 10 ms before the drop. Measured, not yet heard.
+
 **Polish by group, not the whole cake (2026-11-05, "ficou bom, segue", then: "colar, mais macio, nada muito
 pontudo, mais pressão e tensão nos drops, compressão em grupo e paralela, com carinho nos detalhes").**
 Find the pointy parts by crest, soloed: congas 21.8 dB, perc loop 20.2, shaker 18.4. Two sub-buses into
