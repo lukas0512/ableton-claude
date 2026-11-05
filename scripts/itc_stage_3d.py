@@ -45,8 +45,8 @@ def stage():
     utility('PERC GROUP', 120)
     C('set_param', {'track': 'MUSIC BUS', 'device': 'Utility', 'param': 'Stereo Width', 'display': '150 %'})
     # depth: the voices' plate starts later so the dry voice stays in front
-    C('set_param', {'track': 'return:4', 'device': 0, 'param': 'Predelay', 'display': '45.0 ms'})
-    C('set_param', {'track': 'return:4', 'device': 0, 'param': 'Stereo Image', 'value': 1.0})
+    C('set_param', {'track': 'return:4', 'device': 'Reverb', 'param': 'Predelay', 'display': '45.0 ms'})
+    C('set_param', {'track': 'return:4', 'device': 'Reverb', 'param': 'Stereo Image', 'value': 1.0})
     C('set_param', {'track': 'return:3', 'device': 0, 'param': 'Stereo Image', 'value': 1.0})
 
 
@@ -67,6 +67,6 @@ if __name__ == '__main__':
     for name in sys.argv[1:] or steps:
         print(name)
         steps[name]()
-    p = {x['name']: x['display'] for x in C('get_device', {'track': 'return:4', 'device': 0})['params']}
+    p = {x['name']: x['display'] for x in C('get_device', {'track': 'return:4', 'device': 'Reverb'})['params']}
     print({k: p[k] for k in ('Predelay', 'Stereo Image')})
     print({t: C('get_track', {'track': t})['vol_db'] for t in ('TEXTURE tape', 'TEXTURE vinyl')})
