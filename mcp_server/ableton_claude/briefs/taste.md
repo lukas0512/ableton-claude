@@ -29,6 +29,17 @@ fader he had pulled to -26), so a hat's peak sat 4 dB under the kick's.
   master added ~2 dB each without changing the balance, and a limiter driven 17 dB took the mix
   from crest 14 to 8.6: the mix itself peaked at a clean -10 dBFS.
 
+**Polish by group, not the whole cake (2026-11-05, "ficou bom, segue", then: "colar, mais macio, nada muito
+pontudo, mais pressão e tensão nos drops, compressão em grupo e paralela, com carinho nos detalhes").**
+Find the pointy parts by crest, soloed: congas 21.8 dB, perc loop 20.2, shaker 18.4. Two sub-buses into
+DRUMS shave only their tips (threshold well over the body): TOPS 3:1, 1 ms, 60 ms; PERC GROUP 3:1,
+2 ms, 80 ms. Pressure goes on returns under the dry signal, so transients stay: F-Par Drums (8:1, 5 ms,
+100 ms), G-Par Low (4:1, 3 ms, 120 ms), H-Warm parallel soft-sine for music and voices (HP 200, LP 7k).
+Plate, delay and atmos duck ~3 dB under the kick. Measured, not yet heard: drop -12.7 -> -11.5 LUFS at the
+same limiter, crest 12.6 -> about 11.4. Once the limiter stops squashing, undo what compensated for it:
+break clip gains went back to 0. Build 1 lacked build 2's high-passed kick; with it, velocity 84 -> 122:
+-17.3, -16.6, -15.7, a cappella -16.8, drop -11.7.
+
 ## 1. It is a club track ("não é um pop", "pensa em alto-falantes")
 
 - **Form**: intro A drums only (16, DJ) → intro B, layers entering one by one (16) → groove
