@@ -13,6 +13,8 @@ Kept untouched: every guitar clip from bar 97 to 131. Written here:
 - build 1 (57-64): his build-2 shape mirrored (variation, two bars of rest, the ping-pong going in);
 - build 2's stab (113-120): from one B7sus4 on 0.5/2.5 to motion: 8ths from 115, 16th pushes from 119, the top voice
   climbing B4 -> C#5 -> D#5 (B7) so it leans into the drop's E.
+  REJECTED the same night ("não gostei dessa subida do stab no build 2"): restored from the backup JSON; do not run
+  the build2 step.
 """
 from pathlib import Path
 import sys
@@ -96,7 +98,7 @@ def build2_stab():
 
 
 if __name__ == '__main__':
-    steps = {'guitar': guitar, 'build2': build2_stab}
+    steps = {'guitar': guitar}          # build2_stab: rejected, kept for the record
     for name in sys.argv[1:] or steps:
         print(name)
         steps[name]()

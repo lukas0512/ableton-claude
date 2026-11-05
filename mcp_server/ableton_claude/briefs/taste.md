@@ -278,6 +278,8 @@ break clip gains went back to 0. Build 1 lacked build 2's high-passed kick; with
   (two hits a bar, one under the voice), the only change a push into the turnaround. Phrase form (A B A C, A B A B,
   A B A C, A B C D) belongs to the answering part, not to the comping. Bright repetitive parts tire him and stick out:
   answers sit in the mids (D4-G4), the echo (1/4 + 3/8, never 3/16: it falls off the swing) carries them.
+  A rising stab in the build (denser 8ths, top voice climbing to the dominant) was rejected the same night ("não
+  gostei dessa subida do stab no build"): the build's stab stays the plain comp; the tension comes from elsewhere.
 
 ## 6. Voices
 
