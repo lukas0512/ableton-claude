@@ -272,6 +272,13 @@ break clip gains went back to 0. Build 1 lacked build 2's high-passed kick; with
   smeared the groove; cut each hit at ~140 ms (references: 70 % of stabs ~110 ms), keep the sends
   low (plate -24, long tail -26). Held chords only in the breaks.
 
+- **The vocal is the lead; stabs only accompany** ("agora os stabs ficaram demais ... o lead é o vocal, os stabs são
+  só pra acompanhar o groove, dar aquela marcada, criar corpo", In the City, 2026-11-05). A stab with its own phrases
+  and a moving top line competed with the voice. One fixed voicing per chord, one off-beat pattern in the bass's holes
+  (two hits a bar, one under the voice), the only change a push into the turnaround. Phrase form (A B A C, A B A B,
+  A B A C, A B C D) belongs to the answering part, not to the comping. Bright repetitive parts tire him and stick out:
+  answers sit in the mids (D4-G4), the echo (1/4 + 3/8, never 3/16: it falls off the swing) carries them.
+
 ## 6. Voices
 
 - Sparse beats busy: the v14 dynamic (few phrases, space between) was better than trading
