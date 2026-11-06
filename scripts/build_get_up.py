@@ -49,6 +49,13 @@ entendeu mais ou menos, é um hard house com uns bass de UKG às vezes, uma mist
   - UKG "às vezes": a 2-step bass phrase (reese) carries the groove's first 8 and the break, and
     answers the off-beat bass in the 8th bar of every drop phrase.
 
+v4 (his notes on v3: "pode melhorar muito o balanço desse bass, achei fraquinho, não ficou igual o
+balanço da música, o timbre também tá bem fora"): the record's bass measured (heard_midi bars 49-56)
+is a 2-beat bounce -- A1 on the "&", E2 a 5th up ON 2 and 4 with the kick, held, a pickup on the "a",
+straight -- and bright (2-4 kHz 5-9 dB under its 160 Hz peak). v3's off-beat/UKG basses were neither.
+Now: B (on) the bounce in MIDI on Analog Bass + Saturator + a 2.5 kHz shelf, a light 2:1 sidechain
+(the E lands with the kick); A (muted, BASS REF) the record's own bass stem on its kick grid.
+
     cd mcp_server && uv run python ../scripts/build_get_up.py
 """
 import os
@@ -99,11 +106,11 @@ TRACKS = {
     "SNARE 909":  ("drums/909 Core Kit.adg", -14.0, -0.1, -24.0, None, ("groove", "build", "drop")),
     "RIDE":       ("drums/909 Core Kit.adg", -15.0, 0.1, -30.0, None, ("drop",)),
     "CRASH":      ("drums/909 Core Kit.adg", -11.0, 0.0, -24.0, None, ("break", "drop")),
-    "BASS":       ("sounds/Bass/Basic FM House Bass.adg", -7.0, 0.0, None, None, ("groove", "drop")),
-    "BASS BREAK": ("sounds/Bass/Basic FM House Bass.adg", -12.0, 0.0, None, None, ("break", "build")),
-    # v3: the UKG side: a 2-step reese phrase (groove's first 8, the drop's phrase ends); -13 dB: at
-    # -10 the groove read sub 50 % (hard house refs 26 %), bass -1.8 dB vs drums (refs -7)
-    "BASS UKG":   ("sounds/Bass/Basic Reese Bass.adg", -13.0, 0.0, None, None, ("groove", "drop")),
+    # v4 ("o balanço desse bass fraquinho, não ficou igual o balanço da música, o timbre bem fora"):
+    # the record's own bounce, on Analog Bass (nearest of six presets to the record's bass spectrum,
+    # 7.1 dB RMS off; FM House was LP'd at 1.2 kHz where the record's bass is bright to 4 kHz)
+    "BASS":       ("sounds/Bass/Analog Bass.adg", -7.0, 0.0, None, None, ("groove", "drop")),
+    "BASS BREAK": ("sounds/Bass/Analog Bass.adg", -12.0, 0.0, None, None, ("break", "build")),
 }
 BUS_MEMBERS = ["CLAP", "HAT 16", "HAT OFF", "HAT LIFT", "SHAKER", "SNARE 909", "RIDE", "PERC LOOP"]
 AUDIO = {   # a played loop: human timing MIDI does not have
@@ -111,13 +118,16 @@ AUDIO = {   # a played loop: human timing MIDI does not have
 }
 # the record's synths and chant: placed by place_loop / the vox clips, not written here
 # v2: VOX -4 (the chant lifted the mix +1.5 LU and +4 dB at 4-10 kHz), SYNTH B +1.5 (groove and drop sat 0.5 LU apart)
-LOOP_TRACKS = {"SYNTH A": (-8.0, -0.1), "BREAK CHORDS": (-9.0, 0.0), "SYNTH B": (-6.5, 0.1), "VOX": (-13.0, 0.0)}
+LOOP_TRACKS = {"BASS REF": (-7.0, 0.0), "SYNTH A": (-8.0, -0.1), "BREAK CHORDS": (-9.0, 0.0), "SYNTH B": (-6.5, 0.1), "VOX": (-13.0, 0.0)}
 FX = ["REV CRASH", "SUB BOOM"]
 # the record's synths: (source bar, bars) in the 'other' stem, cut on the record's kick grid
 OTHER_STEM = STEMS + "02. Phunky Phantom - Get Up Stand Up (Or - other.wav"
 REF_MIX = REF_DIR + "02. Phunky Phantom - Get Up Stand Up (Original Mix).flac"
 LOOP_DIR = STEMS + "claude-remix/"
 LOOP_SRC = {"GUSU synth A": (64, 4), "GUSU synth B": (196, 4), "GUSU break chords": (121, 8)}
+BASS_STEM = STEMS + "02. Phunky Phantom - Get Up Stand Up (Or - bass.wav"
+# v4 option A: the record's own bass (bars 49-56), muted: A/B against the MIDI bounce
+BASS_REF = ("GUSU bass ref", 49, 8)
 SYNTH_DETUNE = -16                             # the stem sits +16 cents
 # (track, loop, start bar, end bar, filter from Hz, to Hz, open by beat, volume dB ramp, end gap beats)
 PLACEMENTS = [
@@ -126,14 +136,18 @@ PLACEMENTS = [
     ("BREAK CHORDS", "GUSU break chords", 25, 33, 1800, 10000, None, (-9.0, -4.0), 2),
     ("SYNTH B", "GUSU synth B", 29, 33, 500, 3000, None, (-16.0, -9.0), 2),
     ("SYNTH B", "GUSU synth B", 33, 49, 8000, 8000, None, (-6.5, -6.5), 0),
+    ("BASS REF", "GUSU bass ref", 1, 17, 20000, 20000, None, None, 0),
+    ("BASS REF", "GUSU bass ref", 33, 49, 20000, 20000, None, None, 0),
 ]
+DETUNE = {"BASS REF": 6}                        # the bass stem sits -6 cents
 EQ = {
     # "crisp, mas não tão aguda": the top of the hats and shaker trimmed, the drum bus shelf does the rest
     "HAT 16": {"8 Filter On A": "On", "8 Filter Type A": "High Shelf", "8 Frequency A": "8.00 kHz", "8 Gain A": "-3.0 dB"},
     "HAT OFF": {"8 Filter On A": "On", "8 Filter Type A": "High Shelf", "8 Frequency A": "9.00 kHz", "8 Gain A": "-2.0 dB"},
     "SHAKER": {"8 Filter On A": "On", "8 Filter Type A": "High Shelf", "8 Frequency A": "8.00 kHz", "8 Gain A": "-4.0 dB"},
-    "BASS": {"8 Filter On A": "On", "8 Filter Type A": "Low Pass 12dB", "8 Frequency A": "1.20 kHz"},
-    "BASS UKG": {"8 Filter On A": "On", "8 Filter Type A": "Low Pass 12dB", "8 Frequency A": "1.80 kHz"},
+    # the record's bass is bright: 2-4 kHz only 5-9 dB under its 160 Hz peak
+    "BASS": {"8 Filter On A": "On", "8 Filter Type A": "High Shelf", "8 Frequency A": "2.50 kHz", "8 Gain A": "6.0 dB"},
+    "BASS REF": {"1 Filter On A": "On", "1 Filter Type A": "High Pass 12dB", "1 Frequency A": "28.0 Hz"},
     "SNARE 909": {"1 Filter On A": "On", "1 Filter Type A": "High Pass 12dB", "1 Frequency A": "200 Hz",
                   "8 Filter On A": "On", "8 Filter Type A": "High Shelf", "8 Frequency A": "8.00 kHz", "8 Gain A": "-3.0 dB"},
     # the break/build bass keeps its sub (his rule: the low end never vanishes) but no body
@@ -156,16 +170,7 @@ BASS_A = [(2, A1, 2, 112), (5, A1, 1, 84), (7, A2, 1, 98), (10, A1, 2, 108), (13
 BASS_B = [(2, A1, 2, 110), (5, A2, 1, 90), (7, A1, 1, 96), (10, C2, 2, 104), (13, A1, 1, 84), (14, E1, 2, 102)]
 BASS_TURN = [(2, A1, 2, 112), (6, C2, 1, 96), (7, C2, 1, 88), (10, G1, 1, 100), (11, A1, 1, 96),
              (13, E1, 1, 104), (15, A2, 1, 100)]
-# v3 hard house: the off-beat bass on the root, an octave pop and a G push for movement
-HH_A = [(2, A1, 1.6, 112), (6, A1, 1.6, 104), (10, A1, 1.6, 112), (14, A1, 1.6, 104)]
-HH_B = [(2, A1, 1.6, 112), (6, A2, 1.4, 100), (10, A1, 1.6, 112), (13, G1, 0.8, 88), (14, A1, 1.6, 104)]
-HH_C = [(2, A1, 1.6, 112), (6, A1, 1.6, 104), (10, C2, 1.6, 108), (14, G1, 1.6, 102)]
-# UKG: a 2-step phrase, syncopated, rests where the off-beat bass would sit
-UKG_1 = [(3, A1, 3, 112), (7, C2, 1, 92), (10, A1, 2, 104), (13, E2, 1, 88), (14, D2, 1, 90), (15, C2, 1, 96)]
-UKG_2 = [(2, A1, 2, 108), (6, G1, 2, 100), (9, A1, 1, 88), (11, C2, 2, 104), (14, E1, 2, 102)]
-UKG_ANSWER = [(2, A1, 1, 104), (3, A2, 1, 84), (6, G1, 1, 96), (7, A1, 2, 104), (10, C2, 1, 96),
-              (11, D2, 1, 92), (13, E2, 1, 98), (15, A2, 1, 92)]
-HUMAN_MS = {"SNARE 909": 5, "HAT 16": 6, "HAT OFF": 4, "HAT LIFT": 4, "SHAKER": 7, "BASS": 2, "BASS BREAK": 3, "BASS UKG": 4}
+HUMAN_MS = {"SNARE 909": 5, "HAT 16": 6, "HAT OFF": 4, "HAT LIFT": 4, "SHAKER": 7, "BASS": 2, "BASS BREAK": 3}
 
 
 def log(*a):
@@ -197,17 +202,23 @@ def section(bar):
     return None
 
 
+# v4: the record's bounce, a 2-beat cell: A1 short on the "&", E2 (a 5th up) on 2 and 4 with the
+# kick and clap, held, a pickup on the "a" -- straight, as the record plays it (its "&" 0-7 ms late,
+# its "a" on the grid). (beat in bar, pitch, length in beats, velocity); pickups per bar of the 8.
+BOUNCE_PICKUPS = [(C2, A1), (A2, G1), (C2, A1), (A2, A1), (C2, A1), (A2, G1), (C2, A1), (D2, E2)]
+
+
+def bounce(pos):
+    p1, p2 = BOUNCE_PICKUPS[pos]
+    return [(0.5, A1, .375, 100), (1.0, E2, .65, 92), (1.75, p1, .35, 96),
+            (2.5, A1, .375, 100), (3.0, E2, .65, 90), (3.75, p2, .3, 94)]
+
+
 def bass_role(bar):
     """v3: (who, notes) per bar. UKG carries the groove's first 8 and the break; the hard house
     off-beat bass the groove's second 8 and the drop; UKG answers in every phrase's 8th bar."""
     sec, pos = section(bar), (bar - 1) % 8
-    if sec in ("break", "build"):
-        return "BASS BREAK", (UKG_1 if pos % 2 == 0 else UKG_2)
-    if sec == "groove" and bar < 9:
-        return "BASS UKG", (UKG_1 if pos % 2 == 0 else UKG_2)
-    if pos == 7:
-        return "BASS UKG", UKG_ANSWER
-    return "BASS", (HH_A, HH_B, HH_A, HH_C, HH_A, HH_B, HH_C)[pos]
+    return ("BASS BREAK" if sec in ("break", "build") else "BASS"), bounce(pos)
 
 
 def make_files():
@@ -244,9 +255,11 @@ def cut_loops():
     beats = SR.kick_beats(kick, LOOP_DIR) if kick else g["beats"]
     x, rate = SR.read_stereo(OTHER_STEM)
     loops = {}
-    for name, (bar, bars) in LOOP_SRC.items():
-        loops[name] = SR.cut_loop(x, rate, LOOP_DIR + name + ".wav", g["bpm"], g["downbeat"], bar, bars,
-                                  0.0, beats)
+    xb, rb = SR.read_stereo(BASS_STEM)
+    for name, (bar, bars) in list(LOOP_SRC.items()) + [(BASS_REF[0], BASS_REF[1:])]:
+        src = (xb, rb) if name == BASS_REF[0] else (x, rate)
+        loops[name] = SR.cut_loop(src[0], src[1], LOOP_DIR + name + ".wav", g["bpm"], g["downbeat"], bar,
+                                  bars, 0.0, beats)
         loops[name]["name"] = name
         SR.save_meta(LOOP_DIR, name, loops[name])
         six = [s for b, s in loops[name]["markers"] if b == int(b)]
@@ -265,7 +278,7 @@ def place_loops(loops):
         if ramp:
             envs.append({"param": "volume", "unit": "db", "points": [[0, ramp[0]], [beats, ramp[1]]]})
         r = SR.place_warped(C, t, path, (a - 1) * 4.0, beats, mk, envs, name="%s %d-%d" % (name, a, b - 1))
-        C("set_clip", {"track": t, "clip": {"at": (a - 1) * 4.0}, "detune": SYNTH_DETUNE})
+        C("set_clip", {"track": t, "clip": {"at": (a - 1) * 4.0}, "detune": DETUNE.get(t, SYNTH_DETUNE)})
         clip = [c for c in C("get_track", {"track": t})["clips"] if abs(c["start"] - (a - 1) * 4.0) < .01][0]
         log(t, a, b, "clip %.2f beats (want %.2f)" % (clip["end"] - clip["start"], beats), "trimmed" if r["trimmed"] else "")
 
@@ -299,6 +312,10 @@ def ensure_tracks():
     for p, v in {"8 Filter On A": "On", "8 Filter Type A": "High Shelf", "8 Frequency A": "9.00 kHz",
                  "8 Gain A": "-2.5 dB"}.items():
         setp(DRUM_BUS, "EQ Eight", p, v)
+    for t in ("BASS", "BASS BREAK", "BASS UKG"):
+        names = [x["name"] for x in C("get_song")["tracks"]]
+        if t in names and (t == "BASS UKG" or "Analog Bass" not in devs(t)):
+            C("delete_track", {"track": t})       # v3's FM / reese basses
     names = [t["name"] for t in C("get_song")["tracks"]]
     for t, (src, fader, pan, send, simpler, _) in TRACKS.items():
         if t not in names:
@@ -319,6 +336,7 @@ def ensure_tracks():
         C("set_send", {"track": t, "send": 0, "db": -70.0})
     for t in FX:
         audio_track(t)
+    C("set_track", {"track": "BASS REF", "mute": True})   # option A, muted: unmute it and mute BASS to A/B
     C("set_track", {"track": "REV CRASH", "volume_db": -16.0})
     C("set_track", {"track": "SUB BOOM", "volume_db": -9.0})
     for t, bands in EQ.items():
@@ -329,11 +347,12 @@ def ensure_tracks():
     for t in BUS_MEMBERS:
         C("set_track_output", {"track": t, "dest": DRUM_BUS})
     # the bass: the kick owns the first ~120 ms (6:1, 0.1 ms, 120 ms; S/C EQ off: it hears the body)
-    for t in ("BASS", "BASS BREAK", "BASS UKG"):
+    for t in ("BASS", "BASS BREAK"):
         if "Compressor" not in devs(t):
             C("load_device", {"track": t, "query": "Compressor", "roots": ["audio_effects"]})
-        for p, v in {"Ratio": "6.00 : 1", "Attack": "0.10 ms", "Release": "120 ms",
-                     "Threshold": "-30.0 dB", "S/C EQ On": "Off"}.items():
+        # v4: light (2:1, 60 ms): the bounce's E lands WITH the kick on 2 and 4, a 6:1 duck ate it
+        for p, v in {"Ratio": "2.00 : 1", "Attack": "0.10 ms", "Release": "60.0 ms",
+                     "Threshold": "-26.0 dB", "S/C EQ On": "Off"}.items():
             try:
                 setp(t, "Compressor", p, v)
             except Exception as e:
@@ -342,11 +361,21 @@ def ensure_tracks():
             C("set_device_input", {"track": t, "device": "Compressor", "source": "KICK", "channel": "Post FX"})
         except Exception as e:
             log(t, "sidechain:", e)
-    # v3 render: the reese was stereo in its lows (corr 0.77 under 120 Hz, -2.4 dB in mono)
-    if "Utility" not in devs("BASS UKG"):
-        C("load_device", {"track": "BASS UKG", "query": "Utility", "roots": ["audio_effects"]})
-    setp("BASS UKG", "Utility", "Bass Mono", "On")
-    setp("BASS UKG", "Utility", "Bass Freq", "200 Hz")
+    # the record's bass, matched soloed (1/3 octaves vs its stem, RMS off 7.1 -> 4.2 dB): the preset's
+    # low-pass opened (32.8 -> 583 Hz), its 600 ms release cut to 139 ms (the bounce's notes stop),
+    # its Clip 31 %, a -3 dB low shelf at 100 Hz (the preset's 50-100 Hz sat 5-7 dB over the record)
+    for t in ("BASS", "BASS BREAK"):
+        setp(t, "Analog Bass", "Release", 6.0)
+    for p, v in {"Filter Cutoff": 62.0, "Clip": 40.0}.items():
+        setp("BASS", "Analog Bass", p, v)
+    for p, v in {"1 Filter On A": "On", "1 Filter Type A": "Low Shelf", "1 Frequency A": "100 Hz",
+                 "1 Gain A": "-3.0 dB"}.items():
+        setp("BASS", "EQ Eight", p, v)
+    # the record's buzz: harmonics from a Saturator, then the EQ's shelf (2-4 kHz was 13 dB short)
+    if "Saturator" not in devs("BASS"):
+        C("load_device", {"track": "BASS", "query": "Saturator", "roots": ["audio_effects"]})
+    for p, v in {"Drive": "6.00 dB", "Dry/Wet": "45 %", "Output": "-3.00 dB"}.items():
+        setp("BASS", "Saturator", p, v)
     if "RIM 909" in [t["name"] for t in C("get_song")["tracks"]]:
         C("delete_track", {"track": "RIM 909"})       # v2's Chicago ghosts, replaced by SNARE 909
     for t in reversed(C("get_song")["tracks"]):
@@ -457,15 +486,15 @@ def notes(kind, bar0, n_bars):
                 out.append([49, o, 1.0, 70])
             if b in DROPS or b == DROPS[0] + 8:
                 out.append([49, o, 1.0, 110 if b in DROPS else 90])
-        elif kind in ("BASS", "BASS BREAK", "BASS UKG"):
+        elif kind in ("BASS", "BASS BREAK"):
             who, pat = bass_role(b)
             if who != kind:
                 continue
             if kind == "BASS BREAK" and sec == "build" and b >= BUILD_BARS[1] - 2:
                 continue                    # the low end leaves for the build's last 2 bars
-            for st, p, ln, v in pat:
-                out.append([p, o + st * 0.25, ln * 0.25 * 0.85, int(v * rnd.uniform(0.95, 1.03))])
-    return out if kind in ("KICK", "CRASH") else _swing(out, rnd, kind)
+            for t, p, ln, v in pat:         # straight, like the record: no _swing
+                out.append([p, round(o + t, 4), ln, int(v * rnd.uniform(0.95, 1.03))])
+    return out if kind in ("KICK", "CRASH", "BASS", "BASS BREAK") else _swing(out, rnd, kind)
 
 
 def place_audio_loop(track, path, src_bpm, a, b):
