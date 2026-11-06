@@ -490,3 +490,11 @@ and the kick 4x4. And the low end must never vanish: in breaks and builds a low-
 the bass riff ~8 dB under the drop (out only for the 2-beat breath) -- "quando tirar o médio não
 pode ficar sem sub, que faz o movimento e o groove". A re-created Simpler loses its detune: the
 bass carried +14 cents to sit with the record; 0 cents made it "sem peso".
+
+- **The bass's bounce is the record's, not a genre's** (Get Up v3, 2026-11-06: "o balanço desse bass
+  fraquinho, não ficou igual o balanço da música, o timbre bem fora"). A textbook hard house off-beat
+  bass and a UKG reese replaced the reference's own figure: A1 on the "&", E2 a 5th up ON 2 and 4 with
+  the kick and clap, held 2.6 16ths, a pickup on the "a", straight. Transcribe the reference's bass
+  (heard_midi) before writing one; keep its rhythm, re-voice only the pickups. Its timbre, matched by
+  1/3 octaves against its stem (presets rendered side by side): the record's bass was bright to 4 kHz,
+  ours low-passed at 1.2 kHz. A bass that lands with the kick takes a light sidechain (2:1, 60 ms).
