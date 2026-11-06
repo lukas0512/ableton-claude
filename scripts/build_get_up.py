@@ -54,7 +54,7 @@ balanço da música, o timbre também tá bem fora"): the record's bass measured
 is a 2-beat bounce -- A1 on the "&", E2 a 5th up ON 2 and 4 with the kick, held, a pickup on the "a",
 straight -- and bright (2-4 kHz 5-9 dB under its 160 Hz peak). v3's off-beat/UKG basses were neither.
 Now: B (on) the bounce in MIDI on Analog Bass + Saturator + a 2.5 kHz shelf, a light 2:1 sidechain
-(the E lands with the kick); A (muted, BASS REF) the record's own bass stem on its kick grid.
+(the E lands with the kick). He kept B over A (the record's own bass stem), 2026-11-06.
 
     cd mcp_server && uv run python ../scripts/build_get_up.py
 """
@@ -118,7 +118,7 @@ AUDIO = {   # a played loop: human timing MIDI does not have
 }
 # the record's synths and chant: placed by place_loop / the vox clips, not written here
 # v2: VOX -4 (the chant lifted the mix +1.5 LU and +4 dB at 4-10 kHz), SYNTH B +1.5 (groove and drop sat 0.5 LU apart)
-LOOP_TRACKS = {"BASS REF": (-7.0, 0.0), "SYNTH A": (-8.0, -0.1), "BREAK CHORDS": (-9.0, 0.0), "SYNTH B": (-6.5, 0.1), "VOX": (-13.0, 0.0)}
+LOOP_TRACKS = {"SYNTH A": (-8.0, -0.1), "BREAK CHORDS": (-9.0, 0.0), "SYNTH B": (-6.5, 0.1), "VOX": (-13.0, 0.0)}
 FX = ["REV CRASH", "SUB BOOM"]
 # the record's synths: (source bar, bars) in the 'other' stem, cut on the record's kick grid
 OTHER_STEM = STEMS + "02. Phunky Phantom - Get Up Stand Up (Or - other.wav"
@@ -136,8 +136,6 @@ PLACEMENTS = [
     ("BREAK CHORDS", "GUSU break chords", 25, 33, 1800, 10000, None, (-9.0, -4.0), 2),
     ("SYNTH B", "GUSU synth B", 29, 33, 500, 3000, None, (-16.0, -9.0), 2),
     ("SYNTH B", "GUSU synth B", 33, 49, 8000, 8000, None, (-6.5, -6.5), 0),
-    ("BASS REF", "GUSU bass ref", 1, 17, 20000, 20000, None, None, 0),
-    ("BASS REF", "GUSU bass ref", 33, 49, 20000, 20000, None, None, 0),
 ]
 DETUNE = {"BASS REF": 6}                        # the bass stem sits -6 cents
 EQ = {
@@ -147,7 +145,6 @@ EQ = {
     "SHAKER": {"8 Filter On A": "On", "8 Filter Type A": "High Shelf", "8 Frequency A": "8.00 kHz", "8 Gain A": "-4.0 dB"},
     # the record's bass is bright: 2-4 kHz only 5-9 dB under its 160 Hz peak
     "BASS": {"8 Filter On A": "On", "8 Filter Type A": "High Shelf", "8 Frequency A": "2.50 kHz", "8 Gain A": "6.0 dB"},
-    "BASS REF": {"1 Filter On A": "On", "1 Filter Type A": "High Pass 12dB", "1 Frequency A": "28.0 Hz"},
     "SNARE 909": {"1 Filter On A": "On", "1 Filter Type A": "High Pass 12dB", "1 Frequency A": "200 Hz",
                   "8 Filter On A": "On", "8 Filter Type A": "High Shelf", "8 Frequency A": "8.00 kHz", "8 Gain A": "-3.0 dB"},
     # the break/build bass keeps its sub (his rule: the low end never vanishes) but no body
@@ -336,7 +333,8 @@ def ensure_tracks():
         C("set_send", {"track": t, "send": 0, "db": -70.0})
     for t in FX:
         audio_track(t)
-    C("set_track", {"track": "BASS REF", "mute": True})   # option A, muted: unmute it and mute BASS to A/B
+    if "BASS REF" in [t["name"] for t in C("get_song")["tracks"]]:
+        C("delete_track", {"track": "BASS REF"})   # v4's option A: he kept the MIDI bass
     C("set_track", {"track": "REV CRASH", "volume_db": -16.0})
     C("set_track", {"track": "SUB BOOM", "volume_db": -9.0})
     for t, bands in EQ.items():
