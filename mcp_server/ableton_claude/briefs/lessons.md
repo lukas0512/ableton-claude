@@ -3,6 +3,17 @@
 These were each learned the hard way, on real projects driven through this connector.
 They take precedence over general habits. Measure before you believe any of them applies.
 
+## Gain staging starts when each sample enters (Acid Garage, 2026-11-03)
+
+The producer rejected the first sketch as "tudo estourado saturado" and explicitly asked
+to watch sample volumes and clipping as material is added. Check the file itself, clip
+gain or sampler gain, instrument output, effects, channel output and buses before adding
+the next layer. Fader settings and a limiter ceiling are not evidence of clean sources.
+Start conservatively, measure the sum with the limiter bypassed and leave real headroom;
+then verify the same phrase with every part playing. If a sample is already distorted,
+lowering a later fader cannot repair its waveform: inspect or replace the source. Do not
+call a mix clean merely because its final true peak is below zero.
+
 ## A good start of a track: what the "Fiction" set (127 BPM, tech house) does right
 
 Read from the arrangement of a set the producer judged a good start. Copy the method, not the notes.
@@ -761,3 +772,12 @@ folded, the CQT averaged per 16th over all repeats on the clip's warp markers, w
 (`librosa.estimate_tuning`; City 2 City sits -27 cents, so the set had played it 27 cents flat of the bass).
 basic-pitch on the raw file mixed the pad's harmonics into the line. Check the MIDI by peak matching (57 of 58)
 and in context: render the set with the part muted, subtract, and compare onsets (lag 0) and chroma (0.89).
+
+In the City, "quadrado / travada" (2026-11-06). Every MIDI clip carried 'Swing 16ths 66' and the profile read
+swing_pct 54.6 (inside), yet the drops felt straight: the pool groove's Timing was 16 %, so off-16ths moved ~6-8 ms,
+and no drum played an off-16th anyway. Read a groove's real amount with `grooves` and measure the pocket from a known
+bar line: onset flux per 16th slot (beat/e/and/a) per band and the median lag of the 'e' and 'a'. At 127 BPM the
+groove's 66 % at Timing 45 put every band's 'e'/'a' ~18 ms late (swing ~58 %). After that change the whole-song
+validation locked its grid one swung 16th late (first beat 0.165 s instead of 0.032; kick pitch 49 Hz, kick over bass
+0 dB, offbeat share 0.29): Beat This can lose the beat on a swung mix. Check `first_beat_s` against the previous
+version before trusting any beat-relative row, and take those rows from the known grid instead.

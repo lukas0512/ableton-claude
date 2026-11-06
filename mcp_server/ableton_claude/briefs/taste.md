@@ -1,5 +1,20 @@
 # The producer's quality bar (his feedback, distilled)
 
+## Explicit priority: clean sample levels from the start (2026-11-03)
+
+"A mix vc viajou, ta tudo estourado saturado ... sempre ficar de olho logo que colocar
+tudo nos volumes dos samples e se tem coisa clipando." Set and verify source gain as
+each sample or instrument is introduced, then inspect channel and bus peaks with the
+parts together. Keep the initial mix clean and with headroom. A limiter hiding overload
+does not satisfy this request; final peak and loudness measurements alone cannot approve
+the sound. Preserve the groove while correcting gain, and have the producer audition it.
+
+For this Acid Garage idea, his direction is acid/minimal tech with an underground garage
+drum groove. After the gain correction he asked for a better groove, fuller drums and
+themes, a short build and a drop. Develop the rhythmic replies and thematic presence in
+this project while retaining the source-gain checks above; this is not a request to make
+every future track denser.
+
 Every rule below is something the producer who trained this connector asked for or rejected,
 mostly while building "From The Streets" (a 125 BPM house remix of two 90s rap records,
 2026-10-20, 27 versions), plus earlier tracks. He judged v27 "ok, já considerado ok, but it
@@ -252,6 +267,15 @@ break clip gains went back to 0. Build 1 lacked build 2's high-passed kick; with
 - **Swing**: on Let The Rhythm he asked for "mais groove e mais swing": 54 % -> ~58 %
   (Swing 16ths 57 at 115 % on every MIDI part; the loops that already carry ~54 % get the
   54 groove on top, timing only). Subtract percussion in the grooves rather than add.
+- **Square = nothing on the off-16ths** ("ta meio quadrado ainda e mt travada ... precisa de mais groove e um pouco
+  mais de movimento", "quero ela bem pista bem forte", In the City, 2026-11-06). The drops had kick on the beat, clap +
+  snare on 2/4, open hat and ride both on the off-beat 8ths, the congas muted: no part on the 'e' or 'a', so the pool
+  swing had nothing to move, and its Timing sat at 16 % (off-16ths ~8 ms late = straight). Fix without a 16th hat
+  (rejected three times): the kit's syncopated congas back in the grooves with a 2-bar conversation and phrase runs,
+  a ghost clap on the 'a' of 4 every 2nd bar, the ride's off-beat moved to the 'a' on alternate bars, clap/snare
+  -2.5 dB, and the pool groove's Timing up until the 'e'/'a' land ~18 ms late in every band (swing ~58 %, refs 57).
+  Check the swing on the real grid (onset energy per 16th slot from a known bar line), not only the profile's
+  swing_pct.
 
 - **Parts must converse, not stack** ("sem groove, só vários elementos tocando várias coisas sem
   sentido, sem se conversar, sem sentimento", Project #6 v2, 2026-10-28). v2 layered pack loops
