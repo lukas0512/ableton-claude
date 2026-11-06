@@ -843,6 +843,9 @@ def _source(stem, out_dir, source_bpm, source_downbeat, source_mix, source_beats
         raise ValueError("give source_bpm and source_downbeat, or source_mix (the original "
                          "full mix) to detect its beats")
     g = sr.source_grid(source_mix, bpm_hint=source_bpm, cache_dir=out_dir)
+    if not source_beats:                    # the record's own kick beats a beat tracker
+        kick = sr.kick_stem_for(stem)
+        source_beats = sr.kick_beats(kick, out_dir) if kick else None
     return source_bpm or g["bpm"], g["downbeat"] if source_downbeat is None else source_downbeat, \
         source_beats or g["beats"], out_dir
 

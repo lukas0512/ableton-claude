@@ -78,18 +78,43 @@ def filter_raw(hz):
 # ---------------------------------------------------------------- the source grid
 def source_sixteenths(bpm, downbeat, bar, bars, detected=None, tol=BEAT_TOL_S):
     """Source times (s) of every 16th of `bars` bars from source bar `bar` (1 = the bar at
-    `downbeat`), plus the end. Each beat is the detected beat nearest the straight grid
-    when within `tol`, else the grid; 16ths are interpolated between beats (the originals
-    were straight, swing 50-52 %)."""
+    `downbeat`), plus the end. The detected beats within `tol` of the straight grid fit a
+    line (the window's local tempo and phase); every beat sits on it, evenly spaced;
+    16ths are interpolated between beats (the originals were straight, swing 50-52 %)."""
+    # Beat This reports beats on 20 ms frames and wanders on busy bars: snapping each beat to
+    # its own detection made beats of 400-500 ms in a 444 ms record and the loop wobbled
+    # ("fora de warp", Get Up 2026-11-06). The detections near the grid only steer a line
+    # (local tempo + phase, outliers dropped); every beat sits on it.
     period = 60.0 / bpm
     det = np.asarray(detected if detected is not None else [], float)
-    beats = []
-    for k in range(bars * 4 + 1):
-        t = downbeat + ((bar - 1) * 4 + k) * period
-        if len(det):
+    k0 = (bar - 1) * 4
+    ks = np.arange(-4, bars * 4 + 5)
+    grid_t = downbeat + (k0 + ks) * period
+    kk, tt = [], []
+    if len(det):
+        for k, t in zip(ks, grid_t):
             near = det[np.argmin(np.abs(det - t))]
-            t = near if abs(near - t) < tol else t
-        beats.append(float(t))
+            if abs(near - t) < tol:
+                kk.append(k)
+                tt.append(near - t)
+    a, b = 0.0, 0.0                         # offset (s) and drift (s per beat) from the grid
+    if len(kk) >= 6:
+        kk, tt = np.asarray(kk, float), np.asarray(tt, float)
+        keep = np.ones(len(kk), bool)
+        for _ in range(3):
+            b, a = np.polyfit(kk[keep], tt[keep], 1)
+            res = np.abs(tt - (a + b * kk))
+            new = res < max(0.012, 2.5 * np.median(res[keep]))
+            if new.sum() < 6 or (new == keep).all():
+                break
+            keep = new
+        if np.median(np.abs(tt[keep] - (a + b * kk[keep]))) > 0.010:
+            a, b = 0.0, 0.0                 # detections that disagree: the global fit is better
+            # (Get Up bar 64: a line through them sat 46 ms off the record's kick, the
+            # global grid 0-8 ms)
+    elif kk:
+        a = float(np.median(tt))
+    beats = [float(downbeat + (k0 + k) * period + a + b * k) for k in range(bars * 4 + 1)]
     out = []
     for b0, b1 in zip(beats, beats[1:]):
         out += [b0 + (b1 - b0) * q / 4 for q in range(4)]
@@ -110,6 +135,34 @@ def source_grid(mix_path, bpm_hint=None, cache_dir=None):
     g = grid.fit(beats, downbeats, len(x) / sr, bpm_hint=bpm_hint)
     out = {"bpm": float(g["bpm"]), "downbeat": float(g["first_downbeat"]),
            "beats": [round(float(b), 4) for b in beats], "mix": str(mix_path)}
+    if cache:
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        cache.write_text(json.dumps(out))
+    return out
+
+
+def kick_stem_for(stem):
+    """The DrumSep kick split_elements left next to a stem ('<x> - other.wav' ->
+    'drums/<x> - kick.wav'), or None."""
+    p = Path(stem)
+    base = p.stem.rsplit(" - ", 1)[0]
+    k = p.parent / "drums" / ("%s - kick.wav" % base)
+    return k if k.exists() else None
+
+
+def kick_beats(kick_path, cache_dir=None):
+    """Attack times (s) of the hits in a kick stem: the record's own beat, steadier than a
+    beat tracker's detections (Get Up 2026-11-06: within ~1 ms of the kick where Beat This
+    sat up to 36 ms off it). Cached as JSON next to the source grid."""
+    cache = Path(cache_dir) / ("kick-beats - %s.json" % Path(kick_path).stem) if cache_dir else None
+    if cache and cache.exists():
+        return json.loads(cache.read_text())
+    import librosa
+    y, sr = librosa.load(str(kick_path), sr=22050, mono=True)
+    on = librosa.onset.onset_detect(y=y, sr=sr, hop_length=64, units="time", backtrack=True)
+    n = int(.03 * sr)
+    rms = np.array([np.sqrt(np.mean(y[int(t * sr): int(t * sr) + n] ** 2)) for t in on])
+    out = [round(float(t), 4) for t in on[rms > rms.max() * .1]] if len(on) else []
     if cache:
         cache.parent.mkdir(parents=True, exist_ok=True)
         cache.write_text(json.dumps(out))
@@ -346,10 +399,19 @@ def place_warped(call, track, path, at, beats, markers, envelopes=None, name=Non
                  warp_mode="complex_pro", gain_db=None):
     """An audio clip at beat `at`, exactly `beats` long, warped by `markers`
     ([[beat, s], ...]; the last one is clamped inside the file). Markers do not resize a
-    clip, so a clip Live made longer is trimmed (only where nothing lies after it)."""
-    call("create_audio_clip", {"track": track, "path": path, "beat": at, "warp": False,
-                               "name": name or Path(path).stem, "envelopes": envelopes or None})
+    clip, so a clip Live made longer is trimmed (only where nothing lies after it).
+    The clip is created already pinned to the beats the file spans: created unwarped, Live
+    sized it by the file's seconds at the set's tempo, and a 135 BPM loop in a 130 BPM set
+    ended ~2.6 beats short of every section (Get Up, 2026-11-06)."""
     dur = sf.info(path).duration - .001
+    end_beat = float(beats)
+    if len(markers) >= 2:
+        (b0, s0), (b1, s1) = markers[-2], markers[-1]
+        if s1 > s0:
+            end_beat = max(end_beat, b1 + (dur - s1) * (b1 - b0) / (s1 - s0))
+    call("create_audio_clip", {"track": track, "path": path, "beat": at, "warp": True,
+                               "beats": round(end_beat, 4),
+                               "name": name or Path(path).stem, "envelopes": envelopes or None})
     clip = {"at": at}
     call("set_warp_markers", {"track": track, "clip": clip,
                               "markers": [[b, min(t, dur)] for b, t in markers]})

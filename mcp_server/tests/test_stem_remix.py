@@ -33,12 +33,28 @@ def test_source_sixteenths_follow_detected_beats_only_near_the_grid():
     assert len(six) == 2 * 16 + 1
     assert six[0] == pytest.approx(DOWN + 8 * period)
     assert np.allclose(np.diff(six), period / 4)
-    near = DOWN + 9 * period + .02          # beat 2 of bar 3, 20 ms late: used
-    far = DOWN + 10 * period + .08          # beat 3, 80 ms off: ignored
+    near = DOWN + 9 * period + .02          # one beat 20 ms late: the window shifts with it
+    far = DOWN + 10 * period + .08          # 80 ms off: ignored
     six = sr.source_sixteenths(BPM, DOWN, 3, 1, detected=[near, far])
     assert six[4] == pytest.approx(near)
-    assert six[8] == pytest.approx(DOWN + 10 * period)
-    assert six[5] == pytest.approx(near + (six[8] - near) / 4)
+    assert np.allclose(np.diff(six), period / 4)
+
+
+def test_source_sixteenths_fit_a_line_through_jittery_detections():
+    """Beat This on a vinyl record (Get Up, 2026-11-06): detections alternate +-25 ms and the
+    per-beat snap made 400-500 ms beats. The grid is a line through them, evenly spaced."""
+    period = 60 / BPM
+    late = .010                             # the record sits 10 ms after the straight grid
+    det = [DOWN + k * period + late + (.003 if k % 2 else -.003) for k in range(0, 40)]
+    det[17] += .025                         # one wild detection (inside tol, an outlier)
+    six = sr.source_sixteenths(BPM, DOWN, 3, 4, detected=det)
+    assert np.allclose(np.diff(six), period / 4, atol=1e-3)
+    assert six[0] == pytest.approx(DOWN + 8 * period + late, abs=.003)
+    # detections that disagree (+-25 ms alternating): the straight global grid stays
+    det = [DOWN + k * period + late + (.025 if k % 2 else -.025) for k in range(0, 40)]
+    six = sr.source_sixteenths(BPM, DOWN, 3, 4, detected=det)
+    assert six[0] == pytest.approx(DOWN + 8 * period)
+    assert np.allclose(np.diff(six), period / 4)
 
 
 def _script_quantized_markers(sixteenths, file_start, onsets, swing, q=.6, preroll=.5):
@@ -253,6 +269,8 @@ def test_place_warped_sets_markers_and_trims_a_clip_live_made_too_long(tmp_path)
     live = FakeLive(clip_len=20)
     r = sr.place_warped(live, "VOX", str(p), 63.5, 8.5, [[0, 0], [.5, .1], [8.5, 5.0]])
     assert live.cmds() == ["create_audio_clip", "set_warp_markers", "set_clip", "get_track", "trim_clip"]
+    ca = live.calls[0][1]           # created pinned to the beats the file spans, not unwarped
+    assert ca["warp"] is True and ca["beats"] >= 8.5
     marks = live.calls[1][1]["markers"]
     assert marks[-1][1] == pytest.approx(1.0 - .001)       # clamped inside the 1 s file
     sc = live.calls[2][1]
@@ -342,3 +360,13 @@ def test_stem_loop_onset_chop_and_breakbeat_tools(bridge, tmp_path):
     b = server.breakbeat_loop(str(tmp_path / "adt_120_break.wav"), swing_ms=0, out_dir=str(tmp_path / "o"))
     assert b["loop_bpm"] == 120 and b["beats"] == 8
     assert "error" in server.breakbeat_loop(str(tmp_path / "v.wav"), swing_ms=0)
+
+
+def test_kick_stem_for_finds_the_drumsep_kick_next_to_a_stem(tmp_path):
+    other = tmp_path / "Song (Or - other.wav"
+    sf.write(other, stereo(np.zeros(SR)), SR)
+    assert sr.kick_stem_for(other) is None
+    (tmp_path / "drums").mkdir()
+    kick = tmp_path / "drums" / "Song (Or - kick.wav"
+    sf.write(kick, stereo(np.zeros(SR)), SR)
+    assert sr.kick_stem_for(other) == kick
