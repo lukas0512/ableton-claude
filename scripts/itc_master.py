@@ -46,6 +46,15 @@ CONFIGS = {
 # 10.0 dB (v7 9.6, the limiter alone at this level 8.7) and the pump 2.3 dB (v7 2.4, limiter alone 0.7): the
 # Analog Clip rounds the kick's peaks so the limiter hardly works; band balance within 0.5 dB of the unlimited pass.
 CONFIGS['club'] = CONFIGS['clip7']
+# v8 (club) measured the sub at 46 % of the energy (refs 35, p75 41) and crest 9.2 (p25 9.9): a wide bell under the
+# kick's 66 Hz on the master's free band 6, so the clipper gets less sub to round off.
+CONFIGS['sub2'] = dict(CONFIGS['club'], sub=(45.0, -2.0, 0.8))
+CONFIGS['sub3'] = dict(CONFIGS['club'], sub=(45.0, -3.0, 0.8))
+CONFIGS['sub2g'] = dict(CONFIGS['sub2'], gain=18.0)
+CONFIGS['sub3g'] = dict(CONFIGS['sub3'], gain=18.0)
+# Drop 2: club -7.78 LUFS / sub 44 %; sub2 -8.47 / 39 %, punch 10.6, pump 2.4; making the level back up (+1 dB)
+# gave only +0.3 LU and the pump fell to 1.8 (the limiter starts working). v8b = the middle, for his A/B with v8.
+CONFIGS['v8b'] = dict(CONFIGS['sub2'], gain=17.5)
 
 
 def p(dev, name, **kw):
@@ -63,6 +72,11 @@ def apply(cfg):
         p('Saturator', 'Post Clip Mode', value=0.0)
         p('Saturator', 'Color On', value=0.0)
     C('set_device_on', {'track': 'master', 'device': 'Saturator', 'on': bool(sat)})
+    freq, gain, q = cfg.get('sub', (45.0, 0.0, 0.71))
+    p('EQ Eight', '6 Filter Type A', value=3.0)                       # Bell
+    p('EQ Eight', '6 Frequency A', display=f'{freq:.1f} Hz')
+    p('EQ Eight', '6 Gain A', value=gain)
+    p('EQ Eight', '6 Q A', display=f'{q:.2f}')
     C('set_device_on', {'track': 'master', 'device': 'Limiter', 'on': True})
     p('Limiter', 'Input Gain', display=f'{cfg["gain"]:.0f} dB')
     p('Limiter', 'Ceiling', display=f'{cfg["ceiling"]:.1f} dB')
@@ -107,8 +121,12 @@ def measure(x, sr):
         early = mid[b + int(0.01 * sr): b + int(0.08 * sr)].mean()
         late = mid[b + int(0.2 * sr): b + int(0.4 * sr)].mean()
         dips.append(20 * np.log10(early / late))
+    mono = x.mean(1)
+    spec = np.abs(np.fft.rfft(mono)) ** 2
+    fr = np.fft.rfftfreq(len(mono), 1 / sr)
+    sub = spec[(fr >= 20) & (fr < 60)].sum() / spec[fr >= 20].sum()
     return dict(lufs=round(L, 2), tp=round(tp, 2), plr=round(tp - L, 2), punch=round(punch, 2),
-                pump=round(float(np.median(dips)), 2))
+                pump=round(float(np.median(dips)), 2), sub_pct=round(100 * sub, 1))
 
 
 def v7_slice():
