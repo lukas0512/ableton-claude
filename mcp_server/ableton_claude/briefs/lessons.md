@@ -781,3 +781,21 @@ groove's 66 % at Timing 45 put every band's 'e'/'a' ~18 ms late (swing ~58 %). A
 validation locked its grid one swung 16th late (first beat 0.165 s instead of 0.032; kick pitch 49 Hz, kick over bass
 0 dB, offbeat share 0.29): Beat This can lose the beat on a swung mix. Check `first_beat_s` against the previous
 version before trusting any beat-relative row, and take those rows from the known grid instead.
+
+## A loop from a record wobbles when its warp markers follow a beat tracker (Get Up, 2026-11-06)
+
+"Muita coisa fora de warp e fora de tempo": stem_loop had snapped every beat marker to Beat This's
+own detection (20 ms frames), and on a vinyl rip those wandered ±50 ms, so the loops played beats of
+400-500 ms in a 444 ms record. The record itself was steady: its DrumSep kick sat 0-8 ms from one
+global grid where a line through Beat This sat 36-46 ms off in places. Loops are now cut on the
+kick's grid (one line, outliers dropped). Check any loop's markers before placing it: every beat the
+same length. And a loop placed from a faster record (135 into a 130 set) must be created pinned to
+its beats, or Live sizes the clip by seconds and each section ends ~2.6 beats short.
+
+## His HARD HOUSE folder is UK hard house at 140-150 BPM (the profile's 116 is an octave error)
+
+The ear heard every reference at 140-153 BPM (Tidy, Paul Glazby, Lisa Lashes, BK); the profile's
+median BPM (116) halved or mis-gridded them: use the heard tempos. What they share: hats nearly
+straight (52 %), a clap/909 layer rolling the 8ths with ghosts (xgX.X.X.), the open hat on the "&",
+the bass off the beat on the root (..x-..x-..x-..x-, 95 % off the beat). A reese bass is wide in its
+lows: Utility Bass Mono at 200 Hz before it reaches a club.
