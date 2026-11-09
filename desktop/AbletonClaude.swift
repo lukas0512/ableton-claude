@@ -2,10 +2,34 @@ import SwiftUI
 import AppKit
 
 enum StudioStyle {
-    static let background = Color(red: 0.045, green: 0.050, blue: 0.067)
-    static let panel = Color(red: 0.072, green: 0.079, blue: 0.10)
-    static let accent = Color(red: 0.69, green: 0.60, blue: 1)
-    static let line = Color.white.opacity(0.075)
+    static let background = Color(red: 0.071, green: 0.078, blue: 0.075)
+    static let panel = Color(red: 0.110, green: 0.122, blue: 0.114)
+    static let raised = Color(red: 0.153, green: 0.169, blue: 0.157)
+    static let accent = Color(red: 0.816, green: 0.980, blue: 0.369)
+    static let ink = Color(red: 0.949, green: 0.953, blue: 0.918)
+    static let muted = Color(red: 0.624, green: 0.667, blue: 0.631)
+    static let line = Color.white.opacity(0.085)
+}
+
+struct StudioButtonStyle: ButtonStyle {
+    var primary = false
+    @Environment(\.isEnabled) private var enabled
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label.font(.system(size: 12, weight: .semibold))
+            .padding(.horizontal, 14).padding(.vertical, 10)
+            .foregroundStyle(primary ? StudioStyle.background : StudioStyle.ink)
+            .background(primary ? StudioStyle.accent : StudioStyle.raised, in: RoundedRectangle(cornerRadius: 8))
+            .opacity(enabled ? (configuration.isPressed ? 0.75 : 1) : 0.38)
+    }
+}
+
+struct StudioMark: View {
+    var size: CGFloat = 36
+    var body: some View {
+        Image(systemName: "waveform.path").font(.system(size: size * 0.57, weight: .semibold))
+            .foregroundStyle(StudioStyle.background).frame(width: size, height: size)
+            .background(StudioStyle.accent, in: RoundedRectangle(cornerRadius: size * 0.25))
+    }
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -31,9 +55,11 @@ struct StatusPill: View {
     let good: Bool
     var body: some View {
         HStack(spacing: 7) {
-            Circle().fill(good ? Color.green : Color.orange).frame(width: 6, height: 6)
-            Text(title).font(.system(size: 12, weight: .medium))
-        }.padding(.horizontal, 11).padding(.vertical, 7).background(Color.white.opacity(0.045), in: Capsule())
+            Circle().fill(good ? StudioStyle.accent : Color.orange).frame(width: 6, height: 6)
+            Text(title).font(.system(size: 11, weight: .medium))
+        }.foregroundStyle(StudioStyle.ink).padding(.horizontal, 11).padding(.vertical, 8)
+            .background(StudioStyle.panel, in: RoundedRectangle(cornerRadius: 7))
+            .overlay(RoundedRectangle(cornerRadius: 7).stroke(StudioStyle.line))
     }
 }
 
@@ -42,8 +68,8 @@ struct Panel<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16, content: content)
             .frame(maxWidth: .infinity, alignment: .leading).padding(22)
-            .background(StudioStyle.panel, in: RoundedRectangle(cornerRadius: 16))
-            .overlay(RoundedRectangle(cornerRadius: 16).stroke(StudioStyle.line))
+            .background(StudioStyle.panel, in: RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(StudioStyle.line))
     }
 }
 
@@ -53,7 +79,7 @@ struct ContentView: View {
     private let stepNames = ["Boas-vindas", "Conectar ao Live", "Seus samples", "Escolher sua IA", "Ensinar seu som", "Tudo pronto"]
     var body: some View {
         HStack(spacing: 0) {
-            sidebar.frame(width: 220)
+            sidebar.frame(width: 196)
             Rectangle().fill(StudioStyle.line).frame(width: 1)
             VStack(spacing: 0) {
                 if !model.loaded {
@@ -80,7 +106,8 @@ struct ContentView: View {
                 }
                 notices
             }.frame(maxWidth: .infinity, maxHeight: .infinity)
-        }.background(StudioStyle.background).tint(StudioStyle.accent).preferredColorScheme(.dark)
+        }.background(StudioStyle.background).foregroundStyle(StudioStyle.ink)
+            .tint(StudioStyle.accent).buttonStyle(StudioButtonStyle()).preferredColorScheme(.dark)
             .frame(minWidth: 1060, minHeight: 720)
             .alert("Você está usando seu plano ChatGPT", isPresented: $model.showPlanWelcome) {
                 Button("Entendido", action: model.acknowledgePlan)
@@ -112,10 +139,10 @@ struct ContentView: View {
     private var sidebar: some View {
         VStack(alignment: .leading, spacing: 30) {
             HStack(spacing: 10) {
-                Image(systemName: "waveform.path").font(.system(size: 26, weight: .medium)).foregroundStyle(StudioStyle.accent)
+                StudioMark(size: 34)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Ableton Claude").font(.system(size: 16, weight: .semibold))
-                    Text("SEU ESTÚDIO COM IA").font(.system(size: 9, weight: .medium)).tracking(1.5).foregroundStyle(.secondary)
+                    Text("MOTRA").font(.system(size: 18, weight: .bold)).tracking(2)
+                    Text("IDEIAS EM MOVIMENTO").font(.system(size: 8, weight: .medium)).tracking(0.9).foregroundStyle(StudioStyle.muted)
                 }
             }.padding(.top, 12)
             if !model.onboardingComplete {
@@ -135,6 +162,8 @@ struct ContentView: View {
                 }
             } else {
                 VStack(alignment: .leading, spacing: 7) {
+                    Text("SEU ESPAÇO").font(.system(size: 9, weight: .semibold)).tracking(1.5)
+                        .foregroundStyle(StudioStyle.muted).padding(.leading, 12).padding(.bottom, 9)
                     nav("Estúdio", symbol: "slider.horizontal.3", route: "studio")
                     nav("Meu som", symbol: "waveform", route: "library")
                     nav("Conexão e IA", symbol: "link", route: "settings")
@@ -144,24 +173,25 @@ struct ContentView: View {
             Spacer()
             VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 7) {
-                    Circle().fill(model.connected ? Color.green : Color.orange).frame(width: 5, height: 5)
-                    Text(model.connected ? "Live conectado" : "Aguardando Live")
-                }
-                HStack(spacing: 7) {
-                    Circle().fill(model.mcpReady ? Color.green : Color.orange).frame(width: 5, height: 5)
-                    Text(model.mcpReady ? "Ferramentas conectadas" : "Preparando ferramentas")
+                    Circle().fill(model.connected ? StudioStyle.accent : Color.orange).frame(width: 5, height: 5)
+                    Text(model.connected ? "Conectado ao seu Live" : "Aguardando Ableton")
                 }
                 Button("Meus dados", action: model.revealData).buttonStyle(.link).padding(.top, 5)
             }.font(.system(size: 11)).foregroundStyle(.secondary)
             Text("VERSÃO " + (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev")).font(.system(size: 9, weight: .medium)).tracking(1.4).foregroundStyle(.tertiary)
-        }.padding(22).frame(maxHeight: .infinity).background(Color.white.opacity(0.015))
+        }.padding(18).frame(maxHeight: .infinity).background(StudioStyle.panel.opacity(0.45))
     }
     private func nav(_ label: String, symbol: String, route: String) -> some View {
         Button { model.route = route; model.error = ""; model.message = "" } label: {
-            Label(label, systemImage: symbol).font(.system(size: 13, weight: .medium))
-                .frame(maxWidth: .infinity, alignment: .leading).padding(11)
-                .background(model.route == route ? StudioStyle.accent.opacity(0.13) : Color.clear, in: RoundedRectangle(cornerRadius: 9))
-        }.buttonStyle(.plain).foregroundStyle(model.route == route ? StudioStyle.accent : Color.secondary)
+            HStack(spacing: 12) {
+                Image(systemName: symbol).frame(width: 18)
+                Text(label)
+                Spacer()
+                if model.route == route { Circle().fill(StudioStyle.accent).frame(width: 5, height: 5) }
+            }.font(.system(size: 12, weight: .semibold)).padding(12)
+                .background(model.route == route ? StudioStyle.accent.opacity(0.09) : Color.clear, in: RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(model.route == route ? StudioStyle.accent.opacity(0.16) : Color.clear))
+        }.buttonStyle(.plain).foregroundStyle(model.route == route ? StudioStyle.accent : StudioStyle.muted)
     }
 
     private var onboarding: some View {
@@ -246,13 +276,14 @@ struct ContentView: View {
     private var studioHeader: some View {
         HStack {
             VStack(alignment: .leading, spacing: 5) {
-                Text(model.route == "studio" ? "Estúdio" : model.route == "library" ? "Meu som" : "Conexão e IA").font(.system(size: 22, weight: .semibold))
-                Text(model.route == "studio" ? "Do seu prompt ao próximo take." : "Seu processo, sempre acessível.").font(.caption).foregroundStyle(.secondary)
+                Text(model.route == "studio" ? "Estúdio" : model.route == "library" ? "Meu som" : "Conexão e IA").font(.system(size: 23, weight: .bold)).tracking(-0.7)
+                Text(model.route == "studio" ? "Sua ideia. Seu som. Próximo take." : "Tudo no lugar para você criar.").font(.system(size: 11)).foregroundStyle(StudioStyle.muted)
             }
             Spacer()
             StatusPill(title: model.connected ? "Live online" : "Live offline", good: model.connected)
-            StatusPill(title: model.mcpReady ? "MCP conectado" : "Reconectando MCP", good: model.mcpReady)
-        }.padding(.horizontal, 28).padding(.vertical, 22).background(Color.white.opacity(0.01))
+            StatusPill(title: model.mcpReady ? "Ferramentas prontas" : "Conectando ferramentas", good: model.mcpReady)
+        }.padding(.horizontal, 28).padding(.vertical, 20)
+            .overlay(alignment: .bottom) { Rectangle().fill(StudioStyle.line).frame(height: 1) }
     }
     private var notices: some View {
         VStack(alignment: .leading, spacing: 7) {
@@ -469,18 +500,22 @@ struct StudioView: View {
     @State private var projectLabel = ""
     @State private var existingGoal = "diagnosis"
     @State private var savedProjectID = ""
+    @State private var inspectorTab = "tracks"
     var body: some View {
         HStack(alignment: .top, spacing: 0) {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 22) {
                 HStack {
                     VStack(alignment: .leading, spacing: 5) {
-                        Text("DIREÇÃO MUSICAL").font(.system(size: 9, weight: .semibold)).tracking(1.5).foregroundStyle(.secondary)
+                        Text("SEU SOM").font(.system(size: 9, weight: .semibold)).tracking(1.5).foregroundStyle(StudioStyle.muted)
                         Picker("Gênero", selection: $model.activeGenre) {
+                            if model.genres.isEmpty { Text("Adicione referências em Meu som").tag("") }
                             ForEach(Array(model.genres.enumerated()), id: \.offset) { _, item in Text(item["genre"] as? String ?? "").tag(item["genre"] as? String ?? "") }
                         }.labelsHidden().frame(maxWidth: 240).onChanged(model.activeGenre) { model.savePreferences(["active_genre": model.activeGenre]) }
                     }
                     Spacer()
-                    Button("Nova conversa", action: model.resetChat).font(.caption).disabled(model.chatRunning || model.busy)
+                    Button(action: model.resetChat) { Label("Nova conversa", systemImage: "square.and.pencil") }
+                        .buttonStyle(.plain).font(.system(size: 11)).foregroundStyle(StudioStyle.muted)
+                        .disabled(model.chatRunning || model.busy)
                 }
                 if model.assistant == "claude" && !model.accountConnected {
                     Panel {
@@ -493,19 +528,21 @@ struct StudioView: View {
                 chatPanel
             }.padding(26).frame(maxWidth: .infinity, maxHeight: .infinity)
             Rectangle().fill(StudioStyle.line).frame(width: 1)
-            projectPanel.frame(width: 278)
+            projectPanel.frame(width: 270)
         }
     }
     private var productionPanel: some View {
         VStack(alignment: .leading, spacing: 12) {
             if !model.hasProduction {
-                Text("Como você quer trabalhar?").font(.headline)
                 HStack {
-                    Button { workflowChoice = "new"; workingCopy = false } label: { Label("Criar do zero", systemImage: "plus.circle").frame(maxWidth: .infinity) }
-                        .tint(workflowChoice == "new" ? StudioStyle.accent : Color.secondary)
-                    Button { workflowChoice = "existing"; workingCopy = false } label: { Label("Continuar projeto", systemImage: "waveform.path").frame(maxWidth: .infinity) }
-                        .tint(workflowChoice == "existing" ? StudioStyle.accent : Color.secondary)
-                }.buttonStyle(.bordered)
+                    Text("PONTO DE PARTIDA").font(.system(size: 9, weight: .semibold)).tracking(1.4).foregroundStyle(StudioStyle.muted)
+                    Spacer()
+                    Image(systemName: "arrow.turn.down.right").foregroundStyle(StudioStyle.accent)
+                }
+                HStack(spacing: 10) {
+                    workflowButton("Criar do zero", subtitle: "Do primeiro loop à track", symbol: "plus", choice: "new")
+                    workflowButton("Continuar projeto", subtitle: "Evolua o que você já criou", symbol: "waveform", choice: "existing")
+                }
                 if !workflowChoice.isEmpty {
                     Text(workflowChoice == "new" ? "Uma nova track: aprove um loop curto, desenvolva o groove e depois abra o arranjo." : "Uma track sua ou criada pelo app: preserve a identidade e melhore o que já existe, a partir do ponto atual.")
                         .font(.caption).foregroundStyle(.secondary)
@@ -544,9 +581,15 @@ struct StudioView: View {
                     }.font(.caption)
                 }
             } else if model.productionNeedsResume {
-                Text(model.production["label"] as? String ?? "Seu projeto").font(.headline)
-                Text("Abra o mesmo projeto no Live para retomar o trabalho salvo.").font(.caption).foregroundStyle(.secondary)
-                Button("O projeto correto está aberto · retomar") { model.productionAction("resume") }.disabled(model.busy || !model.connected)
+                HStack(spacing: 10) {
+                    Image(systemName: "arrow.uturn.backward").foregroundStyle(StudioStyle.accent)
+                    Text("Continue de onde parou").font(.system(size: 15, weight: .semibold))
+                    Spacer()
+                }
+                Text(model.production["label"] as? String ?? "Seu projeto").font(.system(size: 12, weight: .medium)).foregroundStyle(StudioStyle.muted)
+                Text("Abra o projeto correspondente no Ableton e confirme para retomar.").font(.system(size: 12)).foregroundStyle(StudioStyle.muted)
+                Button("O projeto correto está aberto · retomar") { model.productionAction("resume") }
+                    .buttonStyle(StudioButtonStyle(primary: true)).disabled(model.busy || !model.connected)
                 switchProject
             } else if model.existingProduction {
                 Text(model.production["label"] as? String ?? "Projeto existente").font(.headline)
@@ -591,7 +634,22 @@ struct StudioView: View {
                 }.disabled(model.busy || model.chatRunning || !model.proposals.isEmpty || model.rendering)
                 switchProject
             }
-        }.padding(15).background(StudioStyle.panel, in: RoundedRectangle(cornerRadius: 12))
+        }.padding(18).background(StudioStyle.panel, in: RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(StudioStyle.line))
+    }
+    private func workflowButton(_ title: String, subtitle: String, symbol: String, choice: String) -> some View {
+        Button { workflowChoice = choice; workingCopy = false } label: {
+            VStack(alignment: .leading, spacing: 10) {
+                Image(systemName: symbol).font(.system(size: 20, weight: .medium))
+                    .foregroundStyle(StudioStyle.accent)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title).font(.system(size: 13, weight: .semibold)).foregroundStyle(StudioStyle.ink)
+                    Text(subtitle).font(.system(size: 10)).foregroundStyle(StudioStyle.muted)
+                }
+            }.frame(maxWidth: .infinity, alignment: .leading).padding(16)
+                .background(workflowChoice == choice ? StudioStyle.accent.opacity(0.07) : StudioStyle.background.opacity(0.45), in: RoundedRectangle(cornerRadius: 9))
+                .overlay(RoundedRectangle(cornerRadius: 9).stroke(workflowChoice == choice ? StudioStyle.accent.opacity(0.55) : StudioStyle.line))
+        }.buttonStyle(.plain)
     }
     private var switchProject: some View {
         HStack {
@@ -615,25 +673,39 @@ struct StudioView: View {
                     VStack(alignment: .leading, spacing: 21) {
                         if model.chatMessages.isEmpty {
                             VStack(alignment: .leading, spacing: 16) {
-                                Image(systemName: "sparkles").font(.system(size: 27)).foregroundStyle(StudioStyle.accent)
-                                Text(!model.hasProduction ? "Escolha seu ponto de partida" : model.guidedProduction ? "Vamos trabalhar o \(model.productionLabel.lowercased())" : "Vamos melhorar sua track").font(.system(size: 26, weight: .semibold))
-                                Text("Peça com suas palavras. O produtor usa o projeto e o gênero aprendido para escolher os detalhes, propõe uma etapa e verifica o resultado com você.").font(.callout).foregroundStyle(.secondary).lineSpacing(4)
-                                if model.guidedProduction {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "waveform.path").foregroundStyle(StudioStyle.accent)
+                                    Text("SEU COPRODUTOR").font(.system(size: 9, weight: .semibold)).tracking(1.7).foregroundStyle(StudioStyle.muted)
+                                }
+                                Text(model.productionNeedsResume ? "Seu próximo take\ncomeça aqui." : !model.hasProduction ? "Você imagina.\nA track ganha forma." : model.guidedProduction ? "Vamos dar vida\nao seu \(model.productionLabel.lowercased())." : "Sua track.\nMais longe.")
+                                    .font(.system(size: 34, weight: .bold)).tracking(-1.2).lineSpacing(-1)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                Text(model.productionNeedsResume ? "Retome o projeto acima ou guarde esta sessão para começar outra ideia." : "Do motivo ao arranjo, com seus samples e referências. Você escolhe a direção e revisa cada mudança.")
+                                    .font(.system(size: 13)).foregroundStyle(StudioStyle.muted).lineSpacing(5)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                if !model.hasProduction {
+                                    HStack(spacing: 0) {
+                                        workflowStep("Loop", number: "01")
+                                        Image(systemName: "arrow.right").font(.system(size: 11)).foregroundStyle(StudioStyle.muted).padding(.horizontal, 16)
+                                        workflowStep("Groove", number: "02")
+                                        Image(systemName: "arrow.right").font(.system(size: 11)).foregroundStyle(StudioStyle.muted).padding(.horizontal, 16)
+                                        workflowStep("Arranjo", number: "03")
+                                    }.padding(.top, 10)
+                                } else if !model.productionNeedsResume && model.guidedProduction {
                                     Button("Propor a primeira etapa") { model.developStage() }.buttonStyle(.borderedProminent).disabled(!model.canChat)
                                     starter("Quero outra variação", prompt: "Proponha uma variação da etapa atual, preservando a identidade da ideia e o intervalo curto. Não avance para outra etapa.")
-                                } else if model.existingProduction {
+                                } else if !model.productionNeedsResume && model.existingProduction {
                                 starter("Deixe minha faixa mais profissional", prompt: "Deixe minha faixa mais profissional, preservando a identidade. Comece pela melhoria de maior impacto.")
                                 starter("Melhore o groove", prompt: "Melhore o groove do meu projeto sem mudar sua identidade.")
                                 starter("Dê mais impacto ao drop", prompt: "Dê mais impacto ao drop com contraste e uma transição bem cuidada.")
-                                } else {
-                                    Text("Crie uma track do zero, continue um projeto aberto no Live ou retome as etapas de uma ideia salva pelo app.").font(.caption).foregroundStyle(.secondary)
                                 }
-                            }.padding(.vertical, 28)
+                            }.padding(.vertical, 18).frame(maxWidth: .infinity, alignment: .leading)
                         }
                         ForEach(Array(model.chatMessages.enumerated()), id: \.offset) { _, item in
                             let user = item["role"] as? String == "user"
                             VStack(alignment: .leading, spacing: 8) {
-                                Text(user ? "VOCÊ" : "PRODUTOR").font(.system(size: 9, weight: .semibold)).tracking(1.6).foregroundStyle(user ? StudioStyle.accent : Color.secondary)
+                                Label(user ? "VOCÊ" : "COPRODUTOR", systemImage: user ? "person.crop.circle" : "waveform.path")
+                                    .font(.system(size: 9, weight: .semibold)).tracking(1.6).foregroundStyle(user ? StudioStyle.accent : StudioStyle.muted)
                                 Text(.init(item["text"] as? String ?? "")).font(.system(size: 14)).lineSpacing(5).textSelection(.enabled)
                             }.frame(maxWidth: .infinity, alignment: .leading).padding(user ? 16 : 2)
                                 .background(user ? StudioStyle.accent.opacity(0.08) : Color.clear, in: RoundedRectangle(cornerRadius: 12))
@@ -667,20 +739,28 @@ struct StudioView: View {
             }
             VStack(alignment: .leading, spacing: 12) {
                 ZStack(alignment: .topLeading) {
-                    if model.draft.isEmpty { Text("Descreva sua ideia, ajuste ou objetivo…").foregroundStyle(.tertiary).padding(.top, 8).padding(.leading, 5).allowsHitTesting(false) }
-                    TextEditor(text: $model.draft).font(.system(size: 14)).scrollContentBackground(.hidden).frame(minHeight: 65, maxHeight: 100)
+                    if model.draft.isEmpty { Text("Que som você quer criar?").foregroundStyle(StudioStyle.muted).padding(.top, 8).padding(.leading, 5).allowsHitTesting(false) }
+                    TextEditor(text: $model.draft).font(.system(size: 14)).scrollContentBackground(.hidden).frame(height: 58)
+                }
+                if model.productionNeedsResume || !model.hasProduction {
+                    Text("Escolha ou retome um projeto para conversar.").font(.system(size: 10)).foregroundStyle(StudioStyle.muted)
                 }
                 HStack {
                     Text(model.accountConnected ? "Plano ChatGPT · \(model.modelID)" : "Conecte sua conta em Conexão e IA").font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(1)
-                    if model.accountConnected { Link("Gerenciar uso", destination: URL(string: "https://chatgpt.com/#settings/Usage")!).font(.system(size: 10)) }
                     Spacer()
                     Button { model.send() } label: { Label("Enviar", systemImage: "arrow.up") }
-                        .buttonStyle(.borderedProminent).keyboardShortcut(.return, modifiers: .command)
+                        .buttonStyle(StudioButtonStyle(primary: true)).keyboardShortcut(.return, modifiers: .command)
                         .disabled(!model.canChat || model.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
-            }.padding(15).background(StudioStyle.panel, in: RoundedRectangle(cornerRadius: 13))
-                .overlay(RoundedRectangle(cornerRadius: 13).stroke(StudioStyle.line))
+            }.padding(16).background(StudioStyle.panel, in: RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(model.canChat ? StudioStyle.accent.opacity(0.30) : StudioStyle.line))
         }.frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    private func workflowStep(_ title: String, number: String) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text(number).font(.system(size: 10, weight: .medium, design: .monospaced)).foregroundStyle(StudioStyle.accent)
+            Text(title).font(.system(size: 13, weight: .semibold))
+        }
     }
     private func starter(_ title: String, prompt: String) -> some View {
         Button { model.send(prompt) } label: {
@@ -747,43 +827,74 @@ struct StudioView: View {
         return String(data: data, encoding: .utf8) ?? ""
     }
     private var projectPanel: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 23) {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 20) {
                 HStack {
-                    Text("PROJETO NO LIVE").font(.system(size: 10, weight: .semibold)).tracking(1.3).foregroundStyle(.secondary)
-                    Spacer(); Button(action: model.refresh) { Image(systemName: "arrow.clockwise") }.buttonStyle(.plain)
+                    Label("NO ABLETON", systemImage: "link").font(.system(size: 9, weight: .semibold)).tracking(1.3).foregroundStyle(StudioStyle.muted)
+                    Spacer()
+                    Button(action: model.refresh) { Image(systemName: "arrow.clockwise") }
+                        .buttonStyle(.plain).help("Atualizar projeto")
                 }
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text("\(model.song["tempo"] as? Double ?? 0, specifier: "%.1f")").font(.system(size: 34, weight: .light, design: .rounded))
-                    Text("BPM").font(.caption).foregroundStyle(.secondary)
-                    Spacer(); Text(model.song["signature"] as? String ?? "—").font(.callout).foregroundStyle(.secondary)
-                }
-                HStack(spacing: 12) {
-                    Button { model.transport("play") } label: { Image(systemName: "play.fill") }
-                    Button { model.transport("stop") } label: { Image(systemName: "stop.fill") }
-                    Text(model.song["is_playing"] as? Bool == true ? "Tocando" : "Parado").font(.caption).foregroundStyle(.secondary)
-                }.disabled(!model.connected || model.busy || model.rendering)
-                Divider()
-                Text("\(model.tracks.count) FAIXAS").font(.system(size: 10, weight: .semibold)).tracking(1.2).foregroundStyle(.secondary)
-                ForEach(Array(model.tracks.enumerated()), id: \.offset) { _, track in
-                    Button { model.inspect(track) } label: {
-                        HStack(alignment: .top, spacing: 9) {
-                            Image(systemName: track["kind"] as? String == "midi" ? "pianokeys" : "waveform").foregroundStyle(StudioStyle.accent).frame(width: 18)
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(track["name"] as? String ?? "").font(.system(size: 12, weight: .medium)).lineLimit(1)
-                                Text("\(track["clips_active"] as? Int ?? 0) clips · \((track["devices"] as? [String] ?? []).prefix(2).joined(separator: ", "))").font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(1)
-                            }
-                        }.frame(maxWidth: .infinity, alignment: .leading)
-                    }.buttonStyle(.plain).disabled(model.busy || !model.connected)
-                }
-                if !model.selectedTrack.isEmpty {
-                    Divider()
-                    Text(model.selectedTrack["name"] as? String ?? "Faixa selecionada").font(.headline)
-                    ForEach(Array((model.selectedTrack["devices"] as? [[String: Any]] ?? []).enumerated()), id: \.offset) { _, device in
-                        Text(device["name"] as? String ?? "").font(.caption).foregroundStyle(.secondary)
+                    Text(model.connected ? String(format: "%.0f", model.song["tempo"] as? Double ?? 0) : "—")
+                        .font(.system(size: 42, weight: .medium, design: .rounded)).tracking(-2)
+                    Text("BPM").font(.system(size: 10, weight: .semibold)).foregroundStyle(StudioStyle.muted)
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 5) {
+                        Text(model.song["signature"] as? String ?? "—").font(.system(size: 14, weight: .medium, design: .monospaced))
+                        Text("\(model.tracks.count) faixas").font(.system(size: 11)).foregroundStyle(StudioStyle.muted)
                     }
                 }
-                Divider()
+                HStack(spacing: 10) {
+                    Button { model.transport("play") } label: {
+                        Image(systemName: "play.fill").font(.system(size: 12)).foregroundStyle(StudioStyle.background)
+                            .frame(width: 36, height: 36).background(StudioStyle.accent, in: Circle())
+                    }.buttonStyle(.plain).help("Reproduzir no Ableton")
+                    Button { model.transport("stop") } label: {
+                        Image(systemName: "stop.fill").font(.system(size: 11)).frame(width: 32, height: 32)
+                            .background(StudioStyle.raised, in: Circle())
+                    }.buttonStyle(.plain).help("Parar no Ableton")
+                    Text(model.song["is_playing"] as? Bool == true ? "Reproduzindo" : "Pronto para ouvir")
+                        .font(.system(size: 10)).foregroundStyle(StudioStyle.muted)
+                }.disabled(!model.connected || model.busy || model.rendering)
+            }.padding(20)
+            HStack(spacing: 0) {
+                inspectorButton("Faixas", tab: "tracks")
+                inspectorButton("Ouvir e comparar", tab: "audio")
+            }.overlay(alignment: .bottom) { Rectangle().fill(StudioStyle.line).frame(height: 1) }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    if inspectorTab == "tracks" {
+                        if model.tracks.isEmpty {
+                            Label("As faixas do seu projeto aparecem aqui.", systemImage: "waveform")
+                                .font(.system(size: 12)).foregroundStyle(StudioStyle.muted).padding(.vertical, 20)
+                        }
+                        ForEach(Array(model.tracks.enumerated()), id: \.offset) { index, track in
+                            Button { model.inspect(track) } label: {
+                                HStack(spacing: 10) {
+                                    Text(String(format: "%02d", index + 1)).font(.system(size: 9, design: .monospaced))
+                                        .foregroundStyle(StudioStyle.muted).frame(width: 18)
+                                    RoundedRectangle(cornerRadius: 2)
+                                        .fill(track["kind"] as? String == "midi" ? StudioStyle.accent : Color(red: 0.38, green: 0.70, blue: 0.65))
+                                        .frame(width: 3, height: 29)
+                                    VStack(alignment: .leading, spacing: 5) {
+                                        Text(track["name"] as? String ?? "").font(.system(size: 11, weight: .semibold)).lineLimit(1)
+                                        Text("\(track["clips_active"] as? Int ?? 0) clips · \((track["devices"] as? [String] ?? []).prefix(1).joined(separator: ", "))")
+                                            .font(.system(size: 9)).foregroundStyle(StudioStyle.muted).lineLimit(1)
+                                    }
+                                    Spacer(minLength: 0)
+                                    Image(systemName: "chevron.right").font(.system(size: 8)).foregroundStyle(StudioStyle.muted)
+                                }.padding(.vertical, 2).contentShape(Rectangle())
+                            }.buttonStyle(.plain).disabled(model.busy || !model.connected)
+                        }
+                        if !model.selectedTrack.isEmpty {
+                            Divider()
+                            Text(model.selectedTrack["name"] as? String ?? "Faixa selecionada").font(.headline)
+                            ForEach(Array((model.selectedTrack["devices"] as? [[String: Any]] ?? []).enumerated()), id: \.offset) { _, device in
+                                Text(device["name"] as? String ?? "").font(.caption).foregroundStyle(StudioStyle.muted)
+                            }
+                        }
+                    } else {
                 Text("OUVIR E COMPARAR").font(.system(size: 10, weight: .semibold)).tracking(1.2).foregroundStyle(.secondary)
                 HStack { TextField("Início", text: $model.renderStart); Text("→").foregroundStyle(.secondary); TextField("Fim", text: $model.renderEnd) }.textFieldStyle(.roundedBorder)
                 Text("Intervalo em compassos. O render dura o tempo real do trecho.").font(.system(size: 10)).foregroundStyle(.secondary)
@@ -803,8 +914,20 @@ struct StudioView: View {
                     Text("\((model.report["eq_moves"] as? [Any] ?? []).count) bandas fora da faixa típica das referências.").font(.caption).foregroundStyle(.secondary)
                     Button("Pedir diagnóstico no chat") { model.send("Interprete a comparação do áudio \(model.reportFile) com o gênero \(model.activeGenre). Explique em português as três prioridades da mix, usando as medições. Não aplique mudanças ainda.") }.font(.caption).disabled(!model.canChat)
                 }
-            }.padding(22)
-        }.background(Color.white.opacity(0.015))
+                    }
+                }.padding(20)
+            }
+        }.frame(maxHeight: .infinity).background(StudioStyle.panel.opacity(0.4))
+    }
+    private func inspectorButton(_ title: String, tab: String) -> some View {
+        Button { inspectorTab = tab } label: {
+            Text(title).font(.system(size: 10, weight: .semibold)).frame(maxWidth: .infinity)
+                .foregroundStyle(inspectorTab == tab ? StudioStyle.ink : StudioStyle.muted)
+                .padding(.vertical, 13)
+                .overlay(alignment: .bottom) {
+                    if inspectorTab == tab { Rectangle().fill(StudioStyle.accent).frame(height: 2) }
+                }
+        }.buttonStyle(.plain)
     }
     private func metric(_ label: String, value: Any?, unit: String) -> some View {
         HStack {
@@ -820,8 +943,8 @@ struct AbletonClaudeApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
     @StateObject private var model = AppModel()
     var body: some Scene {
-        WindowGroup { ContentView(model: model).onAppear { delegate.model = model } }
-            .defaultSize(width: 1210, height: 840)
+        WindowGroup("MOTRA") { ContentView(model: model).onAppear { delegate.model = model } }
+            .defaultSize(width: 1320, height: 880)
             .commands { CommandGroup(replacing: .newItem) {} }
     }
 }

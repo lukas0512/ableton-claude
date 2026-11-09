@@ -108,11 +108,14 @@ async def check(backend, root, full_training=False):
             assert "Smoke Genre" in (init.instructions or "")
             brief = await session.call_tool("producer_brief", {})
             assert not brief.isError and "Smoke Genre" in brief.content[0].text
+            kit = await session.call_tool("music_drum_kit", {"name": "let_the_rhythm", "bars": 4})
+            assert not kit.isError, kit
+            assert "kick" in kit.content[0].text, kit
             analysis = await session.call_tool("analyze_audio", {"path": str(audio)})
             assert not analysis.isError, analysis
             print(json.dumps({"desktop_protocol": "ok", "bridge_install": "ok",
                               "mcp_tools": len(names), "user_genre_context": "ok",
-                              "bundled_audio_analysis": "ok"}))
+                              "bundled_audio_analysis": "ok", "bundled_drum_kit": "ok"}))
     if full_training:
         train(backend, root, env)
 

@@ -122,6 +122,19 @@ def test_preferences_never_persist_api_credentials(desktop_data):
     assert desktop.load_settings() == {"provider": "anthropic", "onboarding_step": 2}
 
 
+@pytest.mark.parametrize("assistant, expected", [(None, "chatgpt"), ("claude", "claude"), ("chatgpt", "chatgpt")])
+def test_legacy_chatgpt_settings_keep_the_selected_assistant(desktop_data, assistant, expected):
+    settings = {"provider": "chatgpt", "onboarding_complete": True, "model": "saved-model"}
+    if assistant is not None:
+        settings["assistant"] = assistant
+    desktop.write_json(desktop_data / "app.json", settings)
+    loaded = desktop.load_settings()
+    assert loaded["assistant"] == expected
+    assert loaded["model"] == "saved-model" and loaded["onboarding_complete"]
+    # Reading legacy settings does not overwrite the existing file.
+    assert json.loads((desktop_data / "app.json").read_text()) == settings
+
+
 def test_live_silence_values_are_valid_native_json():
     value = {"sends_db": [float('-inf'), 0.0], "invalid": float('nan')}
     encoded = json.dumps(storage.json_safe(value), allow_nan=False)

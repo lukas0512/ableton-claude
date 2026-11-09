@@ -1,6 +1,6 @@
-# ableton-claude
+# MOTRA
 
-Produce inside Ableton Live with an integrated assistant using your ChatGPT plan.
+Turn musical ideas into MIDI, groove and arrangements inside Ableton Live with an integrated assistant using your ChatGPT plan. MOTRA is the product name; the repository and internal bridge retain their existing identifiers.
 
 ```
 Native app chat ──MCP──▶ mcp_server (Python) ──TCP 9878──▶ ClaudeBridge (Remote Script, inside Live)
@@ -40,24 +40,24 @@ Native app chat ──MCP──▶ mcp_server (Python) ──TCP 9878──▶ C
 
 ### macOS app and installer
 
-Build the installer with `python3 scripts/build_macos.py --dmg` (current version **1.2.1**), then
-open `dist/Ableton-Claude-1.2.1-arm64.dmg` (or the `.pkg`) to install in **Applications**.
+Build the installer with `python3 scripts/build_macos.py --dmg` (current version **1.4.0**), then
+open `dist/MOTRA-1.4.0-arm64.dmg` (or the `.pkg`) to install in **Applications**.
 The build is ad-hoc signed, not notarized: on first launch macOS blocks it; allow it in
 **System Settings → Privacy & Security → Open Anyway**.
-An optional `.dmg` supports dragging **Ableton Claude** into Applications. This local build targets
+An optional `.dmg` supports dragging **MOTRA** into Applications. This local build targets
 **Apple Silicon and macOS 26+**. Python, MCP, FFmpeg and the audio dependencies are
 included; end users do not need a terminal or another AI app.
 
 **Intel Macs (macOS 13 Ventura or newer):** `python3 scripts/build_macos.py --arch x86_64 --dmg`
-builds `Ableton-Claude-<version>-x86_64.dmg`. PyTorch's last Intel Mac build is 2.2.2, so this
+builds `MOTRA-<version>-x86_64.dmg`. PyTorch's last Intel Mac build is 2.2.2, so this
 backend is frozen from `desktop/intel/requirements.txt` (Python 3.12, numpy 1.x, demucs 4.0.1)
 in its own venv under `build/macos-x86_64/`. On Apple Silicon the build needs Rosetta
 (`softwareupdate --install-rosetta`); on an Intel Mac it runs natively. The ear runs on the CPU
 there (`ear.torch_device`): Intel Macs with AMD GPUs report MPS, but torch 2.2.2 has no MPS FFT.
 The full test suite and a full `listen` on a 35-bar demo give identical results on both sets.
 
-The installed app currently occupies about 661 MiB; PyTorch accounts for about
-460 MiB and supports local musical analysis. The compressed `.pkg` is about 214 MiB
+The installed Apple Silicon app currently occupies about 920 MiB, including PyTorch
+for local musical analysis. The compressed `.pkg` is about 300 MiB
 and can be removed after installation. Learned profiles, reference links and downloaded
 audio models are separate under `~/Music/Ableton Claude/`; deleting release archives
 does not delete them. The development Python environment is also separate from the app.
@@ -240,7 +240,7 @@ packaged desktop API and MCP protocol, run:
 
 ```bash
 cd mcp_server
-uv run python ../scripts/smoke_desktop.py "../build/macos/product/Ableton Claude.app/Contents/Resources/backend/ableton-claude-backend"
+uv run python ../scripts/smoke_desktop.py "../build/macos/product/MOTRA.app/Contents/Resources/backend/ableton-claude-backend"
 ```
 
 This local installer uses ad hoc signing and **is not Apple-notarized**. Public

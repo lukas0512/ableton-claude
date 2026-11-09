@@ -12,7 +12,7 @@ import types
 
 import Live
 
-VERSION = "0.8.0"
+VERSION = "0.8.1"
 
 COMMANDS = {}
 DEFERRED_TIMEOUT_S = 30.0
@@ -1644,26 +1644,73 @@ def record_tracks(ctx, tracks, start_bar, end_bar, tap="Post Mixer", prefix="tap
     if len(set(names)) != len(names):
         raise ValueError("tracks must be distinct: %s" % names)
 
-    def tap_of(src):
+    def source_of(src):
         def setup(rt):
             rt.input_routing_type = _source_route(list(rt.available_input_routing_types), src)
-            # the channel list keeps the old input's channels (Ext. In "1/2") for a few
-            # ticks after the type changes
-            for _ in range(30):
-                yield
-                names = [c.display_name for c in rt.available_input_routing_channels]
-                if tap in names:
-                    break
-            rt.input_routing_channel = _pick(list(rt.available_input_routing_channels),
-                                             tap, "channel")
         return setup
-    specs = [(("%s %s" % (prefix, n))[:31], n, tap_of(n)) for n in names]
-    return (yield from _start_record(ctx, start_bar, end_bar, specs))
+    specs = [(("%s %s" % (prefix, n))[:31], n, source_of(n)) for n in names]
+    return (yield from _start_record(ctx, start_bar, end_bar, specs, tap=tap))
 
 
-def _start_record(ctx, start_bar, end_bar, specs):
-    """specs = [(render track name, source name or None, setup(rt))]; setup may be a
-    generator (input channels appear a tick after the input type is set)."""
+# Reading Track.available_input_routing_channels while Live rebuilds that list segfaults
+# Live: after input_routing_type changes, the getter walks the old input's list (Ext. In)
+# and indexes the new input's shorter channel vector with no bounds check. Whether that
+# crashes depends on what sits past the vector, so it usually works. Polling it for "Post
+# Mixer" killed Live 7 times (2026-10-28 to 11-05, docs/one-pass-crash.md), so nothing reads
+# the list until Live has said it changed and then gone quiet.
+CHANNELS_QUIET_TICKS = 5
+CHANNELS_MAX_TICKS = 50
+
+
+class _ChannelWatch(object):
+    """Waits, without touching the lists, for Live to rebuild some tracks' channel lists."""
+
+    def __init__(self):
+        self.entries = []
+        self.events = 0
+
+    def add(self, track):
+        """Call before changing the track's input type, or the notification is missed."""
+        entry = {"track": track, "fired": False}
+
+        def changed():      # runs inside Live's notification: only note it
+            entry["fired"] = True
+            self.events += 1
+        entry["listener"] = changed
+        track.add_available_input_routing_channels_listener(changed)
+        self.entries.append(entry)
+
+    def wait(self, max_ticks=CHANNELS_MAX_TICKS, quiet_ticks=CHANNELS_QUIET_TICKS):
+        """Return once every track was notified and `quiet_ticks` passed with no further
+        notification (a later track's creation can rebuild an earlier one's lists)."""
+        seen, quiet = self.events, 0
+        for _ in range(max_ticks):
+            yield
+            if self.events != seen:
+                seen, quiet = self.events, 0
+            else:
+                quiet += 1
+            if quiet >= quiet_ticks and all(e["fired"] for e in self.entries):
+                return
+        raise RuntimeError(
+            "refused: Live did not confirm the input channels of %s within %d ticks. Reading "
+            "them before it does has crashed Live, so nothing was recorded and the tap tracks "
+            "were removed. Measure with soloed passes instead (solo_levels one_pass=False)."
+            % ([e["track"].name for e in self.entries if not e["fired"]], max_ticks))
+
+    def close(self):
+        for e in self.entries:
+            try:
+                if e["track"].available_input_routing_channels_has_listener(e["listener"]):
+                    e["track"].remove_available_input_routing_channels_listener(e["listener"])
+            except Exception:
+                pass
+        self.entries = []
+
+
+def _start_record(ctx, start_bar, end_bar, specs, tap=None):
+    """specs = [(render track name, source name or None, setup(rt))]. With `tap`, setup
+    sets a source track and each render track's input channel is then set to `tap`."""
     s = ctx.song
     job = ctx.record_job
     if job and job.get("state") in ("recording", "finalizing"):
@@ -1676,18 +1723,28 @@ def _start_record(ctx, start_bar, end_bar, specs):
         t.arm = False
 
     made = []
+    watch = _ChannelWatch()
     try:
         for name, src, setup in specs:
             s.create_audio_track(-1)
             rt = s.tracks[len(s.tracks) - 1]
             rt.name = name
             made.append((rt, src))
-            step = setup(rt)
-            if step is not None and hasattr(step, "send"):
-                yield from step
             rt.current_monitoring_state = 2   # Off: no feedback loop into master
+            if tap is not None:
+                watch.add(rt)
+            setup(rt)
+        if tap is not None:
+            # one wait for all of them, after the last structural change
+            yield from watch.wait()
+            watch.close()
+            for rt, _ in made:
+                rt.input_routing_channel = _pick(list(rt.available_input_routing_channels),
+                                                 tap, "channel")
+        for rt, _ in made:
             rt.arm = True
-    except Exception:
+    except (Exception, GeneratorExit):
+        watch.close()
         for rt, _ in reversed(made):
             try:
                 s.delete_track(list(s.tracks).index(rt))

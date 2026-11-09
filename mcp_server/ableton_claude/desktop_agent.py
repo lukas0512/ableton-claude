@@ -14,7 +14,7 @@ from . import proposals
 READ_TOOLS = {"producer_brief", "ableton_status", "list_genres", "genre_knowledge", "genre_plan_structure",
               "analyze_audio", "analyze_reference", "compare_to_genre", "analyze_timbre", "analyze_tension",
               "analyze_sample", "analyze_bassline", "music_chords", "music_progression", "music_call_and_response",
-              "production_intent", "production_review", "music_drum_pattern", "music_pocket_sketch", "music_club_motif", "remix_plan", "music_build_roll", "library_search", "library_midi", "change_log",
+              "production_intent", "production_review", "music_drum_pattern", "music_drum_kit", "music_pocket_sketch", "music_club_motif", "remix_plan", "music_build_roll", "library_search", "library_midi", "change_log",
               "producer_tools", "genre_principles", "validate_against_genre", "compare_to_reference",
               "compare_by_ear", "listen", "render_wait", "extract_groove", "heard_midi", "find_samples",
               "split_elements_status", "solo_levels_status", "taste_report"}

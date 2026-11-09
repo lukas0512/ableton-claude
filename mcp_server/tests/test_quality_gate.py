@@ -34,6 +34,7 @@ def caller(s):
             return s["song"]
         if cmd == "get_track":
             return s["tracks"][args["track"]]
+
         if cmd == "get_notes":
             return s["notes"].get(args["track"], [])
         if cmd == "drum_pads":
@@ -92,6 +93,34 @@ def test_the_producer_brief_carries_his_quality_bar():
     from ableton_claude import server
     brief = server._brief("producer") + server._brief("taste")
     assert "quality bar" in brief and "One pocket" in brief and "DROP 2" in brief
+
+
+def test_an_arranged_resample_and_a_soft_clip_stage_are_not_mistakes():
+    s, _ = fake_set()
+    s["song"]["tracks"].append({"i": 5, "name": "BASS - resampled", "kind": "audio", "mute": False})
+    take = "/x/Samples/Recorded/32-Audio 0001.wav"
+    s["tracks"][5] = {"devices": [], "clips": [{"type": "audio", "start": 4 * k, "file": take}
+                                               for k in range(12)]}
+    s["song"]["master"] = {"devices": ["Limiter", "Limiter"]}
+    seen = []
+    call = caller(s)
+
+    def spy(cmd, args=None):
+        if cmd == "get_device" and (args or {}).get("track") == "master":
+            seen.append(args["device"])
+        return call(cmd, args)
+    r = gate.run(spy)
+    assert r["passed"] and checks(r) == set()
+    assert seen == ["Limiter#1"]          # the limiter that feeds the output
+
+
+def test_a_vocal_phrase_left_looping_is_caught():
+    s, _ = fake_set()
+    s["tracks"][3]["clips"] = [{"type": "audio", "start": 380.0, "end": 388.0, "name": "City call",
+                                "looping": True, "loop_start": 0.0, "loop_end": 4.58}]
+    s["song"]["tracks"][3]["name"] = "VOX CITY"
+    r = gate.run(caller(s))
+    assert "phrase repeats" in checks(r) and not r["passed"]
 
 
 def test_a_steep_velocity_hat_is_caught():

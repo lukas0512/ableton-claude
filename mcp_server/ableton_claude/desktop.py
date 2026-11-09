@@ -171,6 +171,9 @@ def load_settings():
         value = json.load(f)
     if not isinstance(value, dict):
         raise ValueError("app.json must be an object")
+    # Versions before assistant selection already supported in-app ChatGPT.
+    if not value.get("assistant") and value.get("provider") == "chatgpt":
+        value["assistant"] = "chatgpt"
     return value
 
 
@@ -425,15 +428,18 @@ def main():
         return
     if "--self-test" in sys.argv:
         from .server import producer_brief
+        from .music import kits
         import imageio_ffmpeg
         import soundfile
         import torch
         import demucs
         import beat_this
+        kit = kits.load("let_the_rhythm")
+        assert kit.get("parts"), "Bundled drum kit is missing its patterns"
         print(json.dumps({"ok": True, "data_dir": DATA_DIR,
                           "ffmpeg": os.path.isfile(imageio_ffmpeg.get_ffmpeg_exe()),
                           "soundfile": soundfile.__libsndfile_version__, "torch": torch.__version__,
-                          "prompt": "GENRE CONTEXT:" in producer_brief()}))
+                          "prompt": "GENRE CONTEXT:" in producer_brief(), "drum_kit": kit["name"]}))
         return
     if "--desktop" not in sys.argv:
         raise SystemExit("Use --desktop or --mcp")

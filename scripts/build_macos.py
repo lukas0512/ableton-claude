@@ -20,8 +20,8 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 BUILD = ROOT / "build" / "macos"
 DIST = ROOT / "dist"
-APP_NAME = "Ableton Claude"
-VERSION = "1.2.1"
+APP_NAME = "MOTRA"
+VERSION = "1.4.0"
 INTEL_REQUIREMENTS = ROOT / "desktop" / "intel" / "requirements.txt"
 # Compiled packages must come as wheels built for macOS 13 or older (see the requirements header).
 INTEL_BINARY_ONLY = ("numpy,scipy,torch,torchaudio,cryptography,soundfile,lameenc,pydantic-core,cffi,"
@@ -88,6 +88,7 @@ def main():
                                            "--copy-metadata", "audio-separator"]),
              "--copy-metadata", "torch", "--copy-metadata", "demucs", "--copy-metadata", "beat-this",
              "--add-data", str(ROOT / "mcp_server" / "ableton_claude" / "briefs") + ":ableton_claude/briefs",
+             "--add-data", str(ROOT / "mcp_server" / "ableton_claude" / "kits") + ":ableton_claude/kits",
              "--add-data", str(ROOT / "mcp_server" / "ableton_claude" / "ear" / "data") + ":ableton_claude/ear/data",
              ROOT / "desktop" / "backend_entry.py"])
     app = BUILD / "product" / (APP_NAME + ".app")
@@ -109,7 +110,7 @@ def main():
             "CFBundleIdentifier": "studio.abletonclaude.desktop", "CFBundleExecutable": "AbletonClaude",
             "CFBundleIconFile": "AppIcon",
             "CFBundlePackageType": "APPL", "CFBundleShortVersionString": VERSION,
-            "CFBundleVersion": "100", "LSMinimumSystemVersion": min_macos,
+            "CFBundleVersion": VERSION, "LSMinimumSystemVersion": min_macos,
             "NSHighResolutionCapable": True,
             "NSHumanReadableCopyright": "Ableton Claude contributors",
             "NSAppleMusicUsageDescription": "Selecionar referências de áudio para treinar seus gêneros.",
@@ -123,7 +124,7 @@ def main():
     test_data = BUILD / "self-test-data"
     run(prefix + [resources / "backend" / "ableton-claude-backend", "--self-test"],
         env=dict(os.environ, ABLETON_CLAUDE_DATA=str(test_data)))
-    pkg = DIST / ("Ableton-Claude-" + VERSION + "-" + arch + ".pkg")
+    pkg = DIST / ("MOTRA-" + VERSION + "-" + arch + ".pkg")
     component_plist = BUILD / "components.plist"
     run(["pkgbuild", "--analyze", "--root", app.parent, component_plist])
     with component_plist.open("rb") as f:
@@ -149,21 +150,23 @@ def main():
     shutil.copytree(app, image / app.name, symlinks=True)
     (image / "Applications").symlink_to("/Applications")
     (image / "Comece aqui.txt").write_text(
-        "ABLETON CLAUDE\n\n1. Arraste Ableton Claude para Aplicativos.\n"
+        "MOTRA\n\n1. Arraste MOTRA para Aplicativos.\n"
         "2. Abra o app em Aplicativos e siga o onboarding guiado.\n"
         "   Na primeira vez o macOS bloqueia (build não notarizado): Ajustes do Sistema →\n"
         "   Privacidade e Segurança → Abrir Mesmo Assim.\n"
         "3. Clique em Preparar ponte. Depois feche (Cmd+Q) e reabra o Ableton Live: ele só\n"
         "   encontra a ponte ao abrir. Selecione ClaudeBridge em Settings → Link, Tempo &\n"
         "   MIDI → Control Surface (Input/Output: None).\n"
-        "4. Clique em Conectar ao Claude Desktop e em Escolher pasta de samples.\n"
-        "5. Encerre (Cmd+Q) e reabra o Claude Desktop: as ferramentas ableton-claude aparecem.\n"
-        "   Trabalhe numa cópia do seu projeto; o Live não tem API de salvar, salve com Cmd+S.\n\n"
+        "4. Escolha ChatGPT no app ou Claude Desktop. Samples e referências são opcionais.\n"
+        "5. ChatGPT: conecte sua conta, selecione o modelo e entre no estúdio.\n"
+        "   Claude Desktop: conecte o Claude e reabra-o para carregar as ferramentas.\n"
+        "6. Escolha Criar do zero ou Continuar projeto e revise as propostas antes de aplicar.\n"
+        "   Trabalhe numa cópia do seu projeto; salve no Ableton com Cmd+S.\n\n"
         "O primeiro treino baixa os modelos de áudio. Internet é necessária para esses downloads.\n"
         "Dados por usuário: ~/Music/Ableton Claude/\n"
         "Este build local usa assinatura ad hoc e ainda não foi notarizado pela Apple.\n"
         "Compatibilidade deste build: macOS " + min_macos.split(".")[0] + "+, " + ("Intel" if arch == "x86_64" else "Apple Silicon") + ".\n", encoding="utf-8")
-    dmg = DIST / ("Ableton-Claude-" + VERSION + "-" + arch + ".dmg")
+    dmg = DIST / ("MOTRA-" + VERSION + "-" + arch + ".dmg")
     if dmg.exists():
         dmg.unlink()
     run(["hdiutil", "create", "-volname", APP_NAME, "-srcfolder", image, "-format", "UDZO", dmg])

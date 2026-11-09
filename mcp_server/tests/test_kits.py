@@ -11,6 +11,12 @@ def test_kit_is_shipped_and_loads():
         assert key in kit["parts"]
 
 
+def test_reading_a_kit_does_not_require_approval_to_edit_live():
+    from ableton_claude.desktop_agent import read_only
+    assert read_only("music_drum_kit", {"name": "let_the_rhythm", "bars": 4})
+    assert not read_only("ableton_command", {"cmd": "create_midi_clip"})
+
+
 def test_steps_capture_the_producers_patterns():
     parts = kits.load("let_the_rhythm")["parts"]
     assert parts["kick"]["steps"][0] == "X...X...X...X..."

@@ -77,6 +77,9 @@ Rules that cost real time to learn:
   feeds the room back into the mix. Returns get Live's letter prefix: create "Room" and
   address it as "return:C-Room". A device's sidechain is `set_device_input` (Compressor,
   Gate, Auto Filter).
+- Never read `available_input_routing_channels` right after setting `input_routing_type`: Live
+  indexes the new input's channels with the old list, unchecked, and it segfaulted 7 times in
+  one-pass taps (`docs/one-pass-crash.md`). Wait for its listener, then a few quiet ticks.
 - A one-bar slice of a loop in the arrangement: `set_clip(looping=True, loop_start,
   loop_end)` then `trim_clip(end_beat)`; markers alone keep the clip's length.
 - One check for everything: `scripts/validate_render.py` / `validate_against_genre`.
