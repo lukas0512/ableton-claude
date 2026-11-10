@@ -1084,6 +1084,17 @@ struct QuickGrooveView: View {
             ForEach(preview["why"] as? [String] ?? [], id: \.self) {
                 Text("• " + $0).font(.system(size: 10)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
+            HStack(spacing: 8) {
+                Text("Depois de ouvir, ensine o app:").font(.system(size: 10)).foregroundStyle(StudioStyle.muted)
+                Button { model.rateGroove(liked: true) } label: { Label("Gostei", systemImage: "hand.thumbsup") }
+                    .font(.caption)
+                Button { model.rateGroove(liked: false) { seed += 1 } } label: { Label("Não gostei", systemImage: "hand.thumbsdown") }
+                    .font(.caption)
+                Spacer()
+                if let learned = preview["learned"] as? [String: Any], let likes = learned["likes"] as? Int, let dislikes = learned["dislikes"] as? Int, likes + dislikes > 0 {
+                    Text("Aprendendo com você: \(likes) 👍 · \(dislikes) 👎").font(.system(size: 10)).foregroundStyle(StudioStyle.accent)
+                }
+            }
         }.padding(12).background(StudioStyle.background.opacity(0.5), in: RoundedRectangle(cornerRadius: 9))
     }
 }

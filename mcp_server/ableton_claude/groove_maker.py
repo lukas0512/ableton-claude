@@ -4,7 +4,8 @@
 the kick, all in one swing pocket, from a vibe (house, tech house, deep house, UK garage,
 afro house) or from the feel of tracks the user trained or studied (a profile: tempo,
 key, swing, the hats' per-16th timing and accents, the bass's rhythms and degrees).
-`apply` puts it in Live with stock sounds through a `call(cmd, args)` that journals each
+It also learns: `rate` keeps the person's "gostei / não gostei" per groove, and `make`
+steers its automatic choices (bass style, swing) toward what they liked. `apply` puts it in Live with stock sounds through a `call(cmd, args)` that journals each
 change (an 8-bar loop, or a DJ-friendly track with intro and outro to mix), and `remove`
 takes it out again. Planning is pure; only `apply`/`remove` talk to Live.
 
@@ -12,12 +13,14 @@ Notes are [pitch, start_beat, duration_beats, velocity]. Timing is baked into th
 no groove from the Groove Pool goes on top of it. A recipe is a starting point that must
 be heard; it does not prove the result is good.
 """
+import datetime
 import hashlib
 import json
 import math
+import os
 import random
 
-from . import knowledge
+from . import knowledge, storage
 from .music.groove import swing_offset
 
 # Stock Live 12 Drum Racks, pads read from the presets' files (36 = C1).
@@ -345,6 +348,12 @@ def inspiration(name):
         out["hats"] = {"template": hats["template"], "presence": presence}
     if (ear.get("four_on_floor_share") or 1) < 0.5:
         out["broken_kick"] = True
+    kick = _learned_kick(drums.get("kick") or {}, out.get("broken_kick"))
+    if kick:
+        out["kick"] = kick
+    clap_ms = _learned_clap_ms(drums.get("clap") or {}, ear.get("backbeat_share"))
+    if clap_ms is not None:
+        out["clap_ms"] = clap_ms
     if isinstance(ear.get("bass"), dict):
         out["bass"] = ear["bass"]
     brk = ((prof.get("structure") or {}).get("main_break_bars") or {}).get("median")
@@ -353,9 +362,104 @@ def inspiration(name):
     return out
 
 
+def _presence(part):
+    pres = part.get("step_presence")
+    if isinstance(pres, str):
+        try:
+            pres = json.loads(pres)
+        except ValueError:
+            return None
+    if isinstance(pres, list) and len(pres) == 16 and all(isinstance(x, (int, float)) for x in pres):
+        return pres
+    return None
+
+
+def _learned_kick(kick, broken):
+    """The references' kick as a step string. Four-on-the-floor keeps its quarters and only
+    gains the ghost kicks they play between them; a broken kick takes their whole pattern."""
+    pres = _presence(kick)
+    if not pres or pres[0] < 0.5:
+        return None
+    cells = []
+    for step, p in enumerate(pres):
+        if step == 0 or (step % 4 == 0 and not broken):
+            cells.append("X")
+        elif p >= 0.75:
+            cells.append("X" if step % 4 == 0 else "x")
+        elif p >= 0.5:
+            cells.append("x")
+        elif p >= 0.3 and step % 4:
+            cells.append("g")
+        else:
+            cells.append(".")
+    pattern = "".join(cells)
+    return pattern if pattern.count("X") + pattern.count("x") >= 2 else None
+
+
+def _learned_clap_ms(clap, backbeat_share):
+    """How late the references' clap sits on 2 and 4 (ms), when they have a backbeat."""
+    if (backbeat_share or 0) < 0.5:
+        return None
+    steps = (clap.get("template") or {}).get("steps") or []
+    offs = [s["offset_ms"] for s in steps if isinstance(s, dict) and s.get("step") in (4, 12)
+            and isinstance(s.get("offset_ms"), (int, float))]
+    if not offs:
+        return None
+    return round(min(20.0, max(-8.0, sum(offs) / len(offs))), 1)
+
+
+# ---- Learning from the person's opinion -------------------------------------------------
+
+def taste_path():
+    return os.path.join(storage.DATA_DIR, "Production", "groove_taste.json")
+
+
+def load_taste(path=None):
+    try:
+        with open(path or taste_path(), encoding="utf-8") as f:
+            taste = json.load(f)
+        if isinstance(taste, dict) and isinstance(taste.get("votes"), list):
+            return taste
+    except (OSError, ValueError):
+        pass
+    return {"votes": []}
+
+
+def learned(taste, vibe):
+    """What the votes on this vibe say: likes, dislikes, a score per bass style and the
+    swing (before the feel) of the grooves they liked."""
+    votes = [v for v in (taste or {}).get("votes", []) if isinstance(v, dict) and v.get("vibe") == vibe]
+    likes = [v for v in votes if v.get("liked")]
+    scores = {}
+    for v in votes:
+        if v.get("bass") in BASSES:
+            scores[v["bass"]] = scores.get(v["bass"], 0) + (1 if v.get("liked") else -1)
+    swings = [float(v["base_swing"]) for v in likes if isinstance(v.get("base_swing"), (int, float))]
+    return {"likes": len(likes), "dislikes": len(votes) - len(likes), "bass_scores": scores,
+            "swing": round(sum(swings) / len(swings), 1) if swings else None, "n_swing": len(swings)}
+
+
+def rate(groove, liked, path=None):
+    """Keep one vote per groove (a new opinion replaces the old) and return what's learned."""
+    path = path or taste_path()
+    taste = load_taste(path)
+    vote = {"id": groove["id"], "vibe": groove["vibe"], "bass": groove["bass"],
+            "feel": groove["feel"], "swing": groove["swing"], "base_swing": groove.get("base_swing"),
+            "bpm": groove["bpm"], "inspired_by": groove.get("inspired_by"), "seed": groove["seed"],
+            "liked": bool(liked), "at": datetime.datetime.now().isoformat(timespec="seconds")}
+    taste["votes"] = [v for v in taste["votes"] if v.get("id") != vote["id"]][-499:] + [vote]
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(taste, f, ensure_ascii=False, indent=1)
+    os.replace(tmp, path)
+    return learned(taste, groove["vibe"])
+
+
 def make(vibe="house", tonic=None, mode=None, bpm=None, swing=None, feel="padrao",
-         bass="auto", inspired_by=None, bars=8, seed=1):
-    """The whole groove, planned: settings, notes per track, a step grid to show, and why."""
+         bass="auto", inspired_by=None, bars=8, seed=1, taste=None):
+    """The whole groove, planned: settings, notes per track, a step grid to show, and why.
+    `taste` (from load_taste) steers the automatic choices toward the grooves they liked."""
     if vibe not in VIBES:
         raise ValueError("Escolha uma vibe: %s" % ", ".join(VIBES))
     if bars not in (4, 8, 16):
@@ -371,7 +475,18 @@ def make(vibe="house", tonic=None, mode=None, bpm=None, swing=None, feel="padrao
     bpm = float(bpm or ref.get("bpm") or v["bpm"])
     if not 90 <= bpm <= 150:
         raise ValueError("BPM entre 90 e 150.")
-    base_swing = float(swing if swing is not None else ref.get("swing") or v["swing"])
+    mine = learned(taste, vibe) if taste else None
+    taught = []
+    if swing is not None or ref.get("swing"):
+        base_swing = float(swing if swing is not None else ref["swing"])
+    else:
+        base_swing = float(v["swing"])
+        if mine and mine["swing"] is not None:
+            # Toward the swing of the grooves they liked, more the more they liked.
+            n = mine["n_swing"]
+            base_swing = round(base_swing + (mine["swing"] - base_swing) * n / (n + 1.0), 1)
+            if abs(base_swing - v["swing"]) >= 0.5:
+                taught.append("swing %.0f %%" % base_swing)
     swing = round(min(66.0, max(50.0, base_swing + FEELS[feel])), 1)
     seed = int(seed)
     rng = random.Random(seed)
@@ -383,11 +498,16 @@ def make(vibe="house", tonic=None, mode=None, bpm=None, swing=None, feel="padrao
     for role, steps in v["drums"].items():
         track = ROLE_TRACK.get(role, "PERC")
         pitch = (pads if track != "PERC" else perc_pads)[role]
+        if role == "kick" and ref.get("kick"):
+            steps = [ref["kick"]]
+        offset = ROLE_OFFSET_MS.get(role, 0.0)
+        if role in ("clap", "snare") and ref.get("clap_ms") is not None:
+            offset = ref["clap_ms"]
         if role == "closed_hat" and ref.get("hats"):
             notes = _template_hats(ref["hats"]["template"], ref["hats"].get("presence"),
                                    pitch, bars, bpm, rng)
         else:
-            notes = _steps_notes(steps, pitch, bars, swing, bpm, ROLE_OFFSET_MS.get(role, 0.0),
+            notes = _steps_notes(steps, pitch, bars, swing, bpm, offset,
                                  LENGTHS.get(role, 0.1), v.get("end", {}).get(role), rng,
                                  0.8 if role == "snare" and vibe != "ukg" else 1.0)
         parts[track].extend(notes)
@@ -404,6 +524,12 @@ def make(vibe="house", tonic=None, mode=None, bpm=None, swing=None, feel="padrao
         recipe = _profile_bass(ref["bass"], seed)
         if recipe:
             bass_id = "referencia"
+    if recipe is None and bass == "auto" and mine and mine["bass_scores"]:
+        scores = mine["bass_scores"]
+        best = max(sorted(scores), key=scores.get)
+        if scores[best] > 0 and scores[best] > scores.get(bass_id, 0):
+            bass_id = best
+            taught.append("baixo %s" % BASSES[best]["label"].lower())
     if recipe is None:
         if bass_id == "referencia":
             bass_id = v["bass"]
@@ -430,15 +556,24 @@ def make(vibe="house", tonic=None, mode=None, bpm=None, swing=None, feel="padrao
         why.insert(0, "Inspirado em %s (%s): %s BPM, swing %.0f %%%s." % (
             ref["name"], "%d faixa%s" % (n, "" if n == 1 else "s") if n else "referências",
             ref.get("bpm", bpm), ref.get("swing", swing),
-            ", hats com o tempo e os acentos delas" if ref.get("hats") else ""))
+            "".join(part for part, on in (
+                (", hats com o tempo e os acentos delas", ref.get("hats")),
+                (", o kick delas", ref.get("kick")),
+                (", o clap %+.0f ms como nelas" % ref.get("clap_ms", 0), ref.get("clap_ms") is not None))
+                if on)))
+    if mine and (mine["likes"] or mine["dislikes"]):
+        why.append("Aprendendo com você (%d gostei, %d não gostei)%s." % (
+            mine["likes"], mine["dislikes"], ": " + ", ".join(taught) if taught else ""))
     groove = {
         "vibe": vibe, "label": v["label"], "bars": bars, "bpm": bpm, "swing": swing,
+        "base_swing": round(base_swing, 1),
         "tonic": NOTE_NAMES[_pc(tonic)], "mode": mode, "key": key_name, "feel": feel,
         "bass": bass_id, "bass_label": recipe["label"], "seed": seed,
         "inspired_by": ref.get("name"), "perc_kit": v["perc_kit"],
         "bass_presets": recipe["presets"], "notes": parts, "grid": grid, "why": why,
         "break_bars": ref.get("break_bars"),
         "counts": {t: len(n) for t, n in parts.items()},
+        "learned": {"likes": mine["likes"], "dislikes": mine["dislikes"]} if mine else None,
     }
     groove["id"] = hashlib.sha1(json.dumps(groove, sort_keys=True).encode()).hexdigest()[:10]
     return groove

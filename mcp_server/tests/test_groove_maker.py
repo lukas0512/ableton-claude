@@ -197,3 +197,53 @@ def test_desktop_applies_only_the_previewed_groove_and_removes_it(desktop_data):
         desktop.dispatch("groove_remove", {})
     assert desktop.dispatch("groove_remove", {"confirmed": True})["removed"]
     assert desktop.dispatch("groove_options", {})["last"] is None
+
+
+def test_inspiration_learns_a_broken_kick_and_the_clap_lateness(profile, tmp_path):
+    prof = json.loads(json.dumps(profile))
+    prof["genre"] = "quebrada"
+    prof["ear"]["four_on_floor_share"] = 0.2
+    prof["ear"]["backbeat_share"] = 0.9
+    kick = [0.95, 0, 0, 0, 0.1, 0, 0.4, 0, 0, 0, 0.8, 0, 0, 0, 0, 0]
+    clap_steps = [{"step": 4, "offset_ms": 9.0}, {"step": 12, "offset_ms": 11.0}]
+    prof["ear"]["drums"]["kick"] = {"step_presence": kick}
+    prof["ear"]["drums"]["clap"] = {"template": {"steps": clap_steps}}
+    (tmp_path / "quebrada.profile.json").write_text(json.dumps(prof))
+    g = gm.make("house", inspired_by="quebrada")
+    assert g["grid"]["kick"] == "X.....g...x....."
+    clap = [n for n in g["notes"]["CLAP"] if n[0] == gm.PADS_909["clap"]][0]
+    assert clap[1] == pytest.approx(1.0 + 10.0 * 124 / 60000, abs=1e-3)
+    assert "o kick delas" in g["why"][0] and "+10 ms" in g["why"][0]
+    # Four on the floor keeps its quarters; a stray reading never removes them.
+    assert gm._learned_kick({"step_presence": [0.9] + [0.1] * 15}, False) == "X...X...X...X..."
+
+
+def test_votes_steer_the_automatic_bass_and_swing(tmp_path):
+    path = str(tmp_path / "taste.json")
+    first = gm.make("house", seed=1)
+    assert first["bass"] == "offbeat" and first["learned"] is None
+    gm.rate(first, False, path)
+    liked = gm.make("house", bass="rolling", feel="forte", swing=60, seed=2)
+    out = gm.rate(liked, True, path)
+    assert out["likes"] == 1 and out["dislikes"] == 1 and out["bass_scores"]["rolling"] == 1
+    taste = gm.load_taste(path)
+    steered = gm.make("house", taste=taste)
+    assert steered["bass"] == "rolling"
+    assert 57 < steered["base_swing"] < 60
+    assert "Aprendendo com você (1 gostei, 1 não gostei)" in steered["why"][-1]
+    # Explicit choices still win, other vibes are untouched, a re-vote replaces the old one.
+    assert gm.make("house", bass="deep", taste=taste)["bass"] == "deep"
+    assert gm.make("ukg", taste=taste)["bass"] == "2step"
+    gm.rate(liked, False, path)
+    assert len(gm.load_taste(path)["votes"]) == 2
+    assert gm.make("house", taste=gm.load_taste(path))["bass"] == "offbeat"
+
+
+def test_desktop_rates_the_shown_groove(desktop_data):
+    preview = desktop.dispatch("groove_preview", {"vibe": "deep_house"})
+    with pytest.raises(ValueError):
+        desktop.dispatch("groove_rate", {"id": "old", "liked": True})
+    assert desktop.dispatch("groove_rate", {"id": preview["id"], "liked": True})["likes"] == 1
+    assert desktop.dispatch("groove_options", {})["taste"] == {"votes": 1, "likes": 1}
+    again = desktop.dispatch("groove_preview", {"vibe": "deep_house"})
+    assert again["learned"] == {"likes": 1, "dislikes": 0}

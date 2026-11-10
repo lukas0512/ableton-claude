@@ -363,6 +363,18 @@ final class AppModel: ObservableObject {
             else if let error = value["error"] as? String { self.error = error }
         }
     }
+    func rateGroove(liked: Bool, then: @escaping () -> Void = {}) {
+        guard let id = groovePreview["id"] as? String else { return }
+        request("groove_rate", params: ["id": id, "liked": liked]) { value in
+            if let result = value["result"] as? [String: Any] {
+                self.groovePreview["learned"] = ["likes": result["likes"] ?? 0, "dislikes": result["dislikes"] ?? 0]
+                self.message = liked ? "Anotado: os próximos grooves desta vibe vão puxar para este jeito." :
+                    "Anotado: o app evita esse jeito nesta vibe. Aqui vai outra variação."
+                self.error = ""
+                then()
+            } else if let error = value["error"] as? String { self.error = error }
+        }
+    }
     func applyGroove(layout: String) {
         guard let id = groovePreview["id"] as? String else { return }
         perform("groove_apply", params: ["id": id, "layout": layout], timeout: 420) { result in

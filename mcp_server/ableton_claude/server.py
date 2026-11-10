@@ -511,6 +511,7 @@ def music_club_motif(part: str = "bass", tonic: str = "G", mode: str = "minor",
 
 
 _LAST_GROOVE = {}
+_LAST_PLANNED = {}
 
 
 @mcp.tool()
@@ -527,10 +528,13 @@ def quick_groove(vibe: str = "house", tonic: str | None = None, mode: str | None
     apply=True builds it in Live with stock kits/bass (journaled): layout="loop" (bars at the
     end of the song or bar 1 of an empty set, tempo set only there) or "pista" (a DJ-friendly
     ~120-bar track: drums alone at both ends, break, build, drop, locators).
-    quick_groove_remove takes it out. Listen before keeping it."""
+    quick_groove_remove takes it out. Listen before keeping it. It learns: the person's
+    quick_groove_rate votes steer the automatic bass style and swing of each vibe."""
     if not vibe:
         return groove_maker.vibes()
-    g = groove_maker.make(vibe, tonic, mode, bpm, swing, feel, bass, inspired_by, bars, seed)
+    g = groove_maker.make(vibe, tonic, mode, bpm, swing, feel, bass, inspired_by, bars, seed,
+                          groove_maker.load_taste())
+    _LAST_PLANNED["groove"] = g
     out = groove_maker.summary(g)
     if apply:
         receipt = groove_maker.apply(g, _journaled, layout)
@@ -540,6 +544,16 @@ def quick_groove(vibe: str = "house", tonic: str | None = None, mode: str | None
     else:
         out["notes"] = g["notes"]
     return out
+
+
+@mcp.tool()
+def quick_groove_rate(liked: bool) -> dict:
+    """Record the person's opinion of the last quick_groove (after they listened): later
+    grooves of that vibe lean toward the bass styles and swing they liked. Returns what is
+    learned so far for the vibe."""
+    if not _LAST_PLANNED:
+        raise ValueError("Gere um groove com quick_groove primeiro.")
+    return groove_maker.rate(_LAST_PLANNED["groove"], liked)
 
 
 @mcp.tool()

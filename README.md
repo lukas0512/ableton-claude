@@ -159,6 +159,11 @@ a looping 4/8/16-bar loop, or **Faixa pronta para a pista** (intro and outro of 
 DJs, break, build, drop, locators). An empty set takes the groove's tempo; a set with music
 keeps its tempo and gets the groove after its end. **Tirar o último groove do Live** deletes
 those tracks, locators and the tempo change. It is a starting point to hear, not a verdict.
+It learns twice. From the tracks you teach it: besides tempo, key, swing, hats and bass, it takes
+their kick (ghost kicks, or the whole pattern when the kick is broken) and how late their clap
+sits on 2 and 4. From you: after listening, **Gostei / Não gostei** keeps one vote per groove
+(`Production/groove_taste.json`); each vibe's automatic bass style and swing lean toward what you
+liked, and the reasons say so. The assistant records the same votes with `quick_groove_rate`.
 
 Work on a copy of your Live project. Chat and proposals belong to the current app
 session; profiles, musical milestones and setup are persisted. Use **Meu som** to add genres and
@@ -294,7 +299,7 @@ After editing `handlers.py`: `scripts/install_remote_script.sh`, then the `reloa
 | `rap_phrase` | Cut a phrase from a vocal stem and place it warped syllable by syllable: a marker on every source 16th, syllables moved 60 % onto the 16th plus the set's swing, half a beat of pre-roll. |
 | `onset_chop` | Vocal chops that start at a real syllable attack, unwarped, placed so the attack lands on the beat. |
 | `stem_loop`, `breakbeat_loop`, `place_loop` | A 2-bar loop from the original's 'other' stem (least vocal bleed, most typical window) or a drum break, warped per 16th into the set's pocket; laid out as one clip per section (tiled, odd/even bars, Auto Filter and volume envelopes). |
-| `quick_groove`, `quick_groove_remove` | A whole groove in one call: crisp drums (kick, clap+snare, hats, percussion) and a bassline off the kick in one baked swing, per vibe (house, tech house, deep house, UK garage, afro house) or from a trained genre/study's tempo, key, swing, hats' per-16th feel and heard bass rhythms. `apply=True` builds it in Live with stock kits and bass (loop, or a DJ-friendly ~120-bar track with locators); `quick_groove_remove` takes it out. |
+| `quick_groove`, `quick_groove_remove` | A whole groove in one call: crisp drums (kick, clap+snare, hats, percussion) and a bassline off the kick in one baked swing, per vibe (house, tech house, deep house, UK garage, afro house) or from a trained genre/study's tempo, key, swing, hats' per-16th feel and heard bass rhythms. `apply=True` builds it in Live with stock kits and bass (loop, or a DJ-friendly ~120-bar track with locators); `quick_groove_remove` takes it out; `quick_groove_rate(liked)` teaches it the person's taste. |
 | `solo_levels`, `solo_levels_status` | In the background, each element soloed over the same bars, limiter off: integrated LUFS against the kick, 1/3-octave spectra and a masking report (elements within 6 dB of each band's loudest). Restores solos and the limiter, deletes its render tracks. |
 
 ## The ear

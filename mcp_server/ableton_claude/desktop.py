@@ -406,15 +406,25 @@ def quick_groove(method, params):
             out["last"] = json.loads(_groove_receipt_path().read_text())
         except (OSError, ValueError):
             out["last"] = None
+        taste = groove_maker.load_taste()
+        out["taste"] = {"votes": len(taste["votes"]),
+                        "likes": sum(1 for v in taste["votes"] if v.get("liked"))}
         return out
     if method == "groove_preview":
         groove = groove_maker.make(params.get("vibe", "house"), params.get("tonic") or None,
                                    params.get("mode") or None, params.get("bpm") or None, None,
                                    params.get("feel", "padrao"), params.get("bass", "auto"),
                                    params.get("inspired_by") or None, int(params.get("bars", 8)),
-                                   int(params.get("seed", 1)))
+                                   int(params.get("seed", 1)), groove_maker.load_taste())
         _GROOVE["preview"] = groove
         return groove_maker.summary(groove)
+    if method == "groove_rate":
+        groove = _GROOVE.get("preview")
+        if not groove or groove["id"] != params.get("id"):
+            raise ValueError("Gere a prévia de novo: o groove mostrado não é o último gerado.")
+        if not isinstance(params.get("liked"), bool):
+            raise ValueError("Diga se gostou ou não.")
+        return groove_maker.rate(groove, params["liked"])
     agent_state = producer_agent().status()
     if agent_state["state"] == "running" or agent_state["pending"]:
         raise ValueError("Termine ou descarte a proposta do chat antes de mexer no groove.")
