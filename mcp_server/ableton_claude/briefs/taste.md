@@ -242,6 +242,19 @@ break clip gains went back to 0. Build 1 lacked build 2's high-passed kick; with
   under it, on-beats ghosted). He liked the bass at once when it sat in the kick's and the stabs'
   gaps, and asked for it to follow the loop's chords (the loop was Gm then Cm inside each bar; a
   bass pedalling C under both read as "not the same harmony").
+- **A complement over two busy parts is simple, and one family** (HOUSE, 2026-11-10). He liked a
+  one-hit answer made of the loop's own stab an octave up into a ping-pong delay ("gostei do synth
+  answer") and asked for more melody after the second break. A played lead of that stab as
+  parallel chords (3-4 hits a bar, three chords) was rejected at once: "não colou muito no resto da
+  track... tem que ser algo mais simples, o baixo e o outro synth já são bem complexos, a track
+  tem que ser coerente". What he asked for instead, in his words: another synth and some FX to
+  fill, "até um ácido" that alternates and converses with the main synth as a complementary
+  detail that gives ambience, and a pre-drop before drop 2 with a characteristic synth call ("uma
+  chamadinha pré-drop que dá característica pra track"). Built: one long-note line on a clone of
+  the bass's own synth, one five-note acid cell that is hinted in the break, calls alone for the
+  bar before drop 2 and then answers every 2nd bar, FX printed from the track's own sounds. Count
+  the notes per bar already playing before adding a voice; the newcomer gets the slow rhythm.
+
 - **Glue, headroom, the track as one** (same day: "temos que colar mais a bateria, criar headroom
   também, trabalhar a música em conjunto"): a first mix with a +8 dB limiter and a perc loop and
   clap peaking over the kick got this note. Nothing peaks above the kick, his DRUMS recipe from
