@@ -264,6 +264,16 @@ loops). Start a new track's drums from it; what makes it work:
   Measure before layering; fix with `set_clip(warping=True, warp_mode="complex_pro",
   detune=cents)`. Auto-warp can overshoot a loop's end (32.8 beats for 16): pin `end_marker`.
   Grooves and detune only act on warped clips.
+- A vocal sample that "feels outside the track" may simply be in another key: pitch-track it
+  (pyin, voiced frames only) before judging level, space or phrasing. TECHNO #8 (2026-11-10):
+  "Beatbox Female #20" sat on E/F/D, 19 cents sharp, over G minor with an Ab in the bass; -2 st
+  and -19 cents put it on D/Eb/C (measured soloed: D 70 %, Eb 17 %, C 11 %). Retune every clip
+  of the file, keep the relative steps of pitched stutters, use Complex Pro (Beats mode chops a
+  transposed voice), and warp the printed echoes/swells made from it so they follow.
+- A kick that covers the off-beat bass: measure its decay (time from the energy peak to -20 dB)
+  against the reference's kick in a bass-free stretch. A sample whose sub blooms after the
+  click read 225 ms against 139 ms; Simpler in Gate mode with 1/16 notes and a 135 ms Fade Out
+  shortened it without touching the attack (low share 91 -> 87 %, crest +1.3 dB).
 - A pack loop carries feel and timbre together, a one-shot neither: pick the one-shot by the
   genre's timbre (`find_samples`) and place it with the references' per-16th feel
   (`groove_loop`). The median template is flatter than most references (54.8 % vs 55-76 %):
