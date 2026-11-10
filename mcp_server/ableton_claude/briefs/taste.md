@@ -231,6 +231,24 @@ break clip gains went back to 0. Build 1 lacked build 2's high-passed kick; with
 - **Fills matter** ("use fills, são importantes"): conga runs every 8-bar phrase end, a 909
   tom run on bigger turns, clap pickups; never on top of a transition FX.
 
+- **A 16th hat is one continuous line that follows the music's own pocket** (HOUSE, a friend's
+  sketch, 2026-11-10: "esse hat tá muito fora do groove da música, destoando tudo", then, with
+  the timing fixed, "o midi dele, a forma que está desenhado, não está no mesmo groove e swing da
+  música"). Two causes, both mine: the sketch's synth and percussion loops played their odd 16ths
+  straight, so a hat swung 17.6 ms late flammed on the stab every bar; and the hat was drawn as
+  beat + e + a with the "&" on another track, a loud "a", a pocket every 2nd bar and 32nd
+  flutters: a lopsided gallop. Measure every loop's odd-16th offset before choosing a swing, put
+  loops and MIDI in one pocket, and write the 16th hat as all 16 steps ("&" the accent, e/a ~7 dB
+  under it, on-beats ghosted). He liked the bass at once when it sat in the kick's and the stabs'
+  gaps, and asked for it to follow the loop's chords (the loop was Gm then Cm inside each bar; a
+  bass pedalling C under both read as "not the same harmony").
+- **Glue, headroom, the track as one** (same day: "temos que colar mais a bateria, criar headroom
+  também, trabalhar a música em conjunto"): a first mix with a +8 dB limiter and a perc loop and
+  clap peaking over the kick got this note. Nothing peaks above the kick, his DRUMS recipe from
+  the first mix (Glue 2:1, soft-sine saturation in parallel, one short room for every drum), the
+  synths on a MUSIC bus ducked ~3 dB by the kick, the limiter only catching peaks until he asks
+  for loudness.
+
 ## 4. Low end ("tem que sair ar do alto-falante quando bater o kick")
 
 - The kick is the loudest element; everything is set from it ("o kick mais alto e todo o

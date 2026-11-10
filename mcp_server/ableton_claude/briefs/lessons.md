@@ -799,3 +799,30 @@ median BPM (116) halved or mis-gridded them: use the heard tempos. What they sha
 straight (52 %), a clap/909 layer rolling the 8ths with ghosts (xgX.X.X.), the open hat on the "&",
 the bass off the beat on the root (..x-..x-..x-..x-, 95 % off the beat). A reese bass is wide in its
 lows: Utility Bass Mono at 200 Hz before it reaches a club.
+
+## Reworking someone else's sketch: read what it is before judging it (HOUSE, 2026-11-10)
+
+A friend's 128 BPM set: 1900 one-shot audio clips for kick, clap and hats (the kick in Complex
+warp), and a "bass" that was a loop run through Convert Drums to MIDI (pitches 36/38/42 = C, D,
+F#, zero-length notes, only bar 1 of 4 looping) under a Drift: a tritone over the synth by
+accident. Rebuild the drums as MIDI on Simplers loaded with his own samples (copy them into the
+User Library; the browser finds them at once) and keep his synth patch and loops: the aesthetic
+is the sounds, not the clips.
+
+- Simpler's `Vol < Vel` adds level at high velocities: +16 dB at 100 %, +8 dB at 50 % (clap and
+  hats came out 17 dB over the plan, peaking at +5 dBFS inside the instrument). Take it back with
+  the Simpler's Volume and measure soloed before trusting a fader plan.
+- A kick-keyed compressor on the bass with its threshold 24 dB under the kick's peak never lets
+  go: this kick's tail is still -20 dB at 217 ms. Threshold ~10 dB under the peak, 6:1, 110 ms.
+- A plucky bass patch (sustain 34 %, peak 14 dB over its body) reads 15 LU under the kick at any
+  sane fader: raise the sustain and let a saturator shave the attack.
+- A pack loop's chords: FFT peaks per stab (110-2000 Hz) showed two chords inside each bar where
+  the ear's bar-level reading said one "Cm9". Read the stabs one by one before writing a bass.
+- A straight loop goes onto the set's swing with four warp markers per odd-step hit (identity
+  1.6 steps before, shifted 0.6 before and 1.5 after, identity 2.5 after): the hit moves as a
+  block and the stretch falls in the gaps. Verified soloed: step 7 at +20 ms, the rest at 0.
+- `has_envelopes` read False on clips whose envelopes play (checked by playing each section and
+  reading the parameter): do not trust `envelopes_lost` alone on Live 12.4.6.
+- The one-pass tap (`record_tracks`) failed here with "no input 'CLAP'; choices: ['']" on freshly
+  created tracks; the soloed pass worked.
+- `load_device(query="Reverb")` loads Hybrid Reverb first: use the path `audio_effects/Reverb`.
