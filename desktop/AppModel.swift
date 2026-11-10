@@ -30,6 +30,9 @@ final class AppModel: ObservableObject {
     @Published var selectedTrack: [String: Any] = [:]
     @Published var renderStart = "1"
     @Published var renderEnd = "33"
+    @Published var grooveOptions: [String: Any] = [:]
+    @Published var groovePreview: [String: Any] = [:]
+    @Published var lastGroove: [String: Any] = [:]
     private var process: Process?
     private let input = Pipe()
     private let output = Pipe()
@@ -345,6 +348,34 @@ final class AppModel: ObservableObject {
     }
     func restoreProject(_ id: String) {
         perform("production_restore", params: ["project_id": id, "project_confirmed": true], timeout: 190) { self.snapshot["production"] = $0 }
+    }
+    func loadGrooveOptions() {
+        request("groove_options") { value in
+            if let result = value["result"] as? [String: Any] {
+                self.grooveOptions = result
+                self.lastGroove = result["last"] as? [String: Any] ?? [:]
+            }
+        }
+    }
+    func previewGroove(_ params: [String: Any]) {
+        request("groove_preview", params: params) { value in
+            if let result = value["result"] as? [String: Any] { self.groovePreview = result; self.error = "" }
+            else if let error = value["error"] as? String { self.error = error }
+        }
+    }
+    func applyGroove(layout: String) {
+        guard let id = groovePreview["id"] as? String else { return }
+        perform("groove_apply", params: ["id": id, "layout": layout], timeout: 420) { result in
+            self.lastGroove = result
+            let start = result["start_bar"] as? Int ?? 1
+            self.message = "Groove no Live a partir do compasso \(start). Aperte Tocar e ouça; gire o volume de cada faixa a gosto."
+        }
+    }
+    func removeGroove() {
+        perform("groove_remove", params: ["confirmed": true], timeout: 120) { _ in
+            self.lastGroove = [:]
+            self.message = "Groove retirado do Live."
+        }
     }
     func improveProject() {
         let goal = production["goal"] as? String ?? "diagnosis"

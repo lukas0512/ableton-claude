@@ -149,6 +149,17 @@ copying audio. After reopening the app, explicitly confirm that the same Live pr
 is open to resume. Live has no reliable project identifier in the bridge overview.
 Guarding an idea clears the active workflow, archives its milestones and leaves its Live tracks in place.
 
+**Groove rápido** (third starting point, no AI account needed, only Live): pick a vibe, an
+optional reference you trained ("Inspirado em"), key, swing (reto, leve, padrão, forte), bass
+style and loop length; a step grid shows the first bar of every part with the reasons. **Outra
+variação** draws another one. **Colocar no Live** builds exactly the groove shown on five new
+tracks (`G1 · KICK`, `CLAP`, `HATS`, `PERC`, `BASS`) with Live's 909 / Percussion Core Kits, a
+stock bass sidechained to the kick and high-passes that leave the low end to kick and bass:
+a looping 4/8/16-bar loop, or **Faixa pronta para a pista** (intro and outro of drums alone for
+DJs, break, build, drop, locators). An empty set takes the groove's tempo; a set with music
+keeps its tempo and gets the groove after its end. **Tirar o último groove do Live** deletes
+those tracks, locators and the tempo change. It is a starting point to hear, not a verdict.
+
 Work on a copy of your Live project. Chat and proposals belong to the current app
 session; profiles, musical milestones and setup are persisted. Use **Meu som** to add genres and
 **Conexão e IA** to update access. The built-in guide explains the production cycle.
@@ -283,6 +294,7 @@ After editing `handlers.py`: `scripts/install_remote_script.sh`, then the `reloa
 | `rap_phrase` | Cut a phrase from a vocal stem and place it warped syllable by syllable: a marker on every source 16th, syllables moved 60 % onto the 16th plus the set's swing, half a beat of pre-roll. |
 | `onset_chop` | Vocal chops that start at a real syllable attack, unwarped, placed so the attack lands on the beat. |
 | `stem_loop`, `breakbeat_loop`, `place_loop` | A 2-bar loop from the original's 'other' stem (least vocal bleed, most typical window) or a drum break, warped per 16th into the set's pocket; laid out as one clip per section (tiled, odd/even bars, Auto Filter and volume envelopes). |
+| `quick_groove`, `quick_groove_remove` | A whole groove in one call: crisp drums (kick, clap+snare, hats, percussion) and a bassline off the kick in one baked swing, per vibe (house, tech house, deep house, UK garage, afro house) or from a trained genre/study's tempo, key, swing, hats' per-16th feel and heard bass rhythms. `apply=True` builds it in Live with stock kits and bass (loop, or a DJ-friendly ~120-bar track with locators); `quick_groove_remove` takes it out. |
 | `solo_levels`, `solo_levels_status` | In the background, each element soloed over the same bars, limiter off: integrated LUFS against the kick, 1/3-octave spectra and a masking report (elements within 6 dB of each band's loudest). Restores solos and the limiter, deletes its render tracks. |
 
 ## The ear

@@ -1,6 +1,7 @@
 """Human-readable previews and execution receipts derived from actual tool data."""
 
 LABELS = {
+    'quick_groove': 'Groove rápido no Live', 'quick_groove_remove': 'Remover groove rápido',
     'create_track': 'Criar faixa', 'create_midi_clip': 'Criar parte MIDI',
     'create_audio_clip': 'Adicionar áudio', 'set_track': 'Ajustar faixa',
     'set_tempo': 'Ajustar tempo', 'load_device': 'Carregar instrumento ou efeito',

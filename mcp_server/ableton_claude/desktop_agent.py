@@ -26,6 +26,8 @@ EXCLUDED = {"study_references", "study_status", "learn_genres", "learn_genres_st
 def read_only(name, args):
     if name == "split_elements":      # a file split writes stems, never the project
         return not args.get("track")
+    if name == "quick_groove":        # planning only, until it is asked to build in Live
+        return not args.get("apply")
     return name in READ_TOOLS or (name == "ableton_command" and args.get("cmd") in READ_COMMANDS)
 
 

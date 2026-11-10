@@ -542,8 +542,11 @@ struct StudioView: View {
                 HStack(spacing: 10) {
                     workflowButton("Criar do zero", subtitle: "Do primeiro loop à track", symbol: "plus", choice: "new")
                     workflowButton("Continuar projeto", subtitle: "Evolua o que você já criou", symbol: "waveform", choice: "existing")
+                    workflowButton("Groove rápido", subtitle: "Bateria e baixo em 1 clique", symbol: "bolt.fill", choice: "quick")
                 }
-                if !workflowChoice.isEmpty {
+                if workflowChoice == "quick" {
+                    QuickGrooveView(model: model)
+                } else if !workflowChoice.isEmpty {
                     Text(workflowChoice == "new" ? "Uma nova track: aprove um loop curto, desenvolva o groove e depois abra o arranjo." : "Uma track sua ou criada pelo app: preserve a identidade e melhore o que já existe, a partir do ponto atual.")
                         .font(.caption).foregroundStyle(.secondary)
                     TextField("Nome do projeto (opcional)", text: $projectLabel).textFieldStyle(.roundedBorder)
@@ -935,6 +938,153 @@ struct StudioView: View {
             if let number = value as? Double { Text("\(number, specifier: "%.1f") \(unit)") }
             else { Text(value as? String ?? "—") }
         }.font(.caption)
+    }
+}
+
+struct QuickGrooveView: View {
+    @ObservedObject var model: AppModel
+    @State private var vibe = "house"
+    @State private var inspiredBy = ""
+    @State private var tonic = ""
+    @State private var mode = "minor"
+    @State private var feel = "padrao"
+    @State private var bass = "auto"
+    @State private var bars = 8
+    @State private var bpm = ""
+    @State private var seed = 1
+    @State private var layout = "loop"
+    @State private var workingCopy = false
+    private static let notes = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"]
+    private static let roles: [(String, String)] = [
+        ("kick", "Kick"), ("clap", "Clap"), ("snare", "Snare"), ("closed_hat", "Hat fechado"),
+        ("open_hat", "Hat aberto"), ("ride", "Ride"), ("shaker", "Shaker"), ("rim", "Rim"),
+        ("clave", "Clave"), ("tamb", "Pandeirola"), ("conga_low", "Conga grave"),
+        ("conga_hi", "Conga aguda"), ("bongo_low", "Bongô"), ("bongo_high", "Bongô agudo"), ("bass", "Baixo")]
+
+    private var vibes: [[String: Any]] { model.grooveOptions["vibes"] as? [[String: Any]] ?? [] }
+    private var basses: [[String: Any]] { model.grooveOptions["basses"] as? [[String: Any]] ?? [] }
+    private var inspirations: [String] { model.grooveOptions["inspirations"] as? [String] ?? [] }
+    private var preview: [String: Any] { model.groovePreview }
+    private var choices: [String: Any] {
+        var params: [String: Any] = ["vibe": vibe, "feel": feel, "bass": bass, "bars": bars, "seed": seed]
+        if !inspiredBy.isEmpty { params["inspired_by"] = inspiredBy }
+        if !tonic.isEmpty { params["tonic"] = tonic; params["mode"] = mode }
+        if let value = Double(bpm.replacingOccurrences(of: ",", with: ".")) { params["bpm"] = value }
+        return params
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Escolha a vibe e ouça: bateria crocante e um baixo travado no kick, no mesmo swing. Não precisa de IA, só do Live aberto.")
+                .font(.caption).foregroundStyle(.secondary)
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 8, alignment: .leading)], alignment: .leading, spacing: 8) {
+                ForEach(Array(vibes.enumerated()), id: \.offset) { _, item in
+                    let id = item["id"] as? String ?? ""
+                    Button { vibe = id } label: { Text(item["label"] as? String ?? id).frame(maxWidth: .infinity) }
+                        .buttonStyle(StudioButtonStyle(primary: vibe == id))
+                }
+            }
+            HStack(spacing: 12) {
+                Picker("Inspirado em", selection: $inspiredBy) {
+                    Text("Nenhuma referência").tag("")
+                    ForEach(inspirations, id: \.self) { Text($0).tag($0) }
+                }.frame(maxWidth: 260)
+                Picker("Swing", selection: $feel) {
+                    Text("Reto").tag("reto"); Text("Leve").tag("leve"); Text("Padrão").tag("padrao"); Text("Forte").tag("forte")
+                }.pickerStyle(.segmented).frame(maxWidth: 280)
+            }
+            if inspirations.isEmpty {
+                Text("Dica: em Meu som, ensine faixas que você ama; aqui o groove pega o andamento, o tom, o swing e o jeito dos hats e do baixo delas.")
+                    .font(.system(size: 10)).foregroundStyle(StudioStyle.muted)
+            }
+            HStack(spacing: 12) {
+                Picker("Tom", selection: $tonic) {
+                    Text("Automático").tag("")
+                    ForEach(Self.notes, id: \.self) { Text($0).tag($0) }
+                }.frame(width: 150)
+                Picker("", selection: $mode) { Text("menor").tag("minor"); Text("maior").tag("major") }
+                    .labelsHidden().frame(width: 90).disabled(tonic.isEmpty)
+                Picker("Baixo", selection: $bass) {
+                    Text("Automático").tag("auto")
+                    if !inspiredBy.isEmpty { Text("Das referências").tag("referencia") }
+                    ForEach(Array(basses.enumerated()), id: \.offset) { _, item in
+                        Text(item["label"] as? String ?? "").tag(item["id"] as? String ?? "")
+                    }
+                }.frame(maxWidth: 260)
+            }
+            HStack(spacing: 12) {
+                TextField("BPM automático", text: $bpm).textFieldStyle(.roundedBorder).frame(width: 120)
+                Picker("Loop", selection: $bars) { ForEach([4, 8, 16], id: \.self) { Text("\($0) compassos").tag($0) } }.frame(width: 170)
+                Spacer()
+                Button { seed += 1 } label: { Label("Outra variação", systemImage: "dice") }
+            }
+            if !preview.isEmpty { previewCard }
+            HStack(spacing: 12) {
+                Picker("", selection: $layout) {
+                    Text("Loop para ouvir").tag("loop"); Text("Faixa pronta para a pista").tag("pista")
+                }.pickerStyle(.segmented).labelsHidden().frame(maxWidth: 330)
+                Spacer()
+            }
+            Text(layout == "loop" ? "Um loop tocando em repetição para você ouvir e mexer." :
+                 "Uma faixa de ~4 minutos com intro e outro só de bateria (para o DJ mixar), break, build e drop, com marcadores.")
+                .font(.system(size: 10)).foregroundStyle(StudioStyle.muted)
+            Toggle("Estou num set vazio ou numa cópia do meu projeto", isOn: $workingCopy).font(.caption)
+            HStack {
+                Button("Colocar no Live") { model.applyGroove(layout: layout) }
+                    .buttonStyle(StudioButtonStyle(primary: true))
+                    .disabled(!workingCopy || !model.connected || !model.mcpReady || model.busy || preview.isEmpty || model.rendering || model.chatRunning || !model.proposals.isEmpty)
+                Button("Tocar") { model.transport("play") }.disabled(!model.connected)
+                Button("Parar") { model.transport("stop") }.disabled(!model.connected)
+                Spacer()
+                if !model.lastGroove.isEmpty {
+                    Button("Tirar o último groove do Live", action: model.removeGroove)
+                        .font(.caption).disabled(model.busy || !model.connected)
+                }
+            }
+            if !model.connected {
+                Text("Abra o Ableton Live com a ponte ativa (Conexão) para colocar o groove no set.").font(.caption).foregroundStyle(.orange)
+            }
+            if let warnings = model.lastGroove["warnings"] as? [String], !warnings.isEmpty {
+                ForEach(warnings, id: \.self) { Text("• " + $0).font(.system(size: 10)).foregroundStyle(StudioStyle.muted) }
+            }
+        }
+        .onAppear { model.loadGrooveOptions(); model.previewGroove(choices) }
+        .onChanged(vibe) { if inspiredBy.isEmpty { bpm = "" }; model.previewGroove(choices) }
+        .onChanged(inspiredBy) { if inspiredBy.isEmpty && bass == "referencia" { bass = "auto" }; model.previewGroove(choices) }
+        .onChanged(tonic) { model.previewGroove(choices) }
+        .onChanged(mode) { model.previewGroove(choices) }
+        .onChanged(feel) { model.previewGroove(choices) }
+        .onChanged(bass) { model.previewGroove(choices) }
+        .onChanged(bars) { model.previewGroove(choices) }
+        .onChanged(seed) { model.previewGroove(choices) }
+        .onSubmit { model.previewGroove(choices) }
+    }
+
+    private var previewCard: some View {
+        let grid = preview["grid"] as? [String: String] ?? [:]
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(preview["label"] as? String ?? "").font(.system(size: 14, weight: .semibold))
+                Spacer()
+                Text("\(preview["key"] as? String ?? "") · \(Int((preview["bpm"] as? Double ?? 0).rounded())) BPM · swing \(Int((preview["swing"] as? Double ?? 0).rounded())) %")
+                    .font(.system(size: 11, weight: .medium)).foregroundStyle(StudioStyle.accent)
+            }
+            ForEach(Self.roles.filter { grid[$0.0] != nil }, id: \.0) { role in
+                HStack(spacing: 2) {
+                    Text(role.1).font(.system(size: 10)).foregroundStyle(StudioStyle.muted).frame(width: 82, alignment: .leading)
+                    ForEach(Array((grid[role.0] ?? "").enumerated()), id: \.offset) { index, cell in
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(cell == "X" ? StudioStyle.accent : cell == "x" ? StudioStyle.accent.opacity(0.62) :
+                                  cell == "g" ? StudioStyle.accent.opacity(0.28) : StudioStyle.raised)
+                            .frame(width: 14, height: 12)
+                            .padding(.leading, index % 4 == 0 && index > 0 ? 4 : 0)
+                    }
+                }
+            }
+            ForEach(preview["why"] as? [String] ?? [], id: \.self) {
+                Text("• " + $0).font(.system(size: 10)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
+        }.padding(12).background(StudioStyle.background.opacity(0.5), in: RoundedRectangle(cornerRadius: 9))
     }
 }
 

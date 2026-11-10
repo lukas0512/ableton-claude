@@ -315,6 +315,8 @@ def dispatch(method, params):
         if method == 'production_back':
             return flow.back()
         raise ValueError('Etapa musical desconhecida.')
+    if method.startswith("groove_"):
+        return quick_groove(method, params)
     if method == "learn":
         try:
             if client.call("record_status", timeout=2).get("state") in ("recording", "finalizing"):
@@ -385,6 +387,62 @@ def dispatch(method, params):
         return configure_claude()
     if method == "index_samples":
         return index_samples(params["folders"])
+    raise ValueError("Unknown method: %s" % method)
+
+
+_GROOVE = {}
+
+
+def _groove_receipt_path():
+    return Path(DATA_DIR) / "Production" / "quick_groove.json"
+
+
+def quick_groove(method, params):
+    """Groove rápido: plan locally, show it, then build exactly that plan in Live."""
+    from . import groove_maker
+    if method == "groove_options":
+        out = groove_maker.vibes()
+        try:
+            out["last"] = json.loads(_groove_receipt_path().read_text())
+        except (OSError, ValueError):
+            out["last"] = None
+        return out
+    if method == "groove_preview":
+        groove = groove_maker.make(params.get("vibe", "house"), params.get("tonic") or None,
+                                   params.get("mode") or None, params.get("bpm") or None, None,
+                                   params.get("feel", "padrao"), params.get("bass", "auto"),
+                                   params.get("inspired_by") or None, int(params.get("bars", 8)),
+                                   int(params.get("seed", 1)))
+        _GROOVE["preview"] = groove
+        return groove_maker.summary(groove)
+    agent_state = producer_agent().status()
+    if agent_state["state"] == "running" or agent_state["pending"]:
+        raise ValueError("Termine ou descarte a proposta do chat antes de mexer no groove.")
+    try:
+        if client.call("record_status", timeout=2).get("state") in ("recording", "finalizing"):
+            raise ValueError("Espere o render terminar.")
+    except client.BridgeOffline:
+        raise ValueError("Abra o Ableton Live com a ponte ativa e tente de novo.")
+    def call(cmd, args):
+        return mcp_connection().call("ableton_command", {"cmd": cmd, "args": args})
+    if method == "groove_apply":
+        groove = _GROOVE.get("preview")
+        if not groove or groove["id"] != params.get("id"):
+            raise ValueError("Gere a prévia de novo: o groove mostrado não é o último gerado.")
+        receipt = groove_maker.apply(groove, call, params.get("layout", "loop"))
+        receipt["label"] = "%s · %s · %s BPM" % (groove["label"], groove["key"], round(groove["bpm"]))
+        write_json(_groove_receipt_path(), receipt)
+        return receipt
+    if method == "groove_remove":
+        try:
+            receipt = json.loads(_groove_receipt_path().read_text())
+        except (OSError, ValueError):
+            raise ValueError("Não há groove rápido para remover.")
+        if params.get("confirmed") is not True:
+            raise ValueError("Confirme que o set com o groove está aberto no Live.")
+        result = groove_maker.remove(receipt, call)
+        _groove_receipt_path().unlink(missing_ok=True)
+        return result
     raise ValueError("Unknown method: %s" % method)
 
 

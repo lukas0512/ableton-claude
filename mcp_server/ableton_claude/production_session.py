@@ -194,6 +194,8 @@ Create separate tracks using track_prefix and exact names; only these workshop t
                 raise ValueError('Nesta etapa, renderize apenas o loop selecionado.')
             return
         if name != 'ableton_command':
+            if name in {'quick_groove', 'quick_groove_remove'} and (args.get('apply') or name == 'quick_groove_remove'):
+                raise ValueError('Nesta ideia, crie as partes nas faixas da ideia; o Groove rápido cria faixas próprias.')
             if name in {'mix_toward_genre', 'live_undo', 'revert_changes'}:
                 raise ValueError('Nesta ideia, preserve o projeto: ajuste apenas as faixas do loop.')
             return

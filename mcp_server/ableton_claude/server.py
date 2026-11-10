@@ -5,7 +5,7 @@ from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
-from . import analysis, client, compact, genres, journal, knowledge, library, loops, mixing, references, setcut, storage, tension, timbre, validate
+from . import analysis, client, compact, genres, groove_maker, journal, knowledge, library, loops, mixing, references, setcut, storage, tension, timbre, validate
 from .music import club, groove, harmony, melody, pocket, samples, theory
 
 INSTRUCTIONS = """\
@@ -508,6 +508,48 @@ def music_club_motif(part: str = "bass", tonic: str = "G", mode: str = "minor",
     Same seed relates bass/hook. Gates leave kick room; audible release/filter/weight
     need sound-design and audition. Returns notes for create_midi_clip; no Live edits."""
     return club.motif(part, tonic, mode, bars, swing, seed, density, articulation, development, octave)
+
+
+_LAST_GROOVE = {}
+
+
+@mcp.tool()
+def quick_groove(vibe: str = "house", tonic: str | None = None, mode: str | None = None,
+                 bpm: float | None = None, swing: float | None = None, feel: str = "padrao",
+                 bass: str = "auto", inspired_by: str | None = None, bars: int = 8,
+                 seed: int = 1, apply: bool = False, layout: str = "loop") -> dict:
+    """A whole dance-floor groove in one call, for fast starts: crisp drums (kick, clap+snare,
+    hats, percussion) and a bassline off the kick, in one baked swing pocket.
+    vibe: house | tech_house | deep_house | ukg | afro_house (vibe="" lists the options).
+    inspired_by: a trained genre or reference study: its tempo, key, swing, the hats' per-16th
+    timing/accents and the bass's heard rhythms and degrees. feel: reto|leve|padrao|forte.
+    bass: auto|referencia|offbeat|rolling|bounce|deep|2step|sub. seed: another variation.
+    apply=True builds it in Live with stock kits/bass (journaled): layout="loop" (bars at the
+    end of the song or bar 1 of an empty set, tempo set only there) or "pista" (a DJ-friendly
+    ~120-bar track: drums alone at both ends, break, build, drop, locators).
+    quick_groove_remove takes it out. Listen before keeping it."""
+    if not vibe:
+        return groove_maker.vibes()
+    g = groove_maker.make(vibe, tonic, mode, bpm, swing, feel, bass, inspired_by, bars, seed)
+    out = groove_maker.summary(g)
+    if apply:
+        receipt = groove_maker.apply(g, _journaled, layout)
+        _LAST_GROOVE.clear()
+        _LAST_GROOVE.update(receipt)
+        out["applied"] = receipt
+    else:
+        out["notes"] = g["notes"]
+    return out
+
+
+@mcp.tool()
+def quick_groove_remove() -> dict:
+    """Delete the tracks, locators and tempo change of the last quick_groove(apply=True)."""
+    if not _LAST_GROOVE:
+        return {"removed": [], "warnings": ["Nenhum groove rápido foi colocado nesta sessão."]}
+    out = groove_maker.remove(dict(_LAST_GROOVE), _journaled)
+    _LAST_GROOVE.clear()
+    return out
 
 
 @mcp.tool()
