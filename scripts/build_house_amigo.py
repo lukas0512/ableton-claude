@@ -59,6 +59,7 @@ SECTIONS = [
 ]
 END = 185
 BREATHS = (64, 120)                            # the last 2 beats of these bars are empty
+SOLO_BAR = 120                                 # v6: the whole track stops, the acid calls alone
 DROPS = ((65, 97), (121, 153))
 RNG = random.Random(11)
 
@@ -85,7 +86,7 @@ def vel(v, spread=5):
 
 
 # --------------------------------------------------------------------------- drums
-KICK_BARS = ((1, 49), (65, 97), (121, 185))
+KICK_BARS = ((9, 49), (65, 97), (121, 177))     # bars 1-8 and 177-184: the high-passed kick (DJ, energy arc)
 KICK_EXITS = {16: (0, 4), 32: (0, 8), 48: (0, 4), 80: (0, 4, 8), 96: (0, 4, 8), 136: (0, 4, 8)}
 
 
@@ -97,11 +98,12 @@ def kick(bar):
 
 def kick_hp(bar):
     """The build's kick, high-passed on its channel: quarters, 8ths, 16ths, then the breath."""
-    plan = {57: (4, 56, 66), 58: (4, 66, 76), 59: (4, 76, 86), 60: (4, 86, 96),
+    plan = {b: (4, 118, 118) for b in list(range(1, 9)) + list(range(177, 185))}
+    plan.update({57: (4, 56, 66), 58: (4, 66, 76), 59: (4, 76, 86), 60: (4, 86, 96),
             61: (4, 96, 104), 62: (4, 104, 110), 63: (2, 104, 116), 64: (1, 108, 124),
             113: (4, 50, 60), 114: (4, 60, 70), 115: (4, 70, 80), 116: (4, 80, 90),
-            117: (4, 90, 100), 118: (4, 100, 108), 119: (2, 104, 116), 120: (1, 108, 124)}
-    if bar not in plan:
+            117: (4, 90, 100), 118: (2, 100, 112), 119: (1, 108, 124)})
+    if bar not in plan or bar == SOLO_BAR:
         return []
     every, v0, v1 = plan[bar]
     steps = [s for s in range(0, 16, every) if not (bar in BREATHS and s >= 8)]
@@ -110,7 +112,7 @@ def kick_hp(bar):
 
 
 def clap(bar):
-    if bar < 9 or bar >= 181:
+    if bar < 9 or bar >= 181 or bar == SOLO_BAR:
         return []
     late = 5 * MS
     out = []
@@ -118,7 +120,7 @@ def clap(bar):
     for s in back:
         if bar in BREATHS and s >= 8:
             continue
-        out.append([60, s * 0.25 + late, 0.3, vel(120, 3)])
+        out.append([60, s * 0.25 + late, 0.4, vel(120, 3)])
     if bar < 17 or in_(bar, ((49, 53), (97, 105))) or bar in BREATHS:
         return out
     ghosts = {2: ((15, 44),), 3: ((7, 38),), 0: ((11, 50), (15, 58))}.get(bar % 4, ())
@@ -130,13 +132,13 @@ def clap(bar):
 
 
 def hat_off(bar):
-    if bar < 5 or bar >= 181 or 97 <= bar < 105:
+    if bar < 5 or bar >= 181 or 97 <= bar < 105 or bar == SOLO_BAR:
         return []
     out = []
     for s, v in ((2, 104), (6, 96), (10, 108), (14, 98)):
         if bar in BREATHS and s >= 8:
             continue
-        out.append([60, s * 0.25 + jit(1.5), 0.24, vel(v, 4)])
+        out.append([60, s * 0.25 + jit(1.5), 0.3, vel(v, 4)])
     return out
 
 
@@ -145,7 +147,7 @@ def hat_16(bar):
     v1-v2 played beat + e + a and skipped the "&", with a loud "a", pockets and 32nd flutters: a
     lopsided gallop against the stabs. Now one continuous 16th line like the references' (the "&"
     the accent, e/a ~7 dB under it, the on-beats ghosted under the kick), nothing dropped."""
-    if bar < 13 or bar >= 173 or 49 <= bar < 53:
+    if bar < 13 or bar >= 173 or 49 <= bar < 53 or bar == SOLO_BAR:
         return []
     lift = 8 if in_(bar, (DROPS[1],)) else 0
     out = []
@@ -155,7 +157,7 @@ def hat_16(bar):
         v = {0: 46, 1: 58, 2: 84, 3: 66}[s % 4] + lift
         if bar % 4 == 0 and s == 15:
             v += 14                                          # a small push into the next phrase
-        out.append([60, pos(s) + jit(1.2), 0.12, vel(v, 4)])
+        out.append([60, pos(s) + jit(1.2), 0.2, vel(v, 4)])
     return out
 
 
@@ -169,17 +171,19 @@ RIFF_A = [(2, G_, 2.0, 112), (6, G_, 1.5, 104), (9, Bb_, 1.5, 98), (11, Cn, 1.0,
 RIFF_B = [(2, G_, 2.0, 112), (6, G_, 1.5, 104), (9, F, 1.5, 98), (11, Eb, 1.0, 108), (13, Cn, 1.5, 102), (15, D, 0.8, 104)]
 RIFF_T = [(2, G_, 2.0, 112), (6, G_, 1.5, 104), (9, Bb_, 1.5, 98), (11, Cn, 1.0, 104), (13, D, 1.5, 106), (15, F, 0.8, 108)]
 RIFF_SPARSE = [(2, G_, 2.0, 112), (11, Cn, 1.0, 106)]
-BASS_FULL = ((17, 49), (65, 97), (121, 169))
+BASS_FULL = ((17, 49), (65, 97), (121, 161))
 BASS_LOW = ((49, 57), (105, 113))                         # under a break: quieter, darker
 BASS_SPARSE = ((97, 105),)
 BASS_BUILD = ((57, 65), (113, 121))                       # the riff high-passed: the sub is the drop's
 
 
 def bass(bar):
+    if bar == SOLO_BAR:
+        return []
     if in_(bar, BASS_SPARSE):
-        cell, scale = RIFF_SPARSE, 0.62
+        cell, scale = RIFF_SPARSE, 0.5
     elif in_(bar, BASS_LOW):
-        cell, scale = None, 0.55
+        cell, scale = None, 0.42                             # v4: the break bass sat only 3.8 dB down (refs 10-27)
     elif in_(bar, BASS_FULL + BASS_BUILD):
         cell, scale = None, 1.0
     else:
@@ -199,9 +203,73 @@ def crash(bar):
     return [[49, 0.0, 2.0, float(v)]] if v else []
 
 
-MIDI_PARTS = {"CRASH": crash, "KICK": kick, "KICK HP": kick_hp, "CLAP": clap, "HAT OFF": hat_off, "HAT 16": hat_16,
+# v4 tried his Cm stab in a Simpler as a played lead (parallel Cm/Dm/Gm chords, 3-4 hits a bar).
+# He: "não colou muito no resto da track... tem que ser algo mais simples, o baixo e o outro synth já
+# são bem complexos, a track tem que ser coerente". Removed. v5: one slow line of long notes over
+# the two busy parts, on a clone of the bass's own Drift (same family), D - Eb - D - C - Bb over 8 bars:
+# D is Gm's 5th and Cm's 9th, Eb the tension that Cm resolves. (bar of the phrase, pitch, bars long)
+PAD_PHRASE = [(1, 74, 2), (3, 75, 2), (5, 74, 2), (7, 72, 1), (8, 70, 1)]
+PAD_BUILD = [(1, 74, 4), (5, 77, 2), (7, 79, 2)]              # build 2: D, F, G, up into the drop
+PAD_SPANS = {(81, 97): 70, (97, 113): 100, (121, 153): 88, (153, 161): 58}   # span: velocity
+
+
+def pad(bar):
+    if 113 <= bar < 121:
+        cell, r, v = PAD_BUILD, bar - 113, 96
+    else:
+        span = [k for k in PAD_SPANS if k[0] <= bar < k[1]]
+        if not span:
+            return []
+        cell, r, v = PAD_PHRASE, (bar - span[0][0]) % 8, PAD_SPANS[span[0]]
+    out = []
+    for b0, p, n in cell:
+        if b0 - 1 == r:
+            ln = n * 4.0 - 0.15
+            if bar + n - 1 == SOLO_BAR:
+                ln = (n - 1) * 4.0 - 0.1
+            elif bar + n - 1 in BREATHS:
+                ln = n * 4.0 - 2.0
+            out.append([p, 0.0, ln, float(v)])
+    return out
+
+
+# v6 ("podia até ser um ácido, algo que entrasse na melodia, alternasse e conversasse com o synth
+# que é o main da track... um detalhe complementar" and "um pré-drop no drop 2 com um synth
+# característico, uma chamadinha"): one five-note acid cell, G G Bb G' G, in the gaps of the 2nd
+# half of a bar (never on the stabs at 10 and 13|14). It is hinted dark in the main break, calls
+# alone for one bar before drop 2 (twice, its filter opening), then answers the synth every 2nd bar.
+ACID_CELL = [(8, 55, 90), (9, 55, 70), (11, 58, 100), (12, 67, 124), (15, 55, 84)]
+ACID_BARS = {108: 0.75, 112: 0.8, 154: 0.8, 158: 0.7}
+ACID_BARS.update({b: 1.0 for b in range(122, 153, 2)})
+
+
+def acid(bar):
+    if bar == SOLO_BAR:
+        cells = [(s - 8, p, v) for s, p, v in ACID_CELL] + ACID_CELL
+        scale = 1.0
+    elif bar in ACID_BARS:
+        cells, scale = ACID_CELL, ACID_BARS[bar]
+    else:
+        return []
+    return [[p, pos(s) + jit(1.0), 0.2, vel(v * scale, 3)] for s, p, v in cells]
+
+
+def acid_envelope(name, a, b):
+    """Operator's filter per section (every clip holds one): dark in the break, rising through
+    the solo bar, open enough to speak in the drop."""
+    n = (b - a) * 4.0
+    if a <= SOLO_BAR < b:
+        x = (SOLO_BAR - a) * 4.0
+        pts = [[0, "40.0 Hz"], [x, "40.0 Hz"], [x + 3.75, "450 Hz"], [n, "450 Hz"]]
+    else:
+        f = "30.0 Hz" if a < SOLO_BAR else ("90.0 Hz" if a < 153 else "45.0 Hz")
+        pts = [[0, f], [n, f]]
+    return [{"param": "Filter Freq", "device": 0, "unit": "display", "points": pts, "resolution": 0.25}]
+
+
+MIDI_PARTS = {"ACID": acid, "PAD": pad, "PAD B": pad, "CRASH": crash, "KICK": kick, "KICK HP": kick_hp, "CLAP": clap, "HAT OFF": hat_off, "HAT 16": hat_16,
               "BASS": bass}
-PART_NAMES = {"CRASH": "crash on the section", "KICK": "kick 4x4", "KICK HP": "build kick (high-passed)", "CLAP": "clap 2+4 + ghosts",
+PART_NAMES = {"ACID": "acid cell G G Bb G' G", "PAD": "long line D-Eb-D-C-Bb", "PAD B": "long line (other timbre, muted)", "CRASH": "crash on the section", "KICK": "kick 4x4", "KICK HP": "build kick (high-passed)", "CLAP": "clap 2+4 + ghosts",
               "HAT OFF": "off-beat hat", "HAT 16": "16th motor (swing 57.5)", "BASS": "bass riff Cm"}
 
 
@@ -230,11 +298,14 @@ def midi_clips(track, gen, envelope=None):
 def bass_envelope(name, a, b):
     """Drift's filters per section: his 310 Hz low-pass in the grooves, darker under the breaks;
     its high-pass at 220 Hz through the builds (the riff without its sub). Every clip holds both."""
-    lp = "170 Hz" if in_(a, BASS_LOW + BASS_SPARSE) else "310 Hz"
+    lp = "200 Hz" if in_(a, BASS_LOW + BASS_SPARSE) else "420 Hz"   # v4: harmonics -12.4 dB (refs -10..-7)
     hp = "220 Hz" if in_(a, BASS_BUILD) else "10.0 Hz"
     n = (b - a) * 4
     return [{"param": "LP Freq", "device": "Drift", "unit": "display", "points": [[0, lp], [n, lp]], "resolution": 4.0},
             {"param": "HP Freq", "device": "Drift", "unit": "display", "points": [[0, hp], [n, hp]], "resolution": 4.0}]
+
+
+ENVELOPES = {"BASS": bass_envelope, "ACID": acid_envelope}
 
 
 # --------------------------------------------------------------------------- audio
@@ -278,12 +349,12 @@ def build_synth():
     is a clip envelope, so every 4-bar clip carries its own stretch of the curve."""
     t = "SYNTH"
     plan = [
-        (33, 16, [(0, 420), (16, 750)], "synth | far, under the groove", None),
-        (49, 8, [(0, 750), (8, 1100)], "synth | hint (dark)", None),
-        (57, 8, [(0, 1100), (7.5, 7000), (8, 7000)], "synth | opening", 254.0),
+        (33, 16, [(0, 450), (16, 1100)], "synth | far, under the groove", None),
+        (49, 8, [(0, 1100), (8, 1800)], "synth | hint (dark)", None),
+        (57, 8, [(0, 1800), (7.5, 8000), (8, 8000)], "synth | opening", 254.0),
         (65, 32, None, "synth | drop 1", None),
-        (97, 16, [(0, 2500), (8, 1200), (16, 1600)], "synth | under the voices", None),
-        (113, 8, [(0, 1600), (7.5, 9000), (8, 9000)], "synth | opening 2", 478.0),
+        (97, 16, [(0, 4000), (8, 2500), (16, 3000)], "synth | under the voices", None),
+        (113, 8, [(0, 3000), (7.5, 10000), (8, 10000)], "synth | opening 2", 476.0),
         (121, 32, None, "synth | drop 2", None),
         (153, 8, [(0, 8000), (8, 450)], "synth | closing", None),
     ]
@@ -296,7 +367,7 @@ def build_synth():
             else:
                 env = [[0.0, "12.0 kHz"], [16.0, "12.0 kHz"]]
             r = C("create_audio_clip", {
-                "gain_db": 3.0 if "opening" in name else 0.0,
+                "gain_db": 2.5 if "opening" in name else 0.0,   # builds start at the break's level; +5 peaked over the kick
                 "track": t, "path": SYNTH_WAV, "beat": (bar + k - 1) * 4.0, "beats": 16, "warp": True,
                 "warp_mode": "beats", "name": name, "length": 16.0,
                 "envelopes": [{"param": "Frequency", "device": "Auto Filter", "unit": "display",
@@ -310,7 +381,7 @@ def build_synth():
 
 
 def build_perc():
-    for bar, bars in ((25, 24), (53, 11.5), (73, 24), (97, 22.5), (121, 32), (153, 16)):
+    for bar, bars in ((25, 24), (53, 11.5), (73, 24), (97, 23), (121, 32), (153, 16)):
         start = (bar - 1) * 4.0
         C("create_audio_clip", {"track": "PERC LOOP", "path": PERC_WAV, "beat": start, "beats": 8,
                                 "warp": True, "warp_mode": "beats", "name": "perc loop",
@@ -348,7 +419,7 @@ def build_voices():
     hook = [(64, 0, 8, "hook 1 a cappella -> DROP 1"), (72, 0, 16, "hook 1+2"), (78, 24, 8, "hook 4 (full line)"),
             (88, 16, 8, "hook 3"), (94, 24, 8, "hook 4 -> break"),
             (104, 0, 32, "hook, whole, in the break"),
-            (120, 0, 8, "hook 1 a cappella -> DROP 2"), (128, 0, 16, "hook 1+2"), (134, 24, 8, "hook 4"),
+            (128, 0, 16, "hook 1+2"),      # drop 2's pre-drop is the acid's, not the voice's (134, 24, 8, "hook 4"),
             (146, 16, 8, "hook 3"), (150, 24, 8, "hook 4 -> outro")]
     for bar, src, beats, nm in hook:
         piece("VOX HOOK", HOOK_WAV, bar, src, beats, nm)
@@ -357,7 +428,7 @@ def build_voices():
     talk = [(97, 0, 14, "talk | line"), (101, 0, 14, "talk | line again"),
             (137, 0, 14, "talk | ad-lib under drop 2")]
     talk += [(b, 16, beats, "talk | chop (his) builds") for b, beats in
-             ((117, 2), (118, 2), (119, 2), (119.5, 2), (120, 1.5))]
+             ((117, 2), (118, 2), (119, 2), (119.5, 2))]
     talk += [(b + 0.5, 16, 2, "talk | answers the call") for b in (33, 41, 73, 75, 89, 129, 131, 147)]
     for bar, src, beats, nm in sorted(talk):
         piece("VOX TALK", TALK_WAV, bar, src, beats, nm)
@@ -366,9 +437,10 @@ def build_voices():
 def build_answer():
     """His own Cm stab (the loop's step 10), an octave up and short, on beat 4 of every 2nd bar:
     the one place where neither the loop nor the bass plays. Its 3/16 ping-pong echoes fall on
-    steps 15, 2 and 5, between the stabs. Enters with drop 1's second half; all of drop 2."""
+    steps 15, 2 and 5, between the stabs. Enters with drop 1's second half; all of drop 2
+    (he liked it: "gostei do synth answer")."""
     t = "SYNTH ANSWER"
-    bars = [b for b in list(range(82, 96, 2)) + list(range(122, 152, 2))]
+    bars = list(range(82, 96, 2))                          # in drop 2 the acid is the answer
     first = None
     for b in bars:
         dest = (b - 1) * 4.0 + 3.0 - 0.125               # its soft attack starts half a step early
@@ -403,7 +475,102 @@ def setp(track, device, param, v):
     return r.get("display")
 
 
+OWN = os.path.expanduser("~/Music/Ableton/User Library/Samples/Claude/House Amigo/")
+CRASH_AIF = ("/Applications/Ableton Live 12 Suite.app/Contents/App-Resources/Core Library/Samples/"
+             "One Shots/Drums/Cymbal/Crash 909.aif")
+TWO_BARS_S = 8 * 60.0 / BPM
+
+
+def make_fx():
+    """FX made from the track's own sounds, printed at 128 BPM (placed unwarped):
+    rev stab = his Gm stab through a 2.2 s tail, reversed, 2 bars rising to the bar line;
+    rev crash = the 909 crash reversed over 2 bars; sub boom = a G1 sine falling from G2."""
+    import numpy as np
+    import soundfile as sf
+    rng = np.random.default_rng(3)
+    x, sr = sf.read(SYNTH_WAV, always_2d=True)
+    spb = len(x) / sr / 16.0
+    stab = x[int(3.5 / 4 * spb * sr):int(6.4 / 4 * spb * sr)].copy()
+    stab[-int(0.02 * sr):] *= np.linspace(1, 0, int(0.02 * sr))[:, None]
+    n = int(TWO_BARS_S * sr)
+    t = np.arange(int(2.6 * sr)) / sr
+    out = np.zeros((n, 2))
+    for ch in range(2):
+        ir = rng.standard_normal(len(t)) * np.exp(-t / 0.55)
+        k = int(sr / 6000.0)                                   # darken the tail
+        ir = np.convolve(ir, np.ones(k) / k, "same")
+        wet = np.convolve(stab[:, ch], ir)[:n]
+        out[:len(wet), ch] = wet
+    out = out[::-1] * np.linspace(0.0, 1.0, n)[:, None] ** 1.5
+    out[-int(0.01 * sr):] *= np.linspace(1, 0, int(0.01 * sr))[:, None]
+    sf.write(OWN + "rev stab Gm 2 bars.wav", out / np.abs(out).max() * 0.5, sr, subtype="PCM_24")
+    c, csr = sf.read(CRASH_AIF, always_2d=True)
+    c = c[:int(TWO_BARS_S * csr)][::-1]
+    pad_ = np.zeros((int(TWO_BARS_S * csr) - len(c), c.shape[1]))
+    c = np.vstack([pad_, c]) * np.linspace(0.0, 1.0, int(TWO_BARS_S * csr))[:, None] ** 2
+    c[-int(0.005 * csr):] *= np.linspace(1, 0, int(0.005 * csr))[:, None]
+    sf.write(OWN + "rev crash 909 2 bars.wav", c / np.abs(c).max() * 0.5, csr, subtype="PCM_24")
+    tb = np.arange(int(1.6 * sr)) / sr
+    f = 49.0 + 49.0 * np.exp(-tb / 0.03)
+    boom = np.sin(2 * np.pi * np.cumsum(f) / sr) * np.exp(-tb / 0.45)
+    boom[:int(0.004 * sr)] *= np.linspace(0, 1, int(0.004 * sr))
+    sf.write(OWN + "sub boom G1.wav", np.tanh(boom * 1.5) * 0.5, sr, subtype="PCM_24")
+
+
+def new_tracks():
+    names = [t["name"] for t in C("get_song")["tracks"]]
+    if "SYNTH LEAD" in names:
+        C("delete_track", {"track": "SYNTH LEAD"})           # the rejected v4 lead
+    for name, src in (("PAD", "instruments/Drift"), ("PAD B", "sounds/Pad/Basic Mellow Pad.adg")):
+        if name not in [t["name"] for t in C("get_song")["tracks"]]:
+            i = [t["name"] for t in C("get_song")["tracks"]].index("SYNTH ANSWER") + 1
+            C("create_track", {"kind": "midi", "name": name, "index": i})
+            C("load_device", {"track": name, "path": src})
+    # PAD: the bass's own Drift patch, re-voiced as a soft held tone (same family, another role)
+    C("copy_device", {"src_track": "BASS", "src_device": "Drift", "track": "PAD", "device": 0})
+    for p, v in (("LP Freq", "1.40 kHz"), ("LP Mod Amt 1", "0.0 %"), ("LP Mod Amt 2", "0.0 %"),
+                 ("Env 1 Attack", "180 ms"), ("Env 1 Decay", "1.00 s"), ("Env 1 Sustain", "85 %"),
+                 ("Env 1 Release", "500 ms"), ("Vel > Vol", "20 %"), ("Osc 2 Oct", "0"),
+                 ("Thickness", "30 %"), ("Volume", "-6.0 dB")):
+        try:
+            log("  pad", p, setp("PAD", 0, p, v))
+        except Exception as e:
+            log("  pad:", p, str(e).splitlines()[0])
+    C("set_track", {"track": "PAD B", "mute": True})          # the alternative timbre, same notes
+    if "ACID" not in [t["name"] for t in C("get_song")["tracks"]]:
+        i = [t["name"] for t in C("get_song")["tracks"]].index("PAD") + 1
+        C("create_track", {"kind": "midi", "name": "ACID", "index": i})
+        C("load_device", {"track": "ACID", "path": "sounds/Bass/Acid Bass.adv"})
+    # Live's Acid Bass (Operator): velocity opens the filter (accents); a shorter squelch
+    for p, v in (("Fe Decay", "320 ms"), ("Filter Res", "62 %"), ("Volume", "-12 dB")):
+        try:
+            log("  acid", p, setp("ACID", 0, p, v))
+        except Exception as e:
+            log("  acid:", p, str(e).splitlines()[0])
+    for name in ("FX REV", "FX REV CRASH", "FX BOOM"):
+        if name not in [t["name"] for t in C("get_song")["tracks"]]:
+            i = [t["name"] for t in C("get_song")["tracks"]].index("FX") + 1
+            C("create_track", {"kind": "audio", "name": name, "index": i})
+
+
+def build_fx2():
+    """Reverse swells into the phrase starts and the drops, a sub boom under each drop."""
+    for t in ("FX REV", "FX REV CRASH", "FX BOOM"):
+        C("delete_clips_in_range", {"track": t, "start_bar": 1, "end_bar": 400})
+    for bar in (33, 65, 81, 97, 121, 137, 153):               # the swell ends on this bar line
+        C("create_audio_clip", {"track": "FX REV", "path": OWN + "rev stab Gm 2 bars.wav", "bar": bar - 2,
+                                "warp": False, "name": "rev stab (his Gm) -> %d" % bar,
+                                "gain_db": 0.0 if bar in (65, 121) else -4.0})
+    for bar in (65, 121):
+        C("create_audio_clip", {"track": "FX REV CRASH", "path": OWN + "rev crash 909 2 bars.wav",
+                                "bar": bar - 2, "warp": False, "name": "rev crash -> drop"})
+        C("create_audio_clip", {"track": "FX BOOM", "path": OWN + "sub boom G1.wav", "bar": bar,
+                                "warp": False, "name": "sub boom G1"})
+
+
 def setup():
+    make_fx()
+    new_tracks()
     # Simpler's Vol < Vel adds level at high velocities (+16 dB at 100 %, +8 at 50 %, measured
     # soloed): the Volume takes it back so nothing leaves the instrument above ~-6 dBFS
     for t, vol, vv in (("KICK", "-6.0 dB", "0.0 %"), ("KICK HP", "-22.0 dB", "100 %"),
@@ -434,9 +601,14 @@ def setup():
               "VOX TALK": -13.0, "FX": -22.0}
     # v3 soloed: HAT OFF read -11 LU and the perc loop and clap peaked over the kick (-9.3 / -9.5
     # against -10.1 dBFS): nothing peaks above the kick
+    faders.update({"ACID": -15.0,                          # soloed -10.3 LU at -12: a detail sits ~-13 "PAD": -16.0, "PAD B": -16.0, "FX REV": -15.0, "FX BOOM": -11.0, "FX REV CRASH": -20.0})
     faders.update({"HAT 16": -9.5, "SYNTH ANSWER": -12.0, "CRASH": -14.0, "HAT OFF": -8.0,
                    "SYNTH": -12.5, "BASS": -3.5, "KICK HP": -2.0, "PERC LOOP": -15.5, "CLAP": -6.0})
     pans = {"HAT OFF": -0.12, "HAT 16": 0.15, "PERC LOOP": 0.2, "SYNTH ANSWER": -0.25}
+    # v4 full render against dub_house_streets: kick over bass 4.0 dB (refs 5-8.5), clap backbeat
+    # +13 dB (5-10.7), hats -19.8 (-18..-16.4), mids 2.6 % (3.5-4.5), high-mids 1.5 % (3.0-3.4)
+    faders.update({"BASS": -5.0, "CLAP": -8.0, "HAT OFF": -6.5, "HAT 16": -8.0, "SYNTH": -10.5,
+                   "VOX CALL": -6.0, "VOX HOOK": -9.5, "VOX TALK": -11.5})
     for t, db in faders.items():
         C("set_track", {"track": t, "volume_db": db, "pan": pans.get(t, 0.0)})
     mix()
@@ -448,17 +620,20 @@ def devs(track):
 
 # high-pass per element: (slope, Hz). Nothing here is a bass part; the synth's lowest note is G3.
 HP = {"SYNTH": ("High Pass 12dB", "120 Hz"), "SYNTH ANSWER": ("High Pass 48dB", "350 Hz"),
+      "ACID": ("High Pass 12dB", "150 Hz"), "PAD": ("High Pass 12dB", "250 Hz"), "PAD B": ("High Pass 12dB", "250 Hz"),
+      "FX REV": ("High Pass 12dB", "300 Hz"),
       "VOX CALL": ("High Pass 12dB", "120 Hz"), "VOX HOOK": ("High Pass 12dB", "120 Hz"),
       "VOX TALK": ("High Pass 12dB", "120 Hz"), "PERC LOOP": ("High Pass 12dB", "200 Hz"),
       "HAT OFF": ("High Pass 12dB", "300 Hz"), "HAT 16": ("High Pass 12dB", "400 Hz"),
       "CLAP": ("High Pass 12dB", "150 Hz"), "CRASH": ("High Pass 12dB", "300 Hz")}
 # sends in dB: (A plate, B ping-pong delay)
 SENDS = {"CLAP": (-24.0, None), "HAT OFF": (-30.0, None), "CRASH": (-16.0, None), "SYNTH": (-24.0, None),
-         "SYNTH ANSWER": (-14.0, -8.0), "VOX CALL": (-16.0, -24.0), "VOX HOOK": (-16.0, -24.0),
+         "SYNTH ANSWER": (-14.0, -8.0), "ACID": (-18.0, -14.0), "PAD": (-14.0, None), "PAD B": (-14.0, None),
+         "FX REV": (-18.0, None), "VOX CALL": (-16.0, -24.0), "VOX HOOK": (-16.0, -24.0),
          "VOX TALK": (-16.0, -24.0)}                      # one space for every voice
 DRUM_BUS = ["CLAP", "HAT OFF", "HAT 16", "PERC LOOP", "CRASH"]
-ROOM = {"CLAP": -20.0, "HAT OFF": -21.0, "HAT 16": -22.0, "PERC LOOP": -20.0, "CRASH": -20.0}
-MUSIC_BUS = ["SYNTH", "SYNTH ANSWER"]
+ROOM = {"CLAP": -16.0, "HAT OFF": -21.0, "HAT 16": -22.0, "PERC LOOP": -20.0, "CRASH": -20.0}
+MUSIC_BUS = ["SYNTH", "SYNTH ANSWER", "PAD", "PAD B", "ACID"]
 ROOM_REVERB = "audio_effects/Reverb"
 
 
@@ -481,7 +656,12 @@ def mix():
         C("set_track_output", {"track": t, "dest": "DRUMS"})
     # v2 check: the top of the mix was 8 dB short of the references (dull hat samples): air on the
     # drum bus and presence on the synth, in the elements, not on the master
-    for t, f, g in (("DRUMS", "7.00 kHz", "5.0 dB"), ("SYNTH", "2.50 kHz", "3.0 dB")):
+    # v4: with the hat line approved, the top was still 0.6 % of the mix (references ~2.7 %): his
+    # hat samples are dark (Hat 14 centres at 5 kHz), so each element gets its own shelf
+    for t, f, g in (("DRUMS", "7.00 kHz", "5.0 dB"), ("SYNTH", "2.50 kHz", "3.0 dB"),
+                    ("HAT OFF", "6.00 kHz", "4.0 dB"), ("HAT 16", "8.00 kHz", "3.0 dB"),
+                    ("CLAP", "5.00 kHz", "2.0 dB"), ("VOX CALL", "4.00 kHz", "2.0 dB"),
+                    ("VOX HOOK", "4.00 kHz", "2.0 dB"), ("VOX TALK", "4.00 kHz", "2.0 dB")):
         setp(t, "EQ Eight", "4 Filter On A", 1.0)
         setp(t, "EQ Eight", "4 Filter Type A", "High Shelf")
         setp(t, "EQ Eight", "4 Frequency A", f)
@@ -516,6 +696,10 @@ def mix():
         log("  music duck", p, setp("MUSIC", "Compressor", p, v))
     for t in MUSIC_BUS:
         C("set_track_output", {"track": t, "dest": "MUSIC"})
+    # v4: width above the bass read -13 dB side/mid (refs -8..-6): widen the music, nothing else
+    if "Utility" not in devs("MUSIC"):
+        C("load_device", {"track": "MUSIC", "query": "Utility", "roots": ["audio_effects"]})
+    log("  music width", setp("MUSIC", "Utility", "Stereo Width", "150 %"))
     for p, v in (("Mode", "True Peak"), ("Ceiling", "-1.0 dB"), ("Input Gain", "6.0 dB")):
         log("  master limiter", p, setp("master", "Limiter", p, v))
 
@@ -538,11 +722,16 @@ def main(only=None):
     if only and only.startswith("midi:"):                    # one MIDI part again, e.g. midi:BASS
         t = only[5:]
         C("delete_clips_in_range", {"track": t, "start_bar": 1, "end_bar": 400})
-        log("  %-8s %d notes" % (t, midi_clips(t, MIDI_PARTS[t], bass_envelope if t == "BASS" else None)))
+        log("  %-8s %d notes" % (t, midi_clips(t, MIDI_PARTS[t], ENVELOPES.get(t))))
+    if only == "fx2":
+        build_fx2()
+    if only == "answer":
+        C("delete_clips_in_range", {"track": "SYNTH ANSWER", "start_bar": 1, "end_bar": 400})
+        build_answer()
     if only in (None, "clips"):
         clear()
         for t, gen in MIDI_PARTS.items():
-            n = midi_clips(t, gen, bass_envelope if t == "BASS" else None)
+            n = midi_clips(t, gen, ENVELOPES.get(t))
             log("  %-8s %d notes" % (t, n))
         build_synth()
         log("  synth placed")
@@ -550,6 +739,7 @@ def main(only=None):
         log("  perc placed")
         build_answer()
         log("  answers placed")
+        build_fx2()
     if only in (None, "clips", "voices"):
         for t in ("VOX CALL", "VOX HOOK", "VOX TALK", "FX"):
             C("delete_clips_in_range", {"track": t, "start_bar": 1, "end_bar": 400})
