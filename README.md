@@ -12,6 +12,8 @@ Native app chat ──MCP──▶ mcp_server (Python) ──TCP 9878──▶ C
                      └─ analysis: LUFS, true peak, bands, stereo, per section
 ```
 
+**Windows + ChatGPT:** one line in PowerShell installs everything; see [docs/windows-chatgpt.md](docs/windows-chatgpt.md).
+
 ## Pieces
 
 | Path | What |

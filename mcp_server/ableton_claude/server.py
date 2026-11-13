@@ -1424,12 +1424,28 @@ def library_midi(path: str, to_key: str | None = None) -> list:
             for name, notes in tracks]
 
 
+def configure_http(env):
+    """HTTP settings. ABLETON_MCP_TOKEN serves the connector at /<token>/mcp for a tunnel
+    (ChatGPT needs a public HTTPS URL): the request's Host is then the tunnel's, so Live's
+    localhost-only Host check is off and the secret path is what keeps strangers out."""
+    from mcp.server.transport_security import TransportSecuritySettings
+    mcp.settings.port = int(env.get("ABLETON_MCP_PORT", "8000"))
+    token = (env.get("ABLETON_MCP_TOKEN") or "").strip().strip("/")
+    if token:
+        if len(token) < 24 or not token.replace("-", "").replace("_", "").isalnum():
+            raise SystemExit("ABLETON_MCP_TOKEN must be at least 24 letters/digits (- and _ allowed)")
+        mcp.settings.streamable_http_path = "/%s/mcp" % token
+        mcp.settings.transport_security = TransportSecuritySettings(
+            enable_dns_rebinding_protection=False)
+    return mcp.settings.streamable_http_path
+
+
 def main():
     # stdio for desktop clients (Claude, Cursor, LM Studio); --http serves Streamable HTTP
     # on 127.0.0.1:8000/mcp for clients that connect by URL (ChatGPT, through a tunnel).
     import sys
     if "--http" in sys.argv:
-        mcp.settings.port = int(os.environ.get("ABLETON_MCP_PORT", "8000"))
+        configure_http(os.environ)
         mcp.run(transport="streamable-http")
     else:
         mcp.run()

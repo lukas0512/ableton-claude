@@ -9,9 +9,33 @@ reference's swing and push on any clip.
 import os
 import re
 
-CORE_GROOVE = ("/Applications/Ableton Live 12 Suite.app/Contents/App-Resources/Core Library/"
-               "Grooves/Swing/Basic/Swing 16ths 59.agr")
-USER_GROOVES = os.path.expanduser("~/Music/Ableton/User Library/Grooves/Claude")
+import glob
+
+_SWING = os.path.join("Core Library", "Grooves", "Swing", "Basic", "Swing 16ths 59.agr")
+
+
+def user_library():
+    """Live's User Library: ~/Music/Ableton on macOS, Documents\\Ableton on Windows."""
+    if os.environ.get("ABLETON_USER_LIBRARY"):
+        return os.environ["ABLETON_USER_LIBRARY"]
+    if os.name == "nt":
+        return os.path.join(os.path.expanduser("~"), "Documents", "Ableton", "User Library")
+    return os.path.expanduser("~/Music/Ableton/User Library")
+
+
+def _core_groove():
+    if os.name == "nt":
+        pattern = os.path.join(os.environ.get("ProgramData", r"C:\ProgramData"),
+                               "Ableton", "Live 1*", "Resources", _SWING)
+    else:
+        pattern = os.path.join("/Applications", "Ableton Live 1*.app", "Contents",
+                               "App-Resources", _SWING)
+    found = sorted(glob.glob(pattern))
+    return found[-1] if found else pattern.replace("Live 1*", "Live 12 Suite")
+
+
+CORE_GROOVE = _core_groove()
+USER_GROOVES = os.path.join(user_library(), "Grooves", "Claude")
 
 
 def notes_from_template(template, period_s):
